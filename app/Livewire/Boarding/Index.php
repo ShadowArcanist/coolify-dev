@@ -62,6 +62,8 @@ class Index extends Component
 
     public ?Project $createdProject = null;
 
+    public ?string $newProjectName = null;
+
     public bool $dockerInstallationStarted = false;
 
     public string $serverPublicKey;
@@ -145,7 +147,7 @@ uZx9iFkCELtxrh31QJ68AAAAEXNhaWxANzZmZjY2ZDJlMmRkAQIDBA==
 
                 return;
             }
-            $this->currentState = 'private-key';
+            $this->currentState = 'create-server';
         }
     }
 
@@ -193,7 +195,7 @@ uZx9iFkCELtxrh31QJ68AAAAEXNhaWxANzZmZjY2ZDJlMmRkAQIDBA==
     public function createNewServer()
     {
         $this->selectedExistingServer = null;
-        $this->currentState = 'private-key';
+        $this->currentState = 'create-server';
     }
 
     public function setPrivateKey(string $type)
@@ -202,8 +204,14 @@ uZx9iFkCELtxrh31QJ68AAAAEXNhaWxANzZmZjY2ZDJlMmRkAQIDBA==
         $this->privateKeyType = $type;
         if ($type === 'create') {
             $this->createNewPrivateKey();
+            $this->currentState = 'create-private-key';
+        } elseif ($type === 'own') {
+            $this->privateKeyName = generate_random_name();
+            $this->privateKeyDescription = 'Added by user';
+            $this->currentState = 'enter-private-key';
+        } else {
+            $this->currentState = 'create-private-key';
         }
-        $this->currentState = 'create-private-key';
     }
 
     public function savePrivateKey()
@@ -223,7 +231,13 @@ uZx9iFkCELtxrh31QJ68AAAAEXNhaWxANzZmZjY2ZDJlMmRkAQIDBA==
             ]);
 
             $this->createdPrivateKey = $privateKey;
-            $this->currentState = 'create-server';
+
+            // If server details have been entered, create the server
+            if ($this->remoteServerName && $this->remoteServerHost) {
+                $this->saveServer();
+            } else {
+                $this->currentState = 'create-server';
+            }
         } catch (\Exception $e) {
             $this->addError('privateKey', 'Failed to save private key: '.$e->getMessage());
         }
@@ -237,6 +251,12 @@ uZx9iFkCELtxrh31QJ68AAAAEXNhaWxANzZmZjY2ZDJlMmRkAQIDBA==
             'remoteServerPort' => 'required|integer',
             'remoteServerUser' => 'required|string',
         ]);
+
+        // If no private key is selected yet, go to SSH key setup first
+        if (!$this->createdPrivateKey) {
+            $this->currentState = 'private-key';
+            return;
+        }
 
         $this->privateKey = formatPrivateKey($this->privateKey);
         $foundServer = Server::whereIp($this->remoteServerHost)->first();
@@ -333,8 +353,18 @@ uZx9iFkCELtxrh31QJ68AAAAEXNhaWxANzZmZjY2ZDJlMmRkAQIDBA==
 
     public function createNewProject()
     {
+        $this->newProjectName = 'My first project';
+        $this->currentState = 'enter-project-name';
+    }
+
+    public function saveNewProject()
+    {
+        $this->validate([
+            'newProjectName' => 'required|string|max:255',
+        ]);
+
         $this->createdProject = Project::create([
-            'name' => 'My first project',
+            'name' => $this->newProjectName,
             'team_id' => currentTeam()->id,
             'uuid' => (string) new Cuid2,
         ]);
@@ -368,6 +398,11 @@ uZx9iFkCELtxrh31QJ68AAAAEXNhaWxANzZmZjY2ZDJlMmRkAQIDBA==
             'timezone' => 'UTC',
         ]);
         $this->validateServer();
+    }
+
+    public function generateNewKey()
+    {
+        $this->createNewPrivateKey();
     }
 
     private function createNewPrivateKey()
