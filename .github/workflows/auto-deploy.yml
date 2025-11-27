@@ -1,0 +1,25 @@
+name: Production Build
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ⭐ Install & build your application
+      - name: Install dependencies and build
+        run: |
+          npm install && npm run build
+
+      # ⭐ Trigger Coolify API to deploy new version
+      - name: Deploy to Coolify
+        run: |
+          curl --request GET '${{ secrets.COOLIFY_WEBHOOK }}' \
+               --header 'Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}'
