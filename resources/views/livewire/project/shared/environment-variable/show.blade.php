@@ -13,41 +13,43 @@
                         <path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0-2 0m-3-5V7a4 4 0 1 1 8 0v4" />
                     </g>
                 </svg>
-                @can('delete', $this->env)
-                    <x-modal-confirmation title="Confirm Environment Variable Deletion?" isErrorButton buttonTitle="Delete"
-                        submitAction="delete" :actions="['The selected environment variable will be permanently deleted.']" confirmationText="{{ $env->key }}"
-                        confirmationLabel="Please confirm the execution of the actions by entering the Environment Variable Name below"
-                        shortConfirmationLabel="Environment Variable Name" :confirmWithPassword="false"
-                        step2ButtonText="Permanently Delete" />
-                @endcan
-            </div>
-            @can('update', $this->env)
-                <div class="flex flex-col w-full gap-3">
-                    <div class="flex flex-wrap w-full items-center gap-4">
-                        @if (!$is_redis_credential)
-                            @if ($type === 'service')
-                                <x-forms.checkbox instantSave id="is_buildtime"
-                                    helper="Make this variable available during Docker build process. Useful for build secrets and dependencies."
-                                    label="Available at Buildtime" />
-                                <x-forms.checkbox instantSave id="is_runtime"
-                                    helper="Make this variable available in the running container at runtime."
-                                    label="Available at Runtime" />
-                                <x-forms.checkbox instantSave id="is_multiline" label="Is Multiline?" />
-                                <x-forms.checkbox instantSave id="is_literal"
-                                    helper="This means that when you use $VARIABLES in a value, it should be interpreted as the actual characters '$VARIABLES' and not as the value of a variable named VARIABLE.<br><br>Useful if you have $ sign in your value and there are some characters after it, but you would not like to interpolate it from another value. In this case, you should set this to true."
-                                    label="Is Literal?" />
-                            @else
-                                @if ($isSharedVariable)
-                                    <x-forms.checkbox instantSave id="is_multiline" label="Is Multiline?" />
-                                @else
-                                    @if (!$env->is_nixpacks)
-                                        <x-forms.checkbox instantSave id="is_buildtime"
-                                            helper="Make this variable available during Docker build process. Useful for build secrets and dependencies."
-                                            label="Available at Buildtime" />
-                                    @endif
-                                    <x-forms.checkbox instantSave id="is_runtime"
-                                        helper="Make this variable available in the running container at runtime."
-                                        label="Available at Runtime" />
+                 @can('delete', $this->env)
+                     <x-modal-confirmation title="Confirm Environment Variable Deletion?" isErrorButton buttonTitle="Delete"
+                         submitAction="delete" :actions="['The selected environment variable will be permanently deleted.']" confirmationText="{{ $env->key }}"
+                         confirmationLabel="Please confirm the execution of the actions by entering the Environment Variable Name below"
+                         shortConfirmationLabel="Environment Variable Name" :confirmWithPassword="false"
+                         step2ButtonText="Permanently Delete" />
+                 @endcan
+             </div>
+             @can('update', $this->env)
+                 <div class="flex flex-col w-full gap-3">
+                     <div class="flex flex-wrap w-full items-center gap-4">
+                         @if (!$is_redis_credential)
+                             @if ($type === 'service')
+                                 <x-forms.checkbox instantSave id="is_buildtime"
+                                     helper="Make this variable available during Docker build process. Useful for build secrets and dependencies."
+                                     label="Available at Buildtime" />
+                                 <x-forms.checkbox instantSave id="is_runtime"
+                                     helper="Make this variable available in the running container at runtime."
+                                     label="Available at Runtime" />
+                                 <x-forms.checkbox instantSave id="is_multiline" label="Is Multiline?" />
+                                 <x-forms.checkbox instantSave id="is_literal"
+                                     helper="This means that when you use $VARIABLES in a value, it should be interpreted as the actual characters '$VARIABLES' and not as the value of a variable named VARIABLE.<br><br>Useful if you have $ sign in your value and there are some characters after it, but you would not like to interpolate it from another value. In this case, you should set this to true."
+                                     label="Is Literal?" />
+                             @else
+                                 @if ($isSharedVariable)
+                                     <x-forms.checkbox disabled id="is_multiline" label="Is Multiline?" />
+                                 @else
+                                     @if (!$env->is_nixpacks && $type !== 'server')
+                                         <x-forms.checkbox instantSave id="is_buildtime"
+                                             helper="Make this variable available during Docker build process. Useful for build secrets and dependencies."
+                                             label="Available at Buildtime" />
+                                     @endif
+                                     @if ($type !== 'server')
+                                         <x-forms.checkbox instantSave id="is_runtime"
+                                             helper="Make this variable available in the running container at runtime."
+                                             label="Available at Runtime" />
+                                     @endif
                                     @if (!$env->is_nixpacks)
                                         <x-forms.checkbox instantSave id="is_multiline" label="Is Multiline?" />
                                         @if ($is_multiline === false)
@@ -96,12 +98,12 @@
                                     @endif
                                 @endif
                             @endif
-                        @endif
-                    </div>
-                </div>
-            @endcan
-        @else
-            @can('update', $this->env)
+                         @endif
+                     </div>
+                 </div>
+             @endcan
+          @else
+              @can('update', $this->env)
                 @if ($isDisabled)
                     <div class="flex flex-col w-full gap-2 lg:flex-row">
                         <x-forms.input disabled id="key" />
@@ -166,18 +168,20 @@
                                 <x-forms.checkbox instantSave id="is_literal"
                                     helper="This means that when you use $VARIABLES in a value, it should be interpreted as the actual characters '$VARIABLES' and not as the value of a variable named VARIABLE.<br><br>Useful if you have $ sign in your value and there are some characters after it, but you would not like to interpolate it from another value. In this case, you should set this to true."
                                     label="Is Literal?" />
-                            @else
-                                @if ($isSharedVariable)
-                                    <x-forms.checkbox instantSave id="is_multiline" label="Is Multiline?" />
-                                @else
-                                    @if (!$env->is_nixpacks)
-                                        <x-forms.checkbox instantSave id="is_buildtime"
-                                            helper="Make this variable available during Docker build process. Useful for build secrets and dependencies."
-                                            label="Available at Buildtime" />
-                                    @endif
-                                    <x-forms.checkbox instantSave id="is_runtime"
-                                        helper="Make this variable available in the running container at runtime."
-                                        label="Available at Runtime" />
+                             @else
+                                  @if ($isSharedVariable)
+                                      <x-forms.checkbox instantSave wire:model.live="is_multiline" id="is_multiline" label="Is Multiline?" />
+                                 @else
+                                     @if (!$env->is_nixpacks && $type !== 'server')
+                                         <x-forms.checkbox disabled id="is_buildtime"
+                                             helper="Make this variable available during Docker build process. Useful for build secrets and dependencies."
+                                             label="Available at Buildtime" />
+                                     @endif
+                                     @if ($type !== 'server')
+                                         <x-forms.checkbox disabled id="is_runtime"
+                                             helper="Make this variable available in the running container at runtime."
+                                             label="Available at Runtime" />
+                                     @endif
                                     @if (!$env->is_nixpacks)
                                         <x-forms.checkbox instantSave id="is_multiline" label="Is Multiline?" />
                                         @if ($is_multiline === false)

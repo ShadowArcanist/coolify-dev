@@ -28,6 +28,10 @@
                 helper="When enabled, SOURCE_COMMIT (git commit hash) is available during Docker build. Disable to preserve cache across different commits - SOURCE_COMMIT will still be available at runtime."
                 instantSave id="includeSourceCommitInBuild" label="Include Source Commit in Build" canGate="update"
                 :canResource="$application" />
+            <x-forms.checkbox
+                helper="When enabled, server environment variables (COOLIFY_SERVER_NAME, COOLIFY_SERVER_UUID, COOLIFY_SERVER_ID) are automatically injected at runtime to identify which server the application is running on."
+                instantSave id="isServerEnvVarsInjectionEnabled" label="Inject Server Environment Variables at Runtime" canGate="update"
+                :canResource="$application" />
 
             @if ($application->settings->is_container_label_readonly_enabled)
                 <x-forms.checkbox

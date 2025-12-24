@@ -2366,6 +2366,28 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
                 if ($this->application->environment_variables_preview->where('key', 'COOLIFY_RESOURCE_UUID')->isEmpty()) {
                     $coolify_envs->put('COOLIFY_RESOURCE_UUID', $this->application->uuid);
                 }
+                if ($this->application->settings->is_server_env_vars_injection_enabled ?? true) {
+                    if ($this->application->environment_variables_preview->where('key', 'COOLIFY_SERVER_NAME')->isEmpty()) {
+                        $coolify_envs->put('COOLIFY_SERVER_NAME', $this->application->destination->server->name);
+                    }
+                    if ($this->application->environment_variables_preview->where('key', 'COOLIFY_SERVER_UUID')->isEmpty()) {
+                        $coolify_envs->put('COOLIFY_SERVER_UUID', $this->application->destination->server->uuid);
+                    }
+                    if ($this->application->environment_variables_preview->where('key', 'COOLIFY_SERVER_ID')->isEmpty()) {
+                        $coolify_envs->put('COOLIFY_SERVER_ID', $this->application->destination->server->id);
+                    }
+
+                    // Inject server-specific environment variables
+                    $serverEnvVars = $this->application->destination->server->environment_variables()
+                        ->where('is_runtime', true)
+                        ->get();
+
+                    foreach ($serverEnvVars as $envVar) {
+                        if ($this->application->environment_variables_preview->where('key', $envVar->key)->isEmpty()) {
+                            $coolify_envs->put($envVar->key, $envVar->real_value);
+                        }
+                    }
+                }
                 // Only add COOLIFY_CONTAINER_NAME for runtime (not build-time) - it changes every deployment and breaks Docker cache
                 if (! $forBuildTime) {
                     if ($this->application->environment_variables_preview->where('key', 'COOLIFY_CONTAINER_NAME')->isEmpty()) {
@@ -2409,6 +2431,28 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
                 }
                 if ($this->application->environment_variables->where('key', 'COOLIFY_RESOURCE_UUID')->isEmpty()) {
                     $coolify_envs->put('COOLIFY_RESOURCE_UUID', $this->application->uuid);
+                }
+                if ($this->application->settings->is_server_env_vars_injection_enabled ?? true) {
+                    if ($this->application->environment_variables->where('key', 'COOLIFY_SERVER_NAME')->isEmpty()) {
+                        $coolify_envs->put('COOLIFY_SERVER_NAME', $this->application->destination->server->name);
+                    }
+                    if ($this->application->environment_variables->where('key', 'COOLIFY_SERVER_UUID')->isEmpty()) {
+                        $coolify_envs->put('COOLIFY_SERVER_UUID', $this->application->destination->server->uuid);
+                    }
+                    if ($this->application->environment_variables->where('key', 'COOLIFY_SERVER_ID')->isEmpty()) {
+                        $coolify_envs->put('COOLIFY_SERVER_ID', $this->application->destination->server->id);
+                    }
+
+                    // Inject server-specific environment variables
+                    $serverEnvVars = $this->application->destination->server->environment_variables()
+                        ->where('is_runtime', true)
+                        ->get();
+
+                    foreach ($serverEnvVars as $envVar) {
+                        if ($this->application->environment_variables->where('key', $envVar->key)->isEmpty()) {
+                            $coolify_envs->put($envVar->key, $envVar->real_value);
+                        }
+                    }
                 }
                 // Only add COOLIFY_CONTAINER_NAME for runtime (not build-time) - it changes every deployment and breaks Docker cache
                 if (! $forBuildTime) {

@@ -27,6 +27,8 @@ class All extends Component
 
     public bool $use_build_secrets = false;
 
+    public bool $runtimeOnly = false;
+
     protected $listeners = [
         'saveKey' => 'submit',
         'refreshEnvs',
@@ -228,7 +230,7 @@ class All extends Component
         $environment->is_multiline = $data['is_multiline'] ?? false;
         $environment->is_literal = $data['is_literal'] ?? false;
         $environment->is_runtime = $data['is_runtime'] ?? true;
-        $environment->is_buildtime = $data['is_buildtime'] ?? true;
+        $environment->is_buildtime = $data['is_buildtime'] ?? ($this->resourceClass === 'App\Models\Server' ? false : true);
         $environment->is_preview = $data['is_preview'] ?? false;
         $environment->resourceable_id = $this->resource->id;
         $environment->resourceable_type = $this->resource->getMorphClass();

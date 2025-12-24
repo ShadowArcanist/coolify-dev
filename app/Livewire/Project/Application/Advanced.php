@@ -82,6 +82,9 @@ class Advanced extends Component
     #[Validate(['boolean'])]
     public bool $isConnectToDockerNetworkEnabled = false;
 
+    #[Validate(['boolean'])]
+    public bool $isServerEnvVarsInjectionEnabled = true;
+
     public function mount()
     {
         try {
@@ -118,6 +121,7 @@ class Advanced extends Component
             $this->application->settings->disable_build_cache = $this->disableBuildCache;
             $this->application->settings->inject_build_args_to_dockerfile = $this->injectBuildArgsToDockerfile;
             $this->application->settings->include_source_commit_in_build = $this->includeSourceCommitInBuild;
+            $this->application->settings->is_server_env_vars_injection_enabled = $this->isServerEnvVarsInjectionEnabled;
             $this->application->settings->save();
         } else {
             $this->isForceHttpsEnabled = $this->application->isForceHttpsEnabled();
@@ -144,6 +148,7 @@ class Advanced extends Component
             $this->disableBuildCache = $this->application->settings->disable_build_cache;
             $this->injectBuildArgsToDockerfile = $this->application->settings->inject_build_args_to_dockerfile ?? true;
             $this->includeSourceCommitInBuild = $this->application->settings->include_source_commit_in_build ?? false;
+            $this->isServerEnvVarsInjectionEnabled = $this->application->settings->is_server_env_vars_injection_enabled ?? true;
         }
     }
 

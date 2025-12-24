@@ -31,6 +31,8 @@ class Add extends Component
 
     public bool $is_buildtime = true;
 
+    public bool $runtimeOnly = false;
+
     public array $problematicVariables = [];
 
     protected $listeners = ['clearAddEnv' => 'clear'];
@@ -57,6 +59,12 @@ class Add extends Component
     {
         $this->parameters = get_route_parameters();
         $this->problematicVariables = self::getProblematicVariablesForFrontend();
+
+        // For runtime-only mode (server environment variables), set default values
+        if ($this->runtimeOnly) {
+            $this->is_runtime = true;
+            $this->is_buildtime = false;
+        }
     }
 
     #[Computed]

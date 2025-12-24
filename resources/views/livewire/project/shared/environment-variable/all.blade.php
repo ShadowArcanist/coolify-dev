@@ -1,18 +1,20 @@
 <div class="flex flex-col gap-4">
     <div>
-        <div class="flex items-center gap-2">
-            <h2>Environment Variables</h2>
-            @can('manageEnvironment', $resource)
-                <div class="flex flex-col items-center">
-                    <x-modal-input buttonTitle="+ Add" title="New Environment Variable" :closeOutside="false">
-                        <livewire:project.shared.environment-variable.add />
-                    </x-modal-input>
-                </div>
-                <x-forms.button
-                    wire:click='switch'>{{ $view === 'normal' ? 'Developer view' : 'Normal view' }}</x-forms.button>
-            @endcan
-        </div>
-        <div>Environment variables (secrets) for this resource. </div>
+        @if (!$runtimeOnly)
+            <div class="flex items-center gap-2">
+                <h2>Environment Variables</h2>
+                @can('manageEnvironment', $resource)
+                    <div class="flex flex-col items-center">
+                        <x-modal-input buttonTitle="+ Add" title="New Environment Variable" :closeOutside="false">
+                            <livewire:project.shared.environment-variable.add :runtimeOnly="$runtimeOnly" />
+                        </x-modal-input>
+                    </div>
+                    <x-forms.button
+                        wire:click='switch'>{{ $view === 'normal' ? 'Developer view' : 'Normal view' }}</x-forms.button>
+                @endcan
+            </div>
+            <div>Environment variables (secrets) for this resource. </div>
+        @endif
         @if ($resourceClass === 'App\Models\Application')
             <div class="flex flex-col gap-2 pt-2">
                 @if (data_get($resource, 'build_pack') !== 'dockercompose')
@@ -57,14 +59,32 @@
     </div>
     @if ($view === 'normal')
         <div>
-            <h3>Production Environment Variables</h3>
-            <div>Environment (secrets) variables for Production.</div>
+            @if ($resourceClass === 'App\Models\Server')
+                <div class="flex items-center gap-2">
+                    <h3>Server Environment Variables</h3>
+                    @can('manageEnvironment', $resource)
+                        <div class="flex flex-col items-center">
+                            <x-modal-input buttonTitle="+ Add" title="New Environment Variable" :closeOutside="false">
+                                <livewire:project.shared.environment-variable.add :runtimeOnly="$runtimeOnly" />
+                            </x-modal-input>
+                        </div>
+                    @endcan
+                </div>
+                <div>Environment variables that will be injected into applications deployed on this server.</div>
+            @else
+                <h3>Production Environment Variables</h3>
+                <div>Environment (secrets) variables for Production.</div>
+            @endif
         </div>
         @forelse ($this->environmentVariables as $env)
             <livewire:project.shared.environment-variable.show wire:key="environment-{{ $env->id }}"
                 :env="$env" :type="$resource->type()" />
         @empty
-            <div>No environment variables found.</div>
+            @if ($resourceClass === 'App\Models\Server')
+                <div>No server environment variables found.</div>
+            @else
+                <div>No environment variables found.</div>
+            @endif
         @endforelse
         @if ($resource->type() === 'application' && $resource->environment_variables_preview->count() > 0 && $showPreview)
             <div>
