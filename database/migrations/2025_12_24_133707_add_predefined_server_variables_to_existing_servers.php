@@ -24,7 +24,7 @@ return new class extends Migration
             if (!$uuidExists) {
                 DB::table('shared_environment_variables')->insert([
                     'key' => 'COOLIFY_SERVER_UUID',
-                    'value' => $server->uuid,
+                    'value' => encrypt($server->uuid),
                     'type' => 'server',
                     'server_id' => $server->id,
                     'team_id' => $server->team_id,
@@ -43,7 +43,7 @@ return new class extends Migration
             if (!$nameExists) {
                 DB::table('shared_environment_variables')->insert([
                     'key' => 'COOLIFY_SERVER_NAME',
-                    'value' => $server->name,
+                    'value' => encrypt($server->name),
                     'type' => 'server',
                     'server_id' => $server->id,
                     'team_id' => $server->team_id,
