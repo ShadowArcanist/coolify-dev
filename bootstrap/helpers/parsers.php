@@ -1065,6 +1065,18 @@ function applicationParser(Application $resource, int $pull_request_id = 0, ?int
         if ($resource->environment_variables->where('key', 'COOLIFY_CONTAINER_NAME')->isEmpty()) {
             $coolifyEnvironments->put('COOLIFY_CONTAINER_NAME', "{$containerName}");
         }
+        // Add COOLIFY_SERVER_NAME to environment
+        if ($resource->environment_variables->where('key', 'COOLIFY_SERVER_NAME')->isEmpty()) {
+            $coolifyEnvironments->put('COOLIFY_SERVER_NAME', "{$resource->destination->server->name}");
+        }
+        // Add COOLIFY_SERVER_UUID to environment
+        if ($resource->environment_variables->where('key', 'COOLIFY_SERVER_UUID')->isEmpty()) {
+            $coolifyEnvironments->put('COOLIFY_SERVER_UUID', "{$resource->destination->server->uuid}");
+        }
+        // Add COOLIFY_SERVER_ID to environment
+        if ($resource->environment_variables->where('key', 'COOLIFY_SERVER_ID')->isEmpty()) {
+            $coolifyEnvironments->put('COOLIFY_SERVER_ID', "{$resource->destination->server->id}");
+        }
 
         if ($isPullRequest) {
             $preview = $resource->previews()->find($preview_id);
@@ -2254,6 +2266,18 @@ function serviceParser(Service $resource): Collection
         // Add COOLIFY_CONTAINER_NAME to environment
         if ($resource->environment_variables->where('key', 'COOLIFY_CONTAINER_NAME')->isEmpty()) {
             $coolifyEnvironments->put('COOLIFY_CONTAINER_NAME', "{$containerName}");
+        }
+        // Add COOLIFY_SERVER_NAME to environment
+        if ($resource->environment_variables->where('key', 'COOLIFY_SERVER_NAME')->isEmpty()) {
+            $coolifyEnvironments->put('COOLIFY_SERVER_NAME', "{$resource->destination->server->name}");
+        }
+        // Add COOLIFY_SERVER_UUID to environment
+        if ($resource->environment_variables->where('key', 'COOLIFY_SERVER_UUID')->isEmpty()) {
+            $coolifyEnvironments->put('COOLIFY_SERVER_UUID', "{$resource->destination->server->uuid}");
+        }
+        // Add COOLIFY_SERVER_ID to environment
+        if ($resource->environment_variables->where('key', 'COOLIFY_SERVER_ID')->isEmpty()) {
+            $coolifyEnvironments->put('COOLIFY_SERVER_ID', "{$resource->destination->server->id}");
         }
 
         if ($savedService->serviceType()) {

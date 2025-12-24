@@ -2366,6 +2366,17 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
                 if ($this->application->environment_variables_preview->where('key', 'COOLIFY_RESOURCE_UUID')->isEmpty()) {
                     $coolify_envs->put('COOLIFY_RESOURCE_UUID', $this->application->uuid);
                 }
+                if ($this->application->settings->is_server_env_vars_injection_enabled ?? true) {
+                    if ($this->application->environment_variables_preview->where('key', 'COOLIFY_SERVER_NAME')->isEmpty()) {
+                        $coolify_envs->put('COOLIFY_SERVER_NAME', $this->application->destination->server->name);
+                    }
+                    if ($this->application->environment_variables_preview->where('key', 'COOLIFY_SERVER_UUID')->isEmpty()) {
+                        $coolify_envs->put('COOLIFY_SERVER_UUID', $this->application->destination->server->uuid);
+                    }
+                    if ($this->application->environment_variables_preview->where('key', 'COOLIFY_SERVER_ID')->isEmpty()) {
+                        $coolify_envs->put('COOLIFY_SERVER_ID', $this->application->destination->server->id);
+                    }
+                }
                 // Only add COOLIFY_CONTAINER_NAME for runtime (not build-time) - it changes every deployment and breaks Docker cache
                 if (! $forBuildTime) {
                     if ($this->application->environment_variables_preview->where('key', 'COOLIFY_CONTAINER_NAME')->isEmpty()) {
@@ -2409,6 +2420,17 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
                 }
                 if ($this->application->environment_variables->where('key', 'COOLIFY_RESOURCE_UUID')->isEmpty()) {
                     $coolify_envs->put('COOLIFY_RESOURCE_UUID', $this->application->uuid);
+                }
+                if ($this->application->settings->is_server_env_vars_injection_enabled ?? true) {
+                    if ($this->application->environment_variables->where('key', 'COOLIFY_SERVER_NAME')->isEmpty()) {
+                        $coolify_envs->put('COOLIFY_SERVER_NAME', $this->application->destination->server->name);
+                    }
+                    if ($this->application->environment_variables->where('key', 'COOLIFY_SERVER_UUID')->isEmpty()) {
+                        $coolify_envs->put('COOLIFY_SERVER_UUID', $this->application->destination->server->uuid);
+                    }
+                    if ($this->application->environment_variables->where('key', 'COOLIFY_SERVER_ID')->isEmpty()) {
+                        $coolify_envs->put('COOLIFY_SERVER_ID', $this->application->destination->server->id);
+                    }
                 }
                 // Only add COOLIFY_CONTAINER_NAME for runtime (not build-time) - it changes every deployment and breaks Docker cache
                 if (! $forBuildTime) {

@@ -2860,6 +2860,47 @@ function add_coolify_default_environment_variables(StandaloneRedis|StandalonePos
             $where_to_add->push("COOLIFY_SERVER_IP=\"{$ip}\"");
         }
     }
+    // Only inject server environment variables for services and databases (applications are handled in ApplicationDeploymentJob)
+    $injectServerVars = !($resource instanceof Application);
+
+    if ($injectServerVars) {
+        if ($where_to_check != null && $where_to_check->where('key', 'COOLIFY_SERVER_NAME')->isEmpty()) {
+            if ($resource instanceof Service) {
+                $server_name = $resource->server->name;
+            } else {
+                $server_name = $resource->destination->server->name;
+            }
+            if ($isAssociativeArray) {
+                $where_to_add->put('COOLIFY_SERVER_NAME', "\"{$server_name}\"");
+            } else {
+                $where_to_add->push("COOLIFY_SERVER_NAME=\"{$server_name}\"");
+            }
+        }
+        if ($where_to_check != null && $where_to_check->where('key', 'COOLIFY_SERVER_UUID')->isEmpty()) {
+            if ($resource instanceof Service) {
+                $server_uuid = $resource->server->uuid;
+            } else {
+                $server_uuid = $resource->destination->server->uuid;
+            }
+            if ($isAssociativeArray) {
+                $where_to_add->put('COOLIFY_SERVER_UUID', "\"{$server_uuid}\"");
+            } else {
+                $where_to_add->push("COOLIFY_SERVER_UUID=\"{$server_uuid}\"");
+            }
+        }
+        if ($where_to_check != null && $where_to_check->where('key', 'COOLIFY_SERVER_ID')->isEmpty()) {
+            if ($resource instanceof Service) {
+                $server_id = $resource->server->id;
+            } else {
+                $server_id = $resource->destination->server->id;
+            }
+            if ($isAssociativeArray) {
+                $where_to_add->put('COOLIFY_SERVER_ID', "\"{$server_id}\"");
+            } else {
+                $where_to_add->push("COOLIFY_SERVER_ID=\"{$server_id}\"");
+            }
+        }
+    }
     if ($where_to_check != null && $where_to_check->where('key', 'COOLIFY_ENVIRONMENT_NAME')->isEmpty()) {
         if ($isAssociativeArray) {
             $where_to_add->put('COOLIFY_ENVIRONMENT_NAME', "\"{$resource->environment->name}\"");
