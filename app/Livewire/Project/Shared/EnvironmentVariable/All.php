@@ -27,6 +27,8 @@ class All extends Component
 
     public bool $use_build_secrets = false;
 
+    public bool $runtimeOnly = false;
+
     protected $listeners = [
         'saveKey' => 'submit',
         'refreshEnvs',

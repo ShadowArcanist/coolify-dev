@@ -101,4 +101,12 @@ class ServerPolicy
         // return $user->isAdmin() && $user->teams->contains('id', $server->team_id);
         return true;
     }
+
+    /**
+     * Determine whether the user can manage environment variables.
+     */
+    public function manageEnvironment(User $user, Server $server): bool
+    {
+        return $user->teams->contains('id', $server->team_id);
+    }
 }

@@ -59,6 +59,7 @@ use App\Livewire\Server\Security\TerminalAccess;
 use App\Livewire\Server\Sentinel as ServerSentinel;
 use App\Livewire\Server\Show as ServerShow;
 use App\Livewire\Server\Swarm as ServerSwarm;
+use App\Livewire\Server\EnvironmentVariables as ServerEnvironmentVariables;
 use App\Livewire\Settings\Advanced as SettingsAdvanced;
 use App\Livewire\Settings\Index as SettingsIndex;
 use App\Livewire\Settings\Updates as SettingsUpdates;
@@ -267,6 +268,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/proxy', ProxyShow::class)->name('server.proxy');
         Route::get('/proxy/dynamic', ProxyDynamicConfigurations::class)->name('server.proxy.dynamic-confs');
         Route::get('/proxy/logs', ProxyLogs::class)->name('server.proxy.logs');
+        Route::get('/environment-variables', ServerEnvironmentVariables::class)->name('server.environment-variables');
         Route::get('/terminal', ExecuteContainerCommand::class)->name('server.command')->middleware('can.access.terminal');
         Route::get('/docker-cleanup', DockerCleanup::class)->name('server.docker-cleanup');
         Route::get('/security', fn () => redirect(route('dashboard')))->name('server.security')->middleware('can.update.resource');

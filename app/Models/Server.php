@@ -288,6 +288,11 @@ class Server extends BaseModel
         return $this->hasMany(DockerCleanupExecution::class);
     }
 
+    public function environment_variables()
+    {
+        return $this->morphMany(EnvironmentVariable::class, 'resourceable');
+    }
+
     public function proxySet()
     {
         return $this->proxyType() && $this->proxyType() !== 'NONE' && $this->isFunctional() && ! $this->isSwarmWorker() && ! $this->settings->is_build_server;

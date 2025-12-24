@@ -16,7 +16,7 @@
         </div>
     @endif
 
-    @if (!$shared)
+    @if (!$shared && !$runtimeOnly)
         <x-forms.checkbox id="is_buildtime"
             helper="Make this variable available during Docker build process. Useful for build secrets and dependencies."
             label="Available at Buildtime" />
@@ -25,10 +25,15 @@
 
         <x-forms.checkbox id="is_runtime" helper="Make this variable available in the running container at runtime."
             label="Available at Runtime" />
-        <x-forms.checkbox id="is_literal"
-            helper="This means that when you use $VARIABLES in a value, it should be interpreted as the actual characters '$VARIABLES' and not as the value of a variable named VARIABLE.<br><br>Useful if you have $ sign in your value and there are some characters after it, but you would not like to interpolate it from another value. In this case, you should set this to true."
-            label="Is Literal?" />
+    @elseif ($runtimeOnly)
+        <div class="text-sm text-neutral-600 dark:text-neutral-400">
+            This environment variable will be available at runtime only.
+        </div>
     @endif
+
+    <x-forms.checkbox id="is_literal"
+        helper="This means that when you use $VARIABLES in a value, it should be interpreted as the actual characters '$VARIABLES' and not as the value of a variable named VARIABLE.<br><br>Useful if you have $ sign in your value and there are some characters after it, but you would not like to interpolate it from another value. In this case, you should set this to true."
+        label="Is Literal?" />
 
     <x-forms.checkbox id="is_multiline" label="Is Multiline?" />
     <x-forms.button type="submit" @click="slideOverOpen=false">

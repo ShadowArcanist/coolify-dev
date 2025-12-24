@@ -39,6 +39,9 @@
         <a class="menu-item {{ $activeMenu === 'destinations' ? 'menu-item-active' : '' }}" {{ wireNavigate() }}
             href="{{ route('server.destinations', ['server_uuid' => $server->uuid]) }}">Destinations
         </a>
+        <a class="menu-item {{ $activeMenu === 'environment-variables' ? 'menu-item-active' : '' }}" {{ wireNavigate() }}
+            href="{{ route('server.environment-variables', ['server_uuid' => $server->uuid]) }}">Environment Variables
+        </a>
         <a class="menu-item {{ $activeMenu === 'log-drains' ? 'menu-item-active' : '' }}" {{ wireNavigate() }}
             href="{{ route('server.log-drains', ['server_uuid' => $server->uuid]) }}">Log
             Drains</a>
