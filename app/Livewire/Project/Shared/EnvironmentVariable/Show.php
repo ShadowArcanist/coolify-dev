@@ -196,21 +196,22 @@ class Show extends Component
         }
     }
 
-    #[Computed]
+    #[Computed(persist: true)]
     public function availableSharedVariables(): array
     {
-        $team = currentTeam();
-        $result = [
-            'team' => [],
-            'project' => [],
-            'environment' => [],
-            'server' => [],
-        ];
+        try {
+            $team = currentTeam();
+            $result = [
+                'team' => [],
+                'project' => [],
+                'environment' => [],
+                'server' => [],
+            ];
 
-        // Early return if no team
-        if (! $team) {
-            return $result;
-        }
+            // Early return if no team
+            if (! $team) {
+                return $result;
+            }
 
         // Check if user can view team variables
         try {
@@ -264,63 +265,83 @@ class Show extends Component
         $serverUuid = data_get($this->parameters, 'server_uuid');
         if ($serverUuid) {
             // If we have a specific server_uuid, show variables for that server
-            $server = \App\Models\Server::where('team_id', $team->id)
-                ->where('uuid', $serverUuid)
-                ->first();
+            try {
+                $server = \App\Models\Server::where('team_id', $team->id)
+                    ->where('uuid', $serverUuid)
+                    ->first();
 
-            if ($server) {
-                try {
+                if ($server) {
                     $this->authorize('view', $server);
-                    $result['server'] = $server->environment_variables()
+                    $serverVars = $server->environment_variables()
                         ->pluck('key')
                         ->toArray();
-                } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
-                    // User not authorized to view server variables
+                    $result['server'] = $serverVars ?: [];
+                } else {
+                    $result['server'] = [];
                 }
+            } catch (\Exception $e) {
+                $result['server'] = [];
             }
         } else {
             // For application environment variables, try to use the application's destination server
             $applicationUuid = data_get($this->parameters, 'application_uuid');
             if ($applicationUuid) {
-                $application = \App\Models\Application::whereRelation('environment.project.team', 'id', $team->id)
-                    ->where('uuid', $applicationUuid)
-                    ->with('destination.server')
-                    ->first();
+                try {
+                    $application = \App\Models\Application::whereRelation('environment.project.team', 'id', $team->id)
+                        ->where('uuid', $applicationUuid)
+                        ->with('destination.server')
+                        ->first();
 
-                if ($application && $application->destination && $application->destination->server) {
-                    try {
+                    if ($application && $application->destination && $application->destination->server) {
                         $this->authorize('view', $application->destination->server);
-                        $result['server'] = $application->destination->server->environment_variables()
+                        $serverVars = $application->destination->server->environment_variables()
                             ->pluck('key')
                             ->toArray();
-                    } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
-                        // User not authorized to view server variables
+                        $result['server'] = $serverVars ?: [];
+                    } else {
+                        $result['server'] = [];
                     }
+                } catch (\Exception $e) {
+                    $result['server'] = [];
                 }
             } else {
                 // For service environment variables, try to use the service's server
                 $serviceUuid = data_get($this->parameters, 'service_uuid');
                 if ($serviceUuid) {
-                    $service = \App\Models\Service::whereRelation('environment.project.team', 'id', $team->id)
-                        ->where('uuid', $serviceUuid)
-                        ->with('server')
-                        ->first();
+                    try {
+                        $service = \App\Models\Service::whereRelation('environment.project.team', 'id', $team->id)
+                            ->where('uuid', $serviceUuid)
+                            ->with('server')
+                            ->first();
 
-                    if ($service && $service->server) {
-                        try {
+                        if ($service && $service->server) {
                             $this->authorize('view', $service->server);
-                            $result['server'] = $service->server->environment_variables()
+                            $serverVars = $service->server->environment_variables()
                                 ->pluck('key')
                                 ->toArray();
-                        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
-                            // User not authorized to view server variables
+                            $result['server'] = $serverVars ?: [];
+                        } else {
+                            $result['server'] = [];
                         }
+                    } catch (\Exception $e) {
+                        $result['server'] = [];
                     }
+                } else {
+                    $result['server'] = [];
                 }
             }
         }
 
         return $result;
+        } catch (\Exception $e) {
+            // Return safe defaults if anything fails
+            return [
+                'team' => [],
+                'project' => [],
+                'environment' => [],
+                'server' => [],
+            ];
+        }
     }
 
     public function delete()
