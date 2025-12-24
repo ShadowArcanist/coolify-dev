@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 
 class SharedEnvironmentVariable extends Model
@@ -10,7 +11,7 @@ class SharedEnvironmentVariable extends Model
 
     protected $casts = [
         'key' => 'string',
-        'value' => 'encrypted',
+        'value' => 'string',
     ];
 
     public function team()
