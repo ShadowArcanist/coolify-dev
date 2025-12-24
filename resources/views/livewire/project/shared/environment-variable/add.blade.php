@@ -17,13 +17,13 @@
     @endif
 
     @if (!$shared && !$runtimeOnly)
-        <x-forms.checkbox id="is_buildtime"
+        <x-forms.checkbox wire:model="is_buildtime" id="is_buildtime"
             helper="Make this variable available during Docker build process. Useful for build secrets and dependencies."
             label="Available at Buildtime" />
 
         <x-environment-variable-warning :problematic-variables="$problematicVariables" />
 
-        <x-forms.checkbox id="is_runtime" helper="Make this variable available in the running container at runtime."
+        <x-forms.checkbox wire:model="is_runtime" id="is_runtime" helper="Make this variable available in the running container at runtime."
             label="Available at Runtime" />
     @elseif ($runtimeOnly)
         <div class="text-sm text-neutral-600 dark:text-neutral-400">
@@ -31,11 +31,13 @@
         </div>
     @endif
 
-    <x-forms.checkbox id="is_literal"
-        helper="This means that when you use $VARIABLES in a value, it should be interpreted as the actual characters '$VARIABLES' and not as the value of a variable named VARIABLE.<br><br>Useful if you have $ sign in your value and there are some characters after it, but you would not like to interpolate it from another value. In this case, you should set this to true."
-        label="Is Literal?" />
+    @if (!$shared && !$is_multiline)
+        <x-forms.checkbox wire:model="is_literal"
+            helper="This means that when you use $VARIABLES in a value, it should be interpreted as the actual characters '$VARIABLES' and not as the value of a variable named VARIABLE.<br><br>Useful if you have $ sign in your value and there are some characters after it, but you would not like to interpolate it from another value. In this case, you should set this to true."
+            label="Is Literal?" />
+    @endif
 
-    <x-forms.checkbox id="is_multiline" label="Is Multiline?" />
+    <x-forms.checkbox wire:model="is_multiline" id="is_multiline" label="Is Multiline?" />
     <x-forms.button type="submit" @click="slideOverOpen=false">
         Save
     </x-forms.button>

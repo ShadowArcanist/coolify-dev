@@ -38,7 +38,7 @@
                                      label="Is Literal?" />
                              @else
                                  @if ($isSharedVariable)
-                                     <x-forms.checkbox instantSave id="is_multiline" label="Is Multiline?" />
+                                     <x-forms.checkbox disabled id="is_multiline" label="Is Multiline?" />
                                  @else
                                      @if (!$env->is_nixpacks && $type !== 'server')
                                          <x-forms.checkbox instantSave id="is_buildtime"
@@ -169,8 +169,8 @@
                                     helper="This means that when you use $VARIABLES in a value, it should be interpreted as the actual characters '$VARIABLES' and not as the value of a variable named VARIABLE.<br><br>Useful if you have $ sign in your value and there are some characters after it, but you would not like to interpolate it from another value. In this case, you should set this to true."
                                     label="Is Literal?" />
                              @else
-                                 @if ($isSharedVariable)
-                                     <x-forms.checkbox disabled id="is_multiline" label="Is Multiline?" />
+                                  @if ($isSharedVariable)
+                                      <x-forms.checkbox instantSave wire:model.live="is_multiline" id="is_multiline" label="Is Multiline?" />
                                  @else
                                      @if (!$env->is_nixpacks && $type !== 'server')
                                          <x-forms.checkbox disabled id="is_buildtime"
