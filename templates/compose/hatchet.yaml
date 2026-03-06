@@ -1,3 +1,4 @@
+# name: Hatchet
 # documentation: https://docs.hatchet.run/self-hosting/docker-compose
 # slogan: Hatchet allows you to run background tasks at scale with a high-throughput, low-latency computing service built on an open-source, fault-tolerant queue.
 # tags: ai-agents,background-tasks,data-pipelines,scheduling

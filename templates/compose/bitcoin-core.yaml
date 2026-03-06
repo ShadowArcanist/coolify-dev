@@ -1,3 +1,4 @@
+# name: Bitcoin Core
 # documentation: https://hub.docker.com/r/ruimarinho/bitcoin-core/
 # slogan: A self-hosted Bitcoin Core full node.
 # category: backend

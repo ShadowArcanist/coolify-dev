@@ -1,3 +1,4 @@
+# name: Elasticsearch with Kibana
 # documentation: https://www.elastic.co/docs/deploy-manage/deploy/self-managed/install-kibana-with-docker
 # slogan: Elastic + Kibana is a Free and Open Source Search, Monitoring, and Visualization Stack
 # tags: elastic,kibana,elasticsearch,search,visualization,logging,monitoring,observability,analytics,stack,devops

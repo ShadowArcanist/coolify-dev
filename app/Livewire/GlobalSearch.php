@@ -1490,8 +1490,8 @@ class GlobalSearch extends Component
 
         foreach ($allServices as $serviceKey => $service) {
             $items->push([
-                'name' => str($serviceKey)->headline()->toString(),
-                'description' => data_get($service, 'slogan', 'Deploy '.str($serviceKey)->headline()),
+                'name' => data_get($service, 'displayName') ?? str($serviceKey)->headline()->toString(),
+                'description' => data_get($service, 'slogan', 'Deploy '.(data_get($service, 'displayName') ?? str($serviceKey)->headline())),
                 'type' => 'one-click-service-'.$serviceKey,
                 'category' => 'Services',
                 'resourceType' => 'service',

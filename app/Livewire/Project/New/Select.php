@@ -111,7 +111,8 @@ class Select extends Component
             $local_logo_path = public_path($logo);
 
             return [
-                'name' => str($key)->headline(),
+                'name' => data_get($service, 'displayName') ?? str($key)->headline(),
+                'key' => $key,
                 'logo' => asset($logo),
                 'logo_github_url' => file_exists($local_logo_path)
                     ? 'https://raw.githubusercontent.com/coollabsio/coolify/refs/heads/main/public/'.$logo

@@ -1,3 +1,4 @@
+# name: Superset with PostgreSQL
 # documentation: https://github.com/amancevice/docker-superset
 # slogan: Modern data exploration and visualization platform (unofficial community docker image)
 # category: analytics

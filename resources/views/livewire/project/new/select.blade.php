@@ -148,8 +148,8 @@
                     </x-callout>
 
                     <div class="grid justify-start grid-cols-1 gap-4 text-left xl:grid-cols-3">
-                        <template x-for="service in filteredServices" :key="service.name">
-                            <div class="relative" x-on:click="setType('one-click-service-' + service.name)"
+                        <template x-for="service in filteredServices" :key="service.key">
+                            <div class="relative" x-on:click="setType('one-click-service-' + service.key)"
                                 :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }">
                                 <x-resource-view>
                                     <x-slot:title>
@@ -174,10 +174,10 @@
                                     </x-slot:logo>
                                 </x-resource-view>
                                 <template x-if="shouldShowDocIcon(service)">
-                                    <a :href="getDocLink(service) || coolifyDocsUrl(service.name)" target="_blank"
+                                    <a :href="getDocLink(service) || coolifyDocsUrl(service.key)" target="_blank"
                                         @click.stop @mouseenter="resolveDocLink(service)"
                                         class="absolute top-2 right-2 p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-coolgray-300 transition-colors"
-                                        :class="{ 'opacity-50': docCheckInProgress[service.name] }"
+                                        :class="{ 'opacity-50': docCheckInProgress[service.key] }"
                                         title="View documentation">
                                         <svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none"
                                             stroke="currentColor" viewBox="0 0 24 24">
@@ -238,14 +238,12 @@
                                 this.$refs.searchInput.focus();
                             });
                         },
-                        extractBaseServiceName(serviceName) {
-                            // Convert to lowercase and replace spaces with dashes to match original format
-                            const normalized = serviceName.toLowerCase().replace(/\s+/g, '-');
+                        extractBaseServiceName(serviceKey) {
                             // Remove flavor suffixes: -with-*, -without-*
-                            return normalized.replace(/-(with|without)-.+$/, '');
+                            return serviceKey.replace(/-(with|without)-.+$/, '');
                         },
-                        coolifyDocsUrl(serviceName) {
-                            const baseName = this.extractBaseServiceName(serviceName);
+                        coolifyDocsUrl(serviceKey) {
+                            const baseName = this.extractBaseServiceName(serviceKey);
                             return 'https://coolify.io/docs/services/' + baseName;
                         },
                         officialDocsUrl(service) {
@@ -264,27 +262,27 @@
                             }
                         },
                         async resolveDocLink(service) {
-                            const serviceName = service.name;
+                            const serviceKey = service.key;
 
                             // Already cached?
-                            if (this.docLinkCache.hasOwnProperty(serviceName)) {
-                                return this.docLinkCache[serviceName];
+                            if (this.docLinkCache.hasOwnProperty(serviceKey)) {
+                                return this.docLinkCache[serviceKey];
                             }
 
                             // Already checking?
-                            if (this.docCheckInProgress[serviceName]) {
+                            if (this.docCheckInProgress[serviceKey]) {
                                 return null;
                             }
 
-                            this.docCheckInProgress[serviceName] = true;
+                            this.docCheckInProgress[serviceKey] = true;
 
                             // 1. Try Coolify docs first
-                            const coolifyUrl = this.coolifyDocsUrl(serviceName);
+                            const coolifyUrl = this.coolifyDocsUrl(serviceKey);
                             const coolifyExists = await this.checkUrlExists(coolifyUrl);
 
                             if (coolifyExists) {
-                                this.docLinkCache[serviceName] = coolifyUrl;
-                                this.docCheckInProgress[serviceName] = false;
+                                this.docLinkCache[serviceKey] = coolifyUrl;
+                                this.docCheckInProgress[serviceKey] = false;
                                 return coolifyUrl;
                             }
 
@@ -294,22 +292,22 @@
                                 const officialExists = await this.checkUrlExists(officialUrl);
 
                                 if (officialExists) {
-                                    this.docLinkCache[serviceName] = officialUrl;
-                                    this.docCheckInProgress[serviceName] = false;
+                                    this.docLinkCache[serviceKey] = officialUrl;
+                                    this.docCheckInProgress[serviceKey] = false;
                                     return officialUrl;
                                 }
                             }
 
                             // 3. Both failed - cache null to hide icon
-                            this.docLinkCache[serviceName] = null;
-                            this.docCheckInProgress[serviceName] = false;
+                            this.docLinkCache[serviceKey] = null;
+                            this.docCheckInProgress[serviceKey] = false;
                             return null;
                         },
                         getDocLink(service) {
-                            return this.docLinkCache[service.name];
+                            return this.docLinkCache[service.key];
                         },
                         shouldShowDocIcon(service) {
-                            const cached = this.docLinkCache[service.name];
+                            const cached = this.docLinkCache[service.key];
                             // Show icon if: not checked yet OR has a valid URL
                             return cached === undefined || cached !== null;
                         },
@@ -335,6 +333,7 @@
                             if (searchLower !== '') {
                                 filtered = filtered.filter(item => {
                                     return (item.name?.toLowerCase().includes(searchLower) ||
+                                        item.key?.toLowerCase().includes(searchLower) ||
                                         item.description?.toLowerCase().includes(searchLower) ||
                                         item.slogan?.toLowerCase().includes(searchLower))
                                 });

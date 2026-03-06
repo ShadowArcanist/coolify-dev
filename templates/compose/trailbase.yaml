@@ -1,3 +1,4 @@
+# name: TrailBase
 # documentation: https://trailbase.io/
 # slogan: A blazingly fast Rust/SQLite/Wasmtime app server with type-safe APIs
 # category: backend

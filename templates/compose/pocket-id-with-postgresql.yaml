@@ -1,3 +1,4 @@
+# name: Pocket ID with PostgreSQL
 # documentation: https://pocket-id.org/docs/setup/installation
 # slogan: A simple and secure OIDC provider with passkey authentication
 # category: auth

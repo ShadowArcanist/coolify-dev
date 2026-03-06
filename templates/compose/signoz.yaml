@@ -1,3 +1,4 @@
+# name: SigNoz
 # documentation: https://signoz.io/docs/introduction/
 # slogan: An observability platform native to OpenTelemetry with logs, traces and metrics.
 # tags: telemetry, server, applications, interface, logs, monitoring, traces, metrics

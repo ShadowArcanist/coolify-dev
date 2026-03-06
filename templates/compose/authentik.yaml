@@ -1,3 +1,4 @@
+# name: authentik
 # documentation: https://docs.goauthentik.io/docs/installation/docker-compose
 # slogan: An open-source Identity Provider, focused on flexibility and versatility.
 # category: auth

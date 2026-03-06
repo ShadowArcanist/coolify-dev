@@ -70,6 +70,7 @@ class Services extends Command
 
         $payload = [
             'name' => pathinfo($file, PATHINFO_FILENAME),
+            'displayName' => $data->get('name'),
             'documentation' => $documentation,
             'slogan' => $data->get('slogan', str($file)->headline()),
             'compose' => $compose,
@@ -140,6 +141,7 @@ class Services extends Command
 
         $payload = [
             'name' => pathinfo($file, PATHINFO_FILENAME),
+            'displayName' => $data->get('name'),
             'documentation' => $documentation,
             'slogan' => $data->get('slogan', str($file)->headline()),
             'compose' => $compose,
@@ -209,6 +211,7 @@ class Services extends Command
 
         $payload = [
             'name' => pathinfo($file, PATHINFO_FILENAME),
+            'displayName' => $data->get('name'),
             'documentation' => $documentation,
             'slogan' => $data->get('slogan', str($file)->headline()),
             'compose' => $compose,
