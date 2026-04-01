@@ -10,6 +10,7 @@ use App\Livewire\Destination\Index as DestinationIndex;
 use App\Livewire\Destination\Show as DestinationShow;
 use App\Livewire\ForcePasswordReset;
 use App\Livewire\Notifications\Discord as NotificationDiscord;
+use App\Livewire\Notifications\Index as NotificationIndex;
 use App\Livewire\Notifications\Email as NotificationEmail;
 use App\Livewire\Notifications\Pushover as NotificationPushover;
 use App\Livewire\Notifications\Slack as NotificationSlack;
@@ -131,6 +132,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::prefix('notifications')->group(function () {
+        Route::get('/', NotificationIndex::class)->name('notifications.index');
         Route::get('/email', NotificationEmail::class)->name('notifications.email');
         Route::get('/telegram', NotificationTelegram::class)->name('notifications.telegram');
         Route::get('/discord', NotificationDiscord::class)->name('notifications.discord');
