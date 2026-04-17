@@ -42,6 +42,8 @@
                     </span>
                 @endif
             </a>
+            <a class="sub-menu-item" {{ wireNavigate() }} wire:current.exact="menu-item-active"
+                href="{{ route('project.application.load-balancing', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'application_uuid' => $application->uuid]) }}"><span class="menu-item-label">Load Balancing</span></a>
             <a @class(['sub-menu-item', 'menu-item-active' => str($currentRoute)->startsWith('project.application.scheduled-tasks')]) {{ wireNavigate() }}
                 href="{{ route('project.application.scheduled-tasks.show', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid, 'application_uuid' => $application->uuid]) }}"><span class="menu-item-label">Scheduled Tasks</span></a>
             <a class="sub-menu-item" {{ wireNavigate() }} wire:current.exact="menu-item-active"
@@ -82,6 +84,8 @@
                 <livewire:project.application.source :application="$application" />
             @elseif ($currentRoute === 'project.application.servers')
                 <livewire:project.shared.destination :resource="$application" />
+            @elseif ($currentRoute === 'project.application.load-balancing')
+                <livewire:project.application.load-balancing :application="$application" />
             @elseif ($currentRoute === 'project.application.scheduled-tasks.show')
                 <livewire:project.shared.scheduled-task.all :resource="$application" />
             @elseif ($currentRoute === 'project.application.scheduled-tasks')

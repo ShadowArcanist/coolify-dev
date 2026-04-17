@@ -2,7 +2,9 @@
 
 namespace App\Actions\Shared;
 
+use App\Actions\Application\LoadBalancerConfig;
 use App\Models\Application;
+use App\Models\Server;
 use App\Services\ContainerStatusAggregator;
 use App\Traits\CalculatesExcludedStatus;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -57,6 +59,54 @@ class ComplexStatusCheck
 
                     continue;
                 }
+            }
+        }
+
+        if (data_get($application->load_balancer_settings, 'enabled', false)) {
+            $this->applyLoadBalancerStatus($application);
+        }
+    }
+
+    private function applyLoadBalancerStatus(Application $application): void
+    {
+        $lbServerId = data_get($application->load_balancer_settings, 'load_balancer_server_id');
+        if (! $lbServerId) {
+            return;
+        }
+
+        $lbServer = Server::find($lbServerId);
+        if (! $lbServer || ! $lbServer->isFunctional()) {
+            $current = $application->getRawOriginal('status');
+            if ($current !== 'degraded:unhealthy') {
+                $application->update(['status' => 'degraded:unhealthy']);
+            }
+
+            return;
+        }
+
+        $statuses = LoadBalancerConfig::fetchBackendStatuses($application, $lbServer);
+        if (empty($statuses)) {
+            return;
+        }
+
+        $up = 0;
+        $down = 0;
+        foreach ($statuses as $state) {
+            if ($state === 'UP') {
+                $up++;
+            } elseif ($state === 'DOWN') {
+                $down++;
+            }
+        }
+
+        if ($up === 0 && $down === 0) {
+            return;
+        }
+
+        if ($down > 0) {
+            $current = $application->getRawOriginal('status');
+            if ($current !== 'degraded:unhealthy') {
+                $application->update(['status' => 'degraded:unhealthy']);
             }
         }
     }

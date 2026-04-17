@@ -2,8 +2,10 @@
 
 namespace App\Livewire\Project\Shared;
 
+use App\Actions\Application\LoadBalancerConfig;
 use App\Actions\Application\StopApplicationOneServer;
 use App\Actions\Docker\GetContainersStatus;
+use App\Models\Application;
 use App\Events\ApplicationStatusChanged;
 use App\Models\Server;
 use App\Models\StandaloneDocker;
@@ -119,6 +121,9 @@ class Destination extends Component
         $this->resource->additional_networks()->attach($main_destination->id, ['server_id' => $main_destination->server->id]);
         $this->refreshServers();
         $this->resource->refresh();
+        if ($this->resource instanceof Application) {
+            LoadBalancerConfig::regenerateIfEnabled($this->resource);
+        }
     }
 
     public function refreshServers()
@@ -131,6 +136,9 @@ class Destination extends Component
     public function addServer(int $network_id, int $server_id)
     {
         $this->resource->additional_networks()->attach($network_id, ['server_id' => $server_id]);
+        if ($this->resource instanceof Application) {
+            LoadBalancerConfig::regenerateIfEnabled($this->resource);
+        }
         $this->dispatch('refresh');
     }
 
@@ -149,6 +157,9 @@ class Destination extends Component
             $server = Server::ownedByCurrentTeam()->findOrFail($server_id);
             StopApplicationOneServer::run($this->resource, $server);
             $this->resource->additional_networks()->detach($network_id, ['server_id' => $server_id]);
+            if ($this->resource instanceof Application) {
+                LoadBalancerConfig::regenerateIfEnabled($this->resource);
+            }
             $this->loadData();
             $this->dispatch('refresh');
             ApplicationStatusChanged::dispatch(data_get($this->resource, 'environment.project.team.id'));

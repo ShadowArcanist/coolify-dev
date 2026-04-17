@@ -1,25 +1,37 @@
+@php
+    $loadBalancerEnabled = (bool) data_get($resource, 'load_balancer_settings.enabled', false);
+@endphp
 <form wire:submit='submit' class="flex flex-col">
     <div class="flex items-center gap-2">
         <h2>Healthchecks</h2>
-        <x-forms.button canGate="update" :canResource="$resource" type="submit">Save</x-forms.button>
-        @if (!$healthCheckEnabled)
-            <x-modal-confirmation title="Confirm Healthcheck Enable?" buttonTitle="Enable Healthcheck"
-                submitAction="toggleHealthcheck" :actions="['Enable healthcheck for this resource.']"
-                warningMessage="If the health check fails, your application will become inaccessible. Please review the <a href='https://coolify.io/docs/knowledge-base/health-checks' target='_blank' class='underline text-white'>Health Checks</a> guide before proceeding!"
-                step2ButtonText="Enable Healthcheck" :confirmWithText="false" :confirmWithPassword="false"
-                isHighlightedButton>
-            </x-modal-confirmation>
-        @else
-            <x-forms.button canGate="update" :canResource="$resource" wire:click="toggleHealthcheck">Disable Healthcheck</x-forms.button>
+        @if (! $loadBalancerEnabled)
+            <x-forms.button canGate="update" :canResource="$resource" type="submit">Save</x-forms.button>
+            @if (!$healthCheckEnabled)
+                <x-modal-confirmation title="Confirm Healthcheck Enable?" buttonTitle="Enable Healthcheck"
+                    submitAction="toggleHealthcheck" :actions="['Enable healthcheck for this resource.']"
+                    warningMessage="If the health check fails, your application will become inaccessible. Please review the <a href='https://coolify.io/docs/knowledge-base/health-checks' target='_blank' class='underline text-white'>Health Checks</a> guide before proceeding!"
+                    step2ButtonText="Enable Healthcheck" :confirmWithText="false" :confirmWithPassword="false"
+                    isHighlightedButton>
+                </x-modal-confirmation>
+            @else
+                <x-forms.button canGate="update" :canResource="$resource" wire:click="toggleHealthcheck">Disable Healthcheck</x-forms.button>
+            @endif
         @endif
     </div>
     <div class="mt-1 pb-4">Define how your resource's health should be checked.</div>
     <div class="flex flex-col gap-4">
-        @if ($customHealthcheckFound)
+        @if ($loadBalancerEnabled)
+            <x-callout type="info" title="Managed by Load Balancer">
+                Container health checks are disabled while load balancing is enabled. Traefik probes each backend
+                directly — configure probe settings on the <strong>Load Balancing</strong> page.
+            </x-callout>
+        @endif
+        @if ($customHealthcheckFound && ! $loadBalancerEnabled)
             <x-callout type="warning" title="Caution">
                 <p>A custom health check has been detected. If you enable this health check, it will disable the custom one and use this instead.</p>
             </x-callout>
         @endif
+        @if (! $loadBalancerEnabled)
 
         {{-- Healthcheck Type Selector --}}
         <div class="flex gap-2">
@@ -74,5 +86,6 @@
             <x-forms.input canGate="update" :canResource="$resource" min=1 type="number" id="healthCheckStartPeriod" placeholder="30"
                 label="Start Period (s)" required />
         </div>
+        @endif
     </div>
 </form>

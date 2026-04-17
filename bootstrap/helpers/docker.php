@@ -661,6 +661,8 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
         $appUuid = $appUuid.'-pr-'.$pull_request_id;
     }
     $labels = collect([]);
+    $isLoadBalanced = (bool) data_get($application->load_balancer_settings, 'enabled', false);
+    $forceHttps = $application->isForceHttpsEnabled() && ! $isLoadBalanced;
     if ($pull_request_id === 0) {
         if ($application->fqdn) {
             $domains = str(data_get($application, 'fqdn'))->explode(',');
@@ -672,7 +674,7 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
                             uuid: $appUuid,
                             domains: $domains,
                             onlyPort: $onlyPort,
-                            is_force_https_enabled: $application->isForceHttpsEnabled(),
+                            is_force_https_enabled: $forceHttps,
                             is_gzip_enabled: $application->isGzipEnabled(),
                             is_stripprefix_enabled: $application->isStripprefixEnabled(),
                             redirect_direction: $application->redirect,
@@ -687,7 +689,7 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
                             uuid: $appUuid,
                             domains: $domains,
                             onlyPort: $onlyPort,
-                            is_force_https_enabled: $application->isForceHttpsEnabled(),
+                            is_force_https_enabled: $forceHttps,
                             is_gzip_enabled: $application->isGzipEnabled(),
                             is_stripprefix_enabled: $application->isStripprefixEnabled(),
                             redirect_direction: $application->redirect,
@@ -702,7 +704,7 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
                     uuid: $appUuid,
                     domains: $domains,
                     onlyPort: $onlyPort,
-                    is_force_https_enabled: $application->isForceHttpsEnabled(),
+                    is_force_https_enabled: $forceHttps,
                     is_gzip_enabled: $application->isGzipEnabled(),
                     is_stripprefix_enabled: $application->isStripprefixEnabled(),
                     redirect_direction: $application->redirect,
@@ -715,7 +717,7 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
                     uuid: $appUuid,
                     domains: $domains,
                     onlyPort: $onlyPort,
-                    is_force_https_enabled: $application->isForceHttpsEnabled(),
+                    is_force_https_enabled: $forceHttps,
                     is_gzip_enabled: $application->isGzipEnabled(),
                     is_stripprefix_enabled: $application->isStripprefixEnabled(),
                     redirect_direction: $application->redirect,
@@ -739,7 +741,7 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
                         uuid: $appUuid,
                         domains: $domains,
                         onlyPort: $onlyPort,
-                        is_force_https_enabled: $application->isForceHttpsEnabled(),
+                        is_force_https_enabled: $forceHttps,
                         is_gzip_enabled: $application->isGzipEnabled(),
                         is_stripprefix_enabled: $application->isStripprefixEnabled(),
                         is_http_basic_auth_enabled: $application->is_http_basic_auth_enabled,
@@ -753,7 +755,7 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
                         uuid: $appUuid,
                         domains: $domains,
                         onlyPort: $onlyPort,
-                        is_force_https_enabled: $application->isForceHttpsEnabled(),
+                        is_force_https_enabled: $forceHttps,
                         is_gzip_enabled: $application->isGzipEnabled(),
                         is_stripprefix_enabled: $application->isStripprefixEnabled(),
                         is_http_basic_auth_enabled: $application->is_http_basic_auth_enabled,
@@ -767,7 +769,7 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
                 uuid: $appUuid,
                 domains: $domains,
                 onlyPort: $onlyPort,
-                is_force_https_enabled: $application->isForceHttpsEnabled(),
+                is_force_https_enabled: $forceHttps,
                 is_gzip_enabled: $application->isGzipEnabled(),
                 is_stripprefix_enabled: $application->isStripprefixEnabled(),
                 is_http_basic_auth_enabled: $application->is_http_basic_auth_enabled,
@@ -779,7 +781,7 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
                 uuid: $appUuid,
                 domains: $domains,
                 onlyPort: $onlyPort,
-                is_force_https_enabled: $application->isForceHttpsEnabled(),
+                is_force_https_enabled: $forceHttps,
                 is_gzip_enabled: $application->isGzipEnabled(),
                 is_stripprefix_enabled: $application->isStripprefixEnabled(),
                 is_http_basic_auth_enabled: $application->is_http_basic_auth_enabled,

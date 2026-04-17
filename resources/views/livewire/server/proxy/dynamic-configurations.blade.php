@@ -28,13 +28,17 @@
                     @if ($contents?->isNotEmpty())
                         @foreach ($contents as $fileName => $value)
                             <div class="flex flex-col gap-2 py-2">
-                                @if (str_replace('|', '.', $fileName) === 'coolify.yaml' ||
-                                        str_replace('|', '.', $fileName) === 'Caddyfile' ||
-                                        str_replace('|', '.', $fileName) === 'coolify.caddy' ||
-                                        str_replace('|', '.', $fileName) === 'default_redirect_503.yaml' ||
-                                        str_replace('|', '.', $fileName) === 'default_redirect_503.caddy')
+                                @php
+                                    $realName = str_replace('|', '.', $fileName);
+                                @endphp
+                                @if ($realName === 'coolify.yaml' ||
+                                        $realName === 'Caddyfile' ||
+                                        $realName === 'coolify.caddy' ||
+                                        $realName === 'default_redirect_503.yaml' ||
+                                        $realName === 'default_redirect_503.caddy' ||
+                                        (str_starts_with($realName, 'loadbalancer-') && str_ends_with($realName, '.yaml')))
                                     <div>
-                                        <h3 class="dark:text-white">File: {{ str_replace('|', '.', $fileName) }}</h3>
+                                        <h3 class="dark:text-white">File: {{ $realName }}</h3>
                                     </div>
                                     <x-forms.textarea disabled name="proxy_settings"
                                         wire:model="contents.{{ $fileName }}" rows="5" />

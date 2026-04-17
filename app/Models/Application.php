@@ -219,6 +219,7 @@ class Application extends BaseModel
         'http_basic_auth_password' => 'encrypted',
         'restart_count' => 'integer',
         'last_restart_at' => 'datetime',
+        'load_balancer_settings' => 'array',
     ];
 
     protected static function booted()

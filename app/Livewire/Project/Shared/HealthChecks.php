@@ -82,6 +82,11 @@ class HealthChecks extends Component
         $this->syncData();
     }
 
+    protected function loadBalancerManaged(): bool
+    {
+        return (bool) data_get($this->resource, 'load_balancer_settings.enabled', false);
+    }
+
     public function syncData(bool $toModel = false): void
     {
         if ($toModel) {
@@ -128,6 +133,11 @@ class HealthChecks extends Component
     public function instantSave()
     {
         $this->authorize('update', $this->resource);
+        if ($this->loadBalancerManaged()) {
+            $this->dispatch('error', 'Container health checks are managed by the load balancer.');
+
+            return;
+        }
         $this->validate();
 
         // Sync component properties to model
@@ -154,6 +164,11 @@ class HealthChecks extends Component
     {
         try {
             $this->authorize('update', $this->resource);
+            if ($this->loadBalancerManaged()) {
+                $this->dispatch('error', 'Container health checks are managed by the load balancer.');
+
+                return;
+            }
             $this->validate();
 
             // Sync component properties to model
@@ -183,6 +198,11 @@ class HealthChecks extends Component
     {
         try {
             $this->authorize('update', $this->resource);
+            if ($this->loadBalancerManaged()) {
+                $this->dispatch('error', 'Container health checks are managed by the load balancer.');
+
+                return;
+            }
             $wasEnabled = $this->healthCheckEnabled;
             $this->healthCheckEnabled = ! $this->healthCheckEnabled;
 

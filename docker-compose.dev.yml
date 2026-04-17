@@ -12,6 +12,7 @@ services:
       - "${APP_PORT:-8000}:8080"
     environment:
       AUTORUN_ENABLED: false
+      COMPOSE_PROJECT_NAME: "${COMPOSE_PROJECT_NAME:-coolify}"
       PUSHER_HOST: "${PUSHER_HOST}"
       PUSHER_PORT: "${PUSHER_PORT}"
       PUSHER_SCHEME: "${PUSHER_SCHEME:-http}"
