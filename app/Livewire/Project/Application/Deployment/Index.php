@@ -114,6 +114,16 @@ class Index extends Component
         $this->loadDeployments();
     }
 
+    public function goToPage(int $page): void
+    {
+        $lastPage = max(1, (int) ceil($this->deployments_count / $this->defaultTake));
+        $page = max(1, min($page, $lastPage));
+        $this->skip = ($page - 1) * $this->defaultTake;
+        $this->showPrev = $page > 1;
+        $this->updateCurrentPage();
+        $this->loadDeployments();
+    }
+
     public function loadDeployments()
     {
         ['deployments' => $deployments, 'count' => $count] = $this->application->deployments($this->skip, $this->defaultTake, $this->pull_request_id);
