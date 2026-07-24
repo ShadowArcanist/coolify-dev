@@ -1,5 +1,5 @@
 <div class="flex flex-col gap-6">
-    <form wire:submit="submit" class="application-settings-form flex flex-col pb-32">
+    <form wire:submit="submit" class="application-settings-form flex flex-col">
         <x-unsaved-bar action="submit" />
         <x-application.settings-section id="task-configuration-section" title="Task configuration"
             helper="Configure when this task runs and which command Coolify executes.">

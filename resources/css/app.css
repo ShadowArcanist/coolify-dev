@@ -293,7 +293,7 @@ button[isError]:not(:disabled) {
 }
 
 button[isHighlighted]:not(:disabled) {
-    @apply text-coollabs-200 dark:text-white bg-coollabs-50 dark:bg-coollabs/20 border-coollabs dark:border-coollabs-100 hover:bg-coollabs hover:text-white dark:hover:bg-coollabs-100 dark:hover:text-white;
+    @apply text-coollabs-200 bg-coollabs-50 border-coollabs hover:bg-coollabs hover:text-white dark:bg-warning/15 dark:text-warning dark:border-warning/25 dark:hover:bg-warning/20 dark:hover:text-warning;
 }
 
 h1 {

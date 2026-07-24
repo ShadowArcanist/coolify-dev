@@ -2,7 +2,7 @@
     $canUpdate = auth()->user()->can('update', $resource);
 @endphp
 
-<form wire:submit="submit" class="application-settings-form flex flex-col gap-6 pb-32">
+<form wire:submit="submit" class="application-settings-form flex flex-col gap-6">
     <x-unsaved-bar action="submit" />
 
     <x-application.settings-section id="healthcheck-configuration-section" title="Healthcheck"

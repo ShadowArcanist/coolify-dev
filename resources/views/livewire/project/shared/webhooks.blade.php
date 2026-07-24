@@ -43,7 +43,7 @@
             </x-application.settings-section>
 
             @if ($githubManualWebhook && $gitlabManualWebhook)
-                <form wire:submit.prevent="submit" class="application-settings-form flex flex-col pb-32">
+                <form wire:submit.prevent="submit" class="application-settings-form flex flex-col">
                     <x-unsaved-bar action="submit" />
                     <x-application.settings-section id="manual-git-webhooks-section" title="Manual Git webhooks"
                         helper="Configure these endpoints when the repository is not connected through an official Git App." flush>

@@ -1,4 +1,4 @@
-<form wire:submit="submit" class="application-settings-form flex flex-col gap-6 pb-32">
+<form wire:submit="submit" class="application-settings-form flex flex-col gap-6">
     <x-unsaved-bar action="submit" />
 
     <x-application.settings-section id="cpu-limits-section" title="CPU"

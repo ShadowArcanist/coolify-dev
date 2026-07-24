@@ -1,5 +1,5 @@
 <div class="flex flex-col gap-6" x-init="$wire.loadImages">
-    <form wire:submit="saveSettings" class="application-settings-form flex flex-col pb-32">
+    <form wire:submit="saveSettings" class="application-settings-form flex flex-col">
         <x-unsaved-bar action="saveSettings" />
         <x-application.settings-section id="rollback-retention-section" title="Image retention"
             helper="Keep previously built Docker images available for fast rollbacks.">

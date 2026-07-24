@@ -1,4 +1,4 @@
-<form wire:submit="submit" class="application-settings-form flex flex-col pb-32">
+<form wire:submit="submit" class="application-settings-form flex flex-col">
     <x-unsaved-bar action="submit" />
     <x-application.settings-section id="preview-template-section" title="Preview URL template"
         helper="Define how Coolify generates domains for pull request deployments.">

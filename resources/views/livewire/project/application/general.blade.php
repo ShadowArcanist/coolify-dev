@@ -5,7 +5,7 @@
         return this.initLoadingCompose || !this.canUpdate;
     }
 }">
-    <form wire:submit='submit' class="application-settings-form flex flex-col pb-32">
+    <form wire:submit='submit' class="application-settings-form flex flex-col">
         <x-unsaved-bar action="submit" />
         {{-- Temporarily hidden: the "Compose parser" dev hint and the "View details"
              resource-details modal trigger. --}}
