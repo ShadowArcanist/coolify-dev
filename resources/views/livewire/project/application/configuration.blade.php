@@ -170,6 +170,16 @@
                 ['id' => 'deploy-webhook-section', 'label' => 'Deploy webhook'],
                 ['id' => 'manual-git-webhooks-section', 'label' => 'Manual Git webhooks'],
             ],
+            'project.application.preview-deployments' => array_values(array_filter([
+                ['id' => 'preview-template-section', 'label' => 'URL template'],
+                $application->is_github_based()
+                    ? ['id' => 'preview-pull-requests-section', 'label' => 'Pull requests']
+                    : null,
+                $application->build_pack === 'dockerimage'
+                    ? ['id' => 'manual-preview-section', 'label' => 'Manual preview']
+                    : null,
+                ['id' => 'preview-deployments-section', 'label' => 'Deployments'],
+            ])),
         ];
     @endphp
 
