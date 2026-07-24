@@ -110,34 +110,108 @@
             fn (array $item): bool => $item['visible'] ?? true,
         ));
 
+        // Icons follow the main sidebar's reicon set
+        $menuIcons = [
+            'General' => 'settings',
+            'Advanced' => 'grid',
+            'Swarm' => 'destinations',
+            'Environment Variables' => 'variables',
+            'Persistent Storage' => 'storages',
+            'Git Source' => 'sources',
+            'Servers' => 'servers',
+            'Scheduled Tasks' => 'terminal',
+            'Webhooks' => 'notifications',
+            'Preview Deployments' => 'eye',
+            'Healthcheck' => 'feedback',
+            'Rollback' => 'logout',
+            'Resource Limits' => 'subscription',
+            'Resource Operations' => 'teams',
+            'Metrics' => 'dashboard',
+            'Tags' => 'tags',
+            'Danger Zone' => 'admin',
+        ];
+
+        // Discord-style groups for the settings sidebar
+        $menuGroups = [
+            'Settings' => ['General', 'Advanced', 'Swarm', 'Environment Variables', 'Persistent Storage'],
+            'Build & deploy' => ['Git Source', 'Servers', 'Preview Deployments', 'Rollback', 'Scheduled Tasks', 'Webhooks', 'Healthcheck'],
+            'Operations' => ['Resource Limits', 'Resource Operations', 'Metrics', 'Tags', 'Danger Zone'],
+        ];
+        $groupedMenuItems = collect($menuGroups)
+            ->map(fn (array $labels) => collect($configurationMenuItems)->whereIn('label', $labels)->values())
+            ->filter(fn ($items) => $items->isNotEmpty());
+
+        // In-page sections (cards) shown as sub-items under the active page
+        $isComposeApp = $application->build_pack === 'dockercompose';
+        $pageSections = [
+            'project.application.configuration' => array_values(array_filter([
+                ['id' => 'application-details-section', 'label' => 'Application details'],
+                ['id' => 'public-access-section', 'label' => 'Public access'],
+                ['id' => 'build-pipeline-section', 'label' => 'Build pipeline'],
+                $isComposeApp ? null : ['id' => 'container-image-section', 'label' => 'Container image'],
+                $isComposeApp ? null : ['id' => 'networking-section', 'label' => 'Networking'],
+                $isComposeApp ? null : ['id' => 'runtime-section', 'label' => 'Runtime'],
+                $isComposeApp ? null : ['id' => 'security-section', 'label' => 'Security'],
+                ['id' => 'deployment-lifecycle-section', 'label' => 'Deployment lifecycle'],
+                $isComposeApp ? null : ['id' => 'container-labels-section', 'label' => 'Container labels'],
+            ])),
+            'project.application.advanced' => array_values(array_filter([
+                ['id' => 'advanced-build-section', 'label' => 'Build'],
+                ['id' => 'advanced-container-section', 'label' => 'Container'],
+                $application->git_based() ? ['id' => 'advanced-deployment-section', 'label' => 'Deployment'] : null,
+                $application->git_based() ? ['id' => 'advanced-git-section', 'label' => 'Git'] : null,
+                $isComposeApp ? ['id' => 'advanced-compose-section', 'label' => 'Docker compose'] : null,
+                ['id' => 'advanced-proxy-section', 'label' => 'Proxy'],
+                ['id' => 'advanced-operations-section', 'label' => 'Operations'],
+                ['id' => 'advanced-logs-section', 'label' => 'Logs'],
+                $isComposeApp ? null : ['id' => 'advanced-gpu-section', 'label' => 'GPU'],
+            ])),
+        ];
     @endphp
 
-    <section class="application-settings-workspace mt-8 w-full max-w-[1180px]">
+    <section class="application-settings-workspace mt-8 w-full max-w-[1180px] xl:mt-0">
         <div class="grid min-w-0 gap-8 xl:grid-cols-[210px_minmax(0,1fr)] xl:gap-10">
-            <aside class="application-settings-navigation min-w-0 xl:sticky xl:top-20 xl:self-start">
+            <aside class="application-settings-navigation min-w-0 xl:sticky xl:top-26 xl:self-start">
                 <nav aria-label="Configuration sections"
-                    class="grid grid-cols-2 gap-1 border-y border-neutral-200 py-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-1 xl:border-y-0 xl:py-0">
-                    @foreach ($configurationMenuItems as $menuItem)
-                        <a wire:key="application-settings-link-{{ str($menuItem['label'])->slug() }}"
-                            @class([
-                                'relative flex min-h-9 items-center gap-2 rounded-[5px] px-2.5 text-sm font-medium transition-colors',
-                                'bg-neutral-100 text-black before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:bg-accent dark:bg-white/[0.07] dark:text-fg' => $menuItem['active'],
-                                'text-neutral-500 hover:bg-neutral-100 hover:text-black dark:text-fg-dim dark:hover:bg-white/[0.04] dark:hover:text-fg' => ! $menuItem['active'],
-                            ])
-                            {{ wireNavigate() }}
-                            href="{{ route($menuItem['route'], $applicationRouteParameters) }}">
-                            <span class="min-w-0 flex-1">{{ $menuItem['label'] }}</span>
-                            @if ($menuItem['badge'] ?? false)
-                                <span class="shrink-0">
-                                    <livewire:project.application.server-status-badge :application="$application" />
-                                </span>
+                    class="grid grid-cols-2 gap-0.5 border-y border-neutral-200 py-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-1 xl:border-y-0 xl:py-0">
+                    @foreach ($groupedMenuItems as $groupLabel => $groupItems)
+                        @unless ($loop->first)
+                            <div class="hidden xl:block my-2 border-t border-neutral-200 dark:border-white/[0.06]" aria-hidden="true"></div>
+                        @endunless
+                        <div class="nav-section hidden xl:block">{{ $groupLabel }}</div>
+                        @foreach ($groupItems as $menuItem)
+                            <a wire:key="application-settings-link-{{ str($menuItem['label'])->slug() }}"
+                                @class([
+                                    'menu-item',
+                                    'menu-item-active' => $menuItem['active'],
+                                ])
+                                {{ wireNavigate() }}
+                                href="{{ route($menuItem['route'], $applicationRouteParameters) }}">
+                                <x-reicon :name="$menuIcons[$menuItem['label']] ?? 'settings'" class="menu-item-icon" />
+                                <span class="menu-item-label">{{ $menuItem['label'] }}</span>
+                                @if ($menuItem['badge'] ?? false)
+                                    <span class="shrink-0">
+                                        <livewire:project.application.server-status-badge :application="$application" />
+                                    </span>
+                                @endif
+                            </a>
+                            @if ($menuItem['active'] && !empty($pageSections[$menuItem['route']] ?? []))
+                                <div class="nav-children hidden flex-col gap-0.5 py-1 xl:flex" x-data="{ activeSection: '' }">
+                                    @foreach ($pageSections[$menuItem['route']] as $section)
+                                        <button type="button" class="menu-subitem"
+                                            :class="activeSection === '{{ $section['id'] }}' && 'menu-subitem-active'"
+                                            @click="activeSection = '{{ $section['id'] }}'; document.getElementById('{{ $section['id'] }}')?.scrollIntoView({ behavior: 'smooth', block: 'start' })">
+                                            <span class="menu-item-label text-left">{{ $section['label'] }}</span>
+                                        </button>
+                                    @endforeach
+                                </div>
                             @endif
-                        </a>
+                        @endforeach
                     @endforeach
                 </nav>
             </aside>
 
-            <div class="min-w-0">
+            <div class="min-w-0 xl:mt-3">
             @if ($currentRoute === 'project.application.configuration')
                 <livewire:project.application.general :application="$application" />
             @elseif ($currentRoute === 'project.application.swarm' && $application->destination->server->isSwarm())

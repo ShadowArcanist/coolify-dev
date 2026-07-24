@@ -18,7 +18,7 @@
             </div>
         @endif
         <div class="application-settings-grid flex flex-col gap-4">
-            <x-application.settings-section title="Application details" helper="Name the application and choose the build strategy Coolify should use to deploy it." class="application-details-card">
+            <x-application.settings-section id="application-details-section" title="Application details" helper="Name the application and choose the build strategy Coolify should use to deploy it." class="application-details-card">
             <div class="grid gap-4">
                 <x-forms.input x-bind:disabled="shouldDisable()" id="name" label="Name" required />
                 <x-forms.input x-bind:disabled="shouldDisable()" id="description" label="Description" />
@@ -26,7 +26,7 @@
 
             </x-application.settings-section>
 
-            <x-application.settings-section title="Public access" helper="Connect public domains and control how incoming requests are redirected between www and non-www.">
+            <x-application.settings-section id="public-access-section" title="Public access" helper="Connect public domains and control how incoming requests are redirected between www and non-www.">
             @if ($buildPack === 'dockercompose')
                 @if (
                     !is_null($parsedServices) &&
@@ -169,7 +169,7 @@
             @endif
             </x-application.settings-section>
 
-            <x-application.settings-section title="Build pipeline" helper="Commands, directories and options used while building the application.">
+            <x-application.settings-section id="build-pipeline-section" title="Build pipeline" helper="Commands, directories and options used while building the application.">
             @if (!$application->dockerfile && $application->build_pack !== 'dockerimage')
                 <div class="application-build-pack-options mb-5 border-b border-neutral-200 pb-5 dark:border-white/[0.07]">
                     <div class="grid gap-4 sm:grid-cols-2">
@@ -439,7 +439,7 @@
             @endif
             </x-application.settings-section>
             @if ($buildPack !== 'dockercompose')
-                <x-application.settings-section title="Container image" helper="Configure the Docker image used for this application and where the built image is pushed.">
+                <x-application.settings-section id="container-image-section" title="Container image" helper="Configure the Docker image used for this application and where the built image is pushed.">
                 @if ($application->destination->server->isSwarm())
                     @if ($application->build_pack !== 'dockerimage')
                         <div>Docker Swarm requires the image to be available in a registry. More info <a
@@ -489,7 +489,7 @@
             @endif
 
             @if ($buildPack !== 'dockercompose')
-                <x-application.settings-section title="Networking" helper="Ports the container exposes, host port mappings and internal network aliases.">
+                <x-application.settings-section id="networking-section" title="Networking" helper="Ports the container exposes, host port mappings and internal network aliases.">
                 @if ($this->detectedPortInfo)
                     @if ($this->detectedPortInfo['isEmpty'])
                         <div
@@ -578,14 +578,14 @@
                 </div>
                 </x-application.settings-section>
 
-                <x-application.settings-section title="Runtime" helper="Options applied to the container when it starts.">
+                <x-application.settings-section id="runtime-section" title="Runtime" helper="Options applied to the container when it starts.">
                     <x-forms.input
                         helper="You can add custom docker run options that will be used when your container is started.<br>Note: Not all options are supported, as they could mess up Coolify's automation and could cause bad experience for users.<br><br>Check the <a class='underline dark:text-white' href='https://coolify.io/docs/knowledge-base/docker/custom-commands'>docs.</a>"
                         placeholder="--cap-add SYS_ADMIN --device=/dev/fuse --security-opt apparmor:unconfined --ulimit nofile=1024:1024 --tmpfs /run:rw,noexec,nosuid,size=65536k --hostname=myapp"
                         id="customDockerRunOptions" label="Custom Docker options" x-bind:disabled="!canUpdate" />
                 </x-application.settings-section>
 
-                <x-application.settings-section title="Security" helper="Protect this application with authentication at the proxy level.">
+                <x-application.settings-section id="security-section" title="Security" helper="Protect this application with authentication at the proxy level.">
                     @if ($application->settings->is_container_label_readonly_enabled == false)
                     <x-empty size="sm" title="Authentication is managed through labels"
                         description="Authentication is managed via manual proxy labels. Switch label management back to Coolify to configure it here.">
@@ -664,7 +664,7 @@
                 </x-application.settings-section>
             @endif
 
-            <x-application.settings-section title="Deployment lifecycle" helper="Optional commands executed right before and after each deployment.">
+            <x-application.settings-section id="deployment-lifecycle-section" title="Deployment lifecycle" helper="Optional commands executed right before and after each deployment.">
             <div class="grid gap-4 sm:grid-cols-2">
                 <div class="flex flex-col gap-4">
                     <x-forms.input x-bind:disabled="shouldDisable()" placeholder="php artisan migrate"

@@ -394,8 +394,8 @@ section {
     border: none;
     background: var(--coollabs-elevated);
     box-shadow: 0 0 0 1px var(--coollabs-hairline);
-    /* keep anchored scrolls (scrollIntoView) clear of the fixed topbar */
-    scroll-margin-top: 4.5rem;
+    /* keep anchored scrolls (scrollIntoView) clear of the fixed topbar + layer-2 nav */
+    scroll-margin-top: 7rem;
 }
 
 /* Layer card header: compact strip on the shell, subtle title color */
@@ -486,6 +486,72 @@ section {
 .dark .application-settings-workspace .form-control:hover,
 .dark .application-settings-form .form-control:hover {
     background: transparent;
+}
+
+/* Heading action group: buttons + dropdown triggers styled like the tabs */
+.application-heading-actions .button,
+.application-heading-actions .relative > button[x-ref='trigger'] {
+    height: 1.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    padding: 0 0.625rem;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #737373;
+    min-width: 0;
+    white-space: nowrap;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.dark .application-heading-actions .button,
+.dark .application-heading-actions .relative > button[x-ref='trigger'] {
+    color: var(--color-fg-dim);
+}
+
+.application-heading-actions .button:hover:not(:disabled),
+.application-heading-actions .relative > button[x-ref='trigger']:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: #000000;
+}
+
+.dark .application-heading-actions .button:hover:not(:disabled),
+.dark .application-heading-actions .relative > button[x-ref='trigger']:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--color-fg);
+}
+
+.application-heading-actions .relative > button[x-ref='trigger'] {
+    padding-right: 0.625rem;
+}
+
+/* dropdown chevron: inline instead of absolutely positioned */
+.application-heading-actions .relative > button[x-ref='trigger'] > svg {
+    position: static;
+    margin: 0;
+    width: 0.875rem;
+    height: 0.875rem;
+    flex-shrink: 0;
+    opacity: 0.6;
+}
+
+/* dropdown label: kill the h-full/flex-col title wrapper so text centers
+   on the same baseline as the sibling buttons */
+.application-heading-actions .relative > button[x-ref='trigger'] > span {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    height: auto;
+    line-height: 1.25;
+}
+
+.application-heading-actions .button svg {
+    width: 1rem;
+    height: 1rem;
 }
 
 /* Custom listbox (replaces native <select>) */
