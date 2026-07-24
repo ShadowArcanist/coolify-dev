@@ -194,6 +194,10 @@
                 ['id' => 'rollback-retention-section', 'label' => 'Image retention'],
                 ['id' => 'rollback-images-section', 'label' => 'Available images'],
             ],
+            'project.application.resource-limits' => [
+                ['id' => 'cpu-limits-section', 'label' => 'CPU'],
+                ['id' => 'memory-limits-section', 'label' => 'Memory'],
+            ],
         ];
     @endphp
 
