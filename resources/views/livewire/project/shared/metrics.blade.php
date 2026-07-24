@@ -121,6 +121,7 @@
                         xaxis: {
                             type: 'datetime',
                             labels: {
+                                datetimeUTC: true,
                                 style: {
                                     colors: textColor,
                                 },
@@ -128,11 +129,17 @@
                         },
                         yaxis: {
                             min: 0,
+                            max: max => max > 0 ? max * 1.2 : 1,
+                            forceNiceScale: true,
                             labels: {
                                 style: {
                                     colors: textColor,
                                 },
-                                formatter: value => `${Math.round(value)}%`,
+                                formatter: value => {
+                                    const precision = Math.abs(value) < 1 ? 2 : 1;
+
+                                    return `${Number(value.toFixed(precision))}%`;
+                                },
                             },
                         },
                         noData: {
@@ -142,6 +149,12 @@
                             },
                         },
                         tooltip: {
+                            shared: false,
+                            intersect: false,
+                            followCursor: false,
+                            fixed: {
+                                enabled: false,
+                            },
                             marker: {
                                 show: false,
                             },
@@ -152,7 +165,7 @@
 
                                 return `<div class="apexcharts-tooltip-custom">
                                     <div class="apexcharts-tooltip-custom-value">CPU: <span class="apexcharts-tooltip-value-bold">${value}%</span></div>
-                                    <div class="apexcharts-tooltip-custom-title">${date.toLocaleString()}</div>
+                                    <div class="apexcharts-tooltip-custom-title">${date.toLocaleString(undefined, { timeZone: 'UTC', hour12: false })} UTC</div>
                                 </div>`;
                             },
                         },
@@ -171,6 +184,7 @@
                             xaxis: {
                                 type: 'datetime',
                                 labels: {
+                                    datetimeUTC: true,
                                     style: {
                                         colors: textColor,
                                     },
@@ -178,11 +192,17 @@
                             },
                             yaxis: {
                                 min: 0,
+                                max: max => max > 0 ? max * 1.2 : 1,
+                                forceNiceScale: true,
                                 labels: {
                                     style: {
                                         colors: textColor,
                                     },
-                                    formatter: value => `${Math.round(value)}%`,
+                                    formatter: value => {
+                                        const precision = Math.abs(value) < 1 ? 2 : 1;
+
+                                        return `${Number(value.toFixed(precision))}%`;
+                                    },
                                 },
                             },
                             noData: {
@@ -252,6 +272,7 @@
                         xaxis: {
                             type: 'datetime',
                             labels: {
+                                datetimeUTC: true,
                                 style: {
                                     colors: textColor,
                                 },
@@ -259,6 +280,8 @@
                         },
                         yaxis: {
                             min: 0,
+                            max: max => max > 0 ? max * 1.2 : 1,
+                            forceNiceScale: true,
                             labels: {
                                 style: {
                                     colors: textColor,
@@ -273,6 +296,12 @@
                             },
                         },
                         tooltip: {
+                            shared: false,
+                            intersect: false,
+                            followCursor: false,
+                            fixed: {
+                                enabled: false,
+                            },
                             marker: {
                                 show: false,
                             },
@@ -283,7 +312,7 @@
 
                                 return `<div class="apexcharts-tooltip-custom">
                                     <div class="apexcharts-tooltip-custom-value">Memory: <span class="apexcharts-tooltip-value-bold">${value} MB</span></div>
-                                    <div class="apexcharts-tooltip-custom-title">${date.toLocaleString()}</div>
+                                    <div class="apexcharts-tooltip-custom-title">${date.toLocaleString(undefined, { timeZone: 'UTC', hour12: false })} UTC</div>
                                 </div>`;
                             },
                         },
@@ -302,6 +331,7 @@
                             xaxis: {
                                 type: 'datetime',
                                 labels: {
+                                    datetimeUTC: true,
                                     style: {
                                         colors: textColor,
                                     },
@@ -309,6 +339,8 @@
                             },
                             yaxis: {
                                 min: 0,
+                                max: max => max > 0 ? max * 1.2 : 1,
+                                forceNiceScale: true,
                                 labels: {
                                     style: {
                                         colors: textColor,
