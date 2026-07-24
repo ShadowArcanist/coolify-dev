@@ -1,67 +1,57 @@
                 <form wire:submit.prevent="submit" class="application-settings-form flex flex-col gap-6">
                     <x-application.settings-section id="server-overview-section" title="Server overview"
-                        helper="Connection and validation status for the server running this Coolify instance.">
+                        helper="Operating system and hardware details for the server running this Coolify instance.">
                         <x-slot:actions>
                             <x-status-badge :status="$server->isFunctional() ? 'Ready' : 'Validation required'"
                                 :type="$server->isFunctional() ? 'success' : 'warning'" />
                         </x-slot:actions>
 
-                        <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                            <div class="flex items-start gap-3">
-                                <div
-                                    class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600 dark:bg-white/[0.06] dark:text-fg-dim">
-                                    <x-reicon name="servers" class="size-4.5" />
-                                </div>
-                                <div>
-                                    <p class="text-sm font-medium text-neutral-950 dark:text-fg">Localhost</p>
-                                    <p class="mt-1 text-xs leading-5 text-neutral-500 dark:text-fg-dim">
-                                        @if ($server->isFunctional())
-                                            The server is reachable, validated, and ready to host resources.
-                                        @else
-                                            Validate the local Docker connection before using this server.
-                                        @endif
-                                    </p>
-                                </div>
+                        <div class="flex items-start gap-3">
+                            <div
+                                class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600 dark:bg-white/[0.06] dark:text-fg-dim">
+                                <x-reicon name="servers" class="size-4.5" />
                             </div>
-                            <x-forms.button type="button" wire:click.prevent="checkLocalhostConnection"
-                                wire:loading.attr="disabled" wire:target="checkLocalhostConnection"
-                                class="shrink-0">
-                                <x-reicon name="refresh" wire:loading.remove wire:target="checkLocalhostConnection"
-                                    class="size-3.5" />
-                                <svg wire:loading wire:target="checkLocalhostConnection"
-                                    class="size-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                                    <circle class="opacity-25" cx="12" cy="12" r="9"
-                                        stroke="currentColor" stroke-width="3" />
-                                    <path class="opacity-75" d="M21 12a9 9 0 0 0-9-9" stroke="currentColor"
-                                        stroke-width="3" stroke-linecap="round" />
-                                </svg>
-                                Validate connection
-                            </x-forms.button>
+                            <div>
+                                <p class="text-sm font-medium text-neutral-950 dark:text-fg">Localhost</p>
+                                <p class="mt-1 text-xs leading-5 text-neutral-500 dark:text-fg-dim">
+                                    @if ($server->isFunctional())
+                                        The server is reachable, validated, and ready to host resources.
+                                    @else
+                                        Validate the local Docker connection before using this server.
+                                    @endif
+                                </p>
+                            </div>
                         </div>
 
-                        <div class="mt-4 grid gap-3 border-t border-neutral-200 pt-4 sm:grid-cols-3 dark:border-white/[0.08]">
-                            <div>
-                                <p class="text-xs text-neutral-500 dark:text-fg-dim">Reachability</p>
-                                <div class="mt-1.5">
-                                    <x-status-badge :status="$isReachable ? 'Reachable' : 'Unreachable'"
-                                        :type="$isReachable ? 'success' : 'error'" />
-                                </div>
-                            </div>
-                            <div>
-                                <p class="text-xs text-neutral-500 dark:text-fg-dim">Validation</p>
-                                <div class="mt-1.5">
-                                    <x-status-badge :status="$isUsable ? 'Validated' : 'Not validated'"
-                                        :type="$isUsable ? 'success' : 'warning'" />
-                                </div>
-                            </div>
-                            <div>
-                                <p class="text-xs text-neutral-500 dark:text-fg-dim">Metrics</p>
-                                <div class="mt-1.5">
-                                    <x-status-badge :status="$isMetricsEnabled ? 'Enabled' : 'Disabled'"
-                                        :type="$isMetricsEnabled ? 'success' : 'neutral'" />
-                                </div>
-                            </div>
-                        </div>
+                        @if ($server->server_metadata)
+                            @php($meta = $server->server_metadata)
+                            <dl
+                                class="mt-4 grid gap-x-6 gap-y-5 border-t border-neutral-200 pt-4 sm:grid-cols-2 lg:grid-cols-3 dark:border-white/[0.08]">
+                                @foreach ([
+                                    'Operating system' => $meta['os'] ?? 'N/A',
+                                    'Architecture' => $meta['arch'] ?? 'N/A',
+                                    'Kernel' => $meta['kernel'] ?? 'N/A',
+                                    'CPU cores' => $meta['cpus'] ?? 'N/A',
+                                    'Memory' => isset($meta['memory_bytes']) ? round($meta['memory_bytes'] / 1073741824, 1) . ' GB' : 'N/A',
+                                    'Up since' => $meta['uptime_since'] ?? 'N/A',
+                                ] as $detailLabel => $detailValue)
+                                    <div>
+                                        <dt class="text-xs font-medium text-neutral-500 dark:text-fg-dim">
+                                            {{ $detailLabel }}
+                                        </dt>
+                                        <dd class="mt-1 text-sm font-medium text-neutral-950 dark:text-fg">
+                                            {{ $detailValue }}
+                                        </dd>
+                                    </div>
+                                @endforeach
+                            </dl>
+                            @if (isset($meta['collected_at']))
+                                <p
+                                    class="mt-5 border-t border-neutral-200 pt-3 text-xs text-neutral-500 dark:border-white/[0.08] dark:text-fg-faint">
+                                    Updated {{ \Carbon\Carbon::parse($meta['collected_at'])->diffForHumans() }}
+                                </p>
+                            @endif
+                        @endif
                     </x-application.settings-section>
 
                     @if ($server->validation_logs)
@@ -77,11 +67,20 @@
                     <x-application.settings-section id="server-connection-section" title="Connection"
                         helper="Configure how Coolify identifies and connects to this server.">
                         <x-slot:actions>
-                            <x-modal-confirmation title="Confirm server settings change?" buttonTitle="Save changes"
-                                submitAction="submit" :actions="[
-                                    'Incorrect connection settings can make this Coolify server unavailable.',
-                                ]" :confirmWithText="false" :confirmWithPassword="false"
-                                step2ButtonText="Save changes" canGate="update" :canResource="$server" />
+                            <x-forms.button type="button" wire:click.prevent="checkLocalhostConnection"
+                                wire:loading.attr="disabled" wire:target="checkLocalhostConnection"
+                                canGate="update" :canResource="$server">
+                                <x-reicon name="refresh" wire:loading.remove wire:target="checkLocalhostConnection"
+                                    class="size-3.5" />
+                                <svg wire:loading wire:target="checkLocalhostConnection"
+                                    class="size-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                                    <circle class="opacity-25" cx="12" cy="12" r="9"
+                                        stroke="currentColor" stroke-width="3" />
+                                    <path class="opacity-75" d="M21 12a9 9 0 0 0-9-9" stroke="currentColor"
+                                        stroke-width="3" stroke-linecap="round" />
+                                </svg>
+                                Validate connection
+                            </x-forms.button>
                         </x-slot:actions>
 
                         <div class="grid gap-4 sm:grid-cols-2">
@@ -120,57 +119,3 @@
                         </div>
                     </x-application.settings-section>
                 </form>
-
-                @if ($server->isFunctional())
-                    <div class="application-settings-form mt-6">
-                        <x-application.settings-section title="Server details"
-                            helper="Operating system and hardware information reported by the server.">
-                            <x-slot:actions>
-                                <x-forms.button type="button" wire:click="refreshServerMetadata"
-                                    wire:loading.attr="disabled" wire:target="refreshServerMetadata"
-                                    canGate="update" :canResource="$server">
-                                    <x-reicon name="refresh" wire:loading.remove wire:target="refreshServerMetadata"
-                                        class="size-3.5" />
-                                    <span wire:loading.remove wire:target="refreshServerMetadata">Refresh</span>
-                                    <span wire:loading wire:target="refreshServerMetadata">Refreshing…</span>
-                                </x-forms.button>
-                            </x-slot:actions>
-
-                            @if ($server->server_metadata)
-                                @php($meta = $server->server_metadata)
-                                <dl class="grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
-                                    @foreach ([
-                                        'Operating system' => $meta['os'] ?? 'N/A',
-                                        'Architecture' => $meta['arch'] ?? 'N/A',
-                                        'Kernel' => $meta['kernel'] ?? 'N/A',
-                                        'CPU cores' => $meta['cpus'] ?? 'N/A',
-                                        'Memory' => isset($meta['memory_bytes']) ? round($meta['memory_bytes'] / 1073741824, 1) . ' GB' : 'N/A',
-                                        'Up since' => $meta['uptime_since'] ?? 'N/A',
-                                    ] as $detailLabel => $detailValue)
-                                        <div>
-                                            <dt class="text-xs font-medium text-neutral-500 dark:text-fg-dim">
-                                                {{ $detailLabel }}
-                                            </dt>
-                                            <dd class="mt-1 text-sm font-medium text-neutral-950 dark:text-fg">
-                                                {{ $detailValue }}
-                                            </dd>
-                                        </div>
-                                    @endforeach
-                                </dl>
-                                @if (isset($meta['collected_at']))
-                                    <p class="mt-5 border-t border-neutral-200 pt-3 text-xs text-neutral-500 dark:border-white/[0.08] dark:text-fg-faint">
-                                        Updated {{ \Carbon\Carbon::parse($meta['collected_at'])->diffForHumans() }}
-                                    </p>
-                                @endif
-                            @else
-                                <x-empty size="sm" title="Server details have not been collected"
-                                    description="Refresh to collect operating system and hardware information.">
-                                    <x-slot:icon>
-                                        <x-reicon name="servers" class="size-8" />
-                                    </x-slot:icon>
-                                </x-empty>
-                            @endif
-                        </x-application.settings-section>
-                    </div>
-                @endif
-
