@@ -2,6 +2,7 @@
     'title',
     'description' => null,
     'helper' => null,
+    'flush' => false,
 ])
 
 <section {{ $attributes->merge(['class' => 'application-settings-section']) }}>
@@ -26,7 +27,7 @@
             </div>
         @endisset
     </header>
-    <div class="application-settings-section-body">
+    <div class="application-settings-section-body {{ $flush ? 'is-flush' : '' }}">
         @if ($description)
             <p class="mb-4 text-sm leading-6 text-neutral-500 dark:text-fg-dim">{{ $description }}</p>
         @endif
