@@ -15,7 +15,7 @@
             Reset
         </button>
         <button type="button" wire:click="{{ $action }}" wire:loading.attr="disabled"
-            class="h-8 rounded-lg bg-warning/20 px-4 text-[13px] font-semibold text-warning-900 ring-1 ring-warning/30 transition-[transform,background-color] hover:bg-warning/25 active:scale-[0.98] dark:bg-warning/15 dark:text-warning dark:ring-warning/25 dark:hover:bg-warning/20">
+            class="h-8 rounded-lg bg-coollabs/10 px-4 text-[13px] font-semibold text-coollabs ring-1 ring-coollabs/25 transition-[transform,background-color] hover:bg-coollabs/15 active:scale-[0.98] dark:bg-warning/15 dark:text-warning dark:ring-warning/25 dark:hover:bg-warning/20">
             Save changes
         </button>
     </div>

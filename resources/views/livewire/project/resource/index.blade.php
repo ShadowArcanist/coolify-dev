@@ -29,7 +29,7 @@
                     </a>
                     <a href="{{ route('project.resource.create', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid]) }}"
                         {{ wireNavigate() }}
-                        class="button bg-warning/15! text-warning-900! ring-1 ring-warning/25 hover:bg-warning/20! dark:text-warning!">
+                        class="button bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!">
                         <x-reicon name="plus" class="size-3.5" />
                         New resource
                     </a>

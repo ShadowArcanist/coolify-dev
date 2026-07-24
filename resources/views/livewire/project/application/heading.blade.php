@@ -423,7 +423,7 @@
                     <a wire:key="application-primary-nav-{{ str($menuItem['label'])->slug() }}"
                         @class([
                             'app-tab shrink-0',
-                            'bg-warning/20 text-warning-900 shadow-sm ring-1 ring-warning/30 hover:bg-warning/25 dark:bg-warning/15 dark:text-warning dark:ring-warning/25 dark:hover:bg-warning/20' => $isApplicationMenuItemActive,
+                            'bg-coollabs/10 text-coollabs shadow-sm ring-1 ring-coollabs/25 hover:bg-coollabs/15 dark:bg-warning/15 dark:text-warning dark:ring-warning/25 dark:hover:bg-warning/20' => $isApplicationMenuItemActive,
                         ])
                         @if ($menuItem['navigate'] ?? true) {{ wireNavigate() }} @endif
                         href="{{ route($menuItem['route'], $parameters) }}">

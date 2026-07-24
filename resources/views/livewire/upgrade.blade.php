@@ -8,12 +8,12 @@
         <div :class="{ 'z-40': modalOpen }" class="relative w-auto h-auto">
             <button type="button" title="Upgrade in progress" aria-label="Upgrade in progress"
                 @click="modalOpen=true" x-show="showProgress" x-cloak
-                class="inline-flex h-[18px] cursor-pointer items-center rounded-full bg-warning/15 px-1.5 text-[9.5px] font-semibold leading-none text-warning-900 ring-1 ring-inset ring-warning/25 transition-colors hover:bg-warning/20 dark:text-warning">
+                class="inline-flex h-[18px] cursor-pointer items-center rounded-full bg-coollabs/10 px-1.5 text-[9.5px] font-semibold leading-none text-coollabs ring-1 ring-inset ring-coollabs/25 transition-colors hover:bg-coollabs/15 dark:bg-warning/15 dark:text-warning dark:ring-warning/25 dark:hover:bg-warning/20">
                 Updating
             </button>
             <button type="button" title="Update available" aria-label="Update available"
                 @click="modalOpen=true" x-show="!showProgress" x-cloak
-                class="inline-flex h-[18px] cursor-pointer items-center rounded-full bg-warning/15 px-1.5 text-[9.5px] font-semibold leading-none text-warning-900 ring-1 ring-inset ring-warning/25 transition-colors hover:bg-warning/20 dark:text-warning">
+                class="inline-flex h-[18px] cursor-pointer items-center rounded-full bg-coollabs/10 px-1.5 text-[9.5px] font-semibold leading-none text-coollabs ring-1 ring-inset ring-coollabs/25 transition-colors hover:bg-coollabs/15 dark:bg-warning/15 dark:text-warning dark:ring-warning/25 dark:hover:bg-warning/20">
                 Update available
             </button>
             <template x-teleport="body">
