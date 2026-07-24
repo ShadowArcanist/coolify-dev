@@ -44,38 +44,22 @@
                                     class="listbox-panel left-auto! right-0 min-w-0! w-44!">
                                     <button type="button" class="listbox-option justify-start! gap-2.5!" role="menuitem"
                                         @click="volumeModalOpen = true; dropdownOpen = false">
-                                        <svg class="size-4" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                                                d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
-                                        </svg>
+                                        <x-reicon name="storages" class="size-4" />
                                         Volume mount
                                     </button>
                                     <button type="button" class="listbox-option justify-start! gap-2.5!" role="menuitem"
                                         @click="fileModalOpen = true; dropdownOpen = false">
-                                        <svg class="size-4" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                                                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                        </svg>
+                                        <x-reicon name="file" class="size-4" />
                                         File mount
                                     </button>
                                     <button type="button" class="listbox-option justify-start! gap-2.5!" role="menuitem"
                                         @click="hostFileModalOpen = true; dropdownOpen = false">
-                                        <svg class="size-4" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                                                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                        </svg>
+                                        <x-reicon name="file-content" class="size-4" />
                                         Host file mount
                                     </button>
                                     <button type="button" class="listbox-option justify-start! gap-2.5!" role="menuitem"
                                         @click="directoryModalOpen = true; dropdownOpen = false">
-                                        <svg class="size-4" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                                                d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                                        </svg>
+                                        <x-reicon name="folder" class="size-4" />
                                         Directory mount
                                     </button>
                                 </div>
