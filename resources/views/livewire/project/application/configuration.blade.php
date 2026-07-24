@@ -2,7 +2,6 @@
     <x-slot:title>
         {{ data_get_str($application, 'name')->limit(10) }} > Configuration | Coolify
     </x-slot>
-    <h1>Configuration</h1>
     <livewire:project.shared.configuration-checker :resource="$application" />
     <livewire:project.application.heading :application="$application" />
 
@@ -110,24 +109,35 @@
             $configurationMenuItems,
             fn (array $item): bool => $item['visible'] ?? true,
         ));
+
     @endphp
 
-    <div class="flex flex-col h-full gap-2 md:gap-8 md:flex-row">
-        <div class="sub-menu-wrapper hidden md:flex">
-            @foreach ($configurationMenuItems as $menuItem)
-                <a @class([
-                    'sub-menu-item',
-                    'flex items-center gap-2' => $menuItem['badge'] ?? false,
-                    'menu-item-active' => $menuItem['active'],
-                ]) {{ wireNavigate() }} href="{{ route($menuItem['route'], $applicationRouteParameters) }}">
-                    <span class="menu-item-label">{{ $menuItem['label'] }}</span>
-                    @if ($menuItem['badge'] ?? false)
-                        <livewire:project.application.server-status-badge :application="$application" />
-                    @endif
-                </a>
-            @endforeach
-        </div>
-        <div class="w-full md:flex-grow">
+    <section class="application-settings-workspace mt-8 w-full max-w-[1180px]">
+        <div class="grid min-w-0 gap-8 xl:grid-cols-[210px_minmax(0,1fr)] xl:gap-10">
+            <aside class="application-settings-navigation min-w-0 xl:sticky xl:top-20 xl:self-start">
+                <nav aria-label="Configuration sections"
+                    class="grid grid-cols-2 gap-1 border-y border-neutral-200 py-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-1 xl:border-y-0 xl:py-0">
+                    @foreach ($configurationMenuItems as $menuItem)
+                        <a wire:key="application-settings-link-{{ str($menuItem['label'])->slug() }}"
+                            @class([
+                                'relative flex min-h-9 items-center gap-2 rounded-[5px] px-2.5 text-sm font-medium transition-colors',
+                                'bg-neutral-100 text-black before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:bg-accent dark:bg-white/[0.07] dark:text-fg' => $menuItem['active'],
+                                'text-neutral-500 hover:bg-neutral-100 hover:text-black dark:text-fg-dim dark:hover:bg-white/[0.04] dark:hover:text-fg' => ! $menuItem['active'],
+                            ])
+                            {{ wireNavigate() }}
+                            href="{{ route($menuItem['route'], $applicationRouteParameters) }}">
+                            <span class="min-w-0 flex-1">{{ $menuItem['label'] }}</span>
+                            @if ($menuItem['badge'] ?? false)
+                                <span class="shrink-0">
+                                    <livewire:project.application.server-status-badge :application="$application" />
+                                </span>
+                            @endif
+                        </a>
+                    @endforeach
+                </nav>
+            </aside>
+
+            <div class="min-w-0">
             @if ($currentRoute === 'project.application.configuration')
                 <livewire:project.application.general :application="$application" />
             @elseif ($currentRoute === 'project.application.swarm' && $application->destination->server->isSwarm())
@@ -165,6 +175,7 @@
             @elseif ($currentRoute === 'project.application.danger')
                 <livewire:project.shared.danger :resource="$application" />
             @endif
+            </div>
         </div>
-    </div>
+    </section>
 </div>

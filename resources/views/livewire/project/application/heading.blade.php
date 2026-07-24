@@ -1,4 +1,4 @@
-<nav wire:poll.10000ms="checkStatus" class="pb-6">
+<nav wire:poll.10000ms="checkStatus" class="w-full max-w-[1180px] pb-6">
     @php
         $applicationMenuItems = [
             [
@@ -168,8 +168,139 @@
             document.getElementById(`application-mobile-${action}-trigger`)?.click();
         JS;
     @endphp
-    <x-resources.breadcrumbs :resource="$application" :parameters="$parameters" :title="$lastDeploymentInfo" :lastDeploymentLink="$lastDeploymentLink" />
-    <div class="navbar-main">
+    @php
+        $heroServerName = data_get($application, 'destination.server.name');
+        $heroFqdn = str(data_get($application, 'fqdn'))->explode(',')->filter()->first();
+    @endphp
+    <div class="flex flex-wrap items-center gap-4 pt-1 pb-5">
+        <div class="flex min-w-0 items-center gap-3">
+            <div class="flex size-10 shrink-0 items-center justify-center border border-neutral-200 bg-neutral-100 text-sm font-semibold text-neutral-600 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-fg">
+                {{ str($application->name)->substr(0, 1)->upper() }}
+            </div>
+            <div class="min-w-0">
+                <div class="flex min-w-0 flex-wrap items-center gap-2">
+                    <h1 class="min-w-0 truncate text-[28px] font-semibold leading-8 tracking-tight text-black dark:text-white">
+                        {{ $application->name }}
+                    </h1>
+                    <x-status.index :resource="$application" :title="$lastDeploymentInfo" :lastDeploymentLink="$lastDeploymentLink" />
+                </div>
+                @if ($heroServerName || $heroFqdn)
+                    <div class="mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-neutral-500 dark:text-fg-faint">
+                        @if ($heroServerName)
+                            <span>{{ $heroServerName }}</span>
+                        @endif
+                        @if ($heroServerName && $heroFqdn)
+                            <span aria-hidden="true">·</span>
+                        @endif
+                        @if ($heroFqdn)
+                            <span class="truncate">{{ str($heroFqdn)->after('://') }}</span>
+                        @endif
+                    </div>
+                @endif
+            </div>
+        </div>
+        <div class="ml-auto flex flex-wrap items-center gap-2">
+            @if ($application->build_pack === 'dockercompose' && is_null($application->docker_compose_raw))
+                <div class="hidden md:block">Please load a Compose file.</div>
+            @else
+                <div class="hidden flex-wrap items-center gap-2 md:flex">
+                    @if (!$application->destination->server->isSwarm())
+                        <div>
+                            <x-applications.advanced :application="$application" />
+                        </div>
+                    @endif
+                    <div class="flex flex-wrap gap-2">
+                        @if (!str($application->status)->startsWith('exited'))
+                            @if (!$application->destination->server->isSwarm())
+                                <x-forms.button class="bg-accent text-white border-transparent hover:bg-accent/85" canGate="deploy" :canResource="$application" title="With rolling update if possible" wire:click="deploy">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 dark:text-orange-400"
+                                        viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
+                                        stroke-linecap="round" stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                        <path
+                                            d="M10.09 4.01l.496 -.495a2 2 0 0 1 2.828 0l7.071 7.07a2 2 0 0 1 0 2.83l-7.07 7.07a2 2 0 0 1 -2.83 0l-7.07 -7.07a2 2 0 0 1 0 -2.83l3.535 -3.535h-3.988">
+                                        </path>
+                                        <path d="M7.05 11.038v-3.988"></path>
+                                    </svg>
+                                    Redeploy
+                                </x-forms.button>
+                            @endif
+                            @if ($application->build_pack !== 'dockercompose')
+                                @if ($application->destination->server->isSwarm())
+                                    <x-forms.button class="bg-accent text-white border-transparent hover:bg-accent/85" canGate="deploy" :canResource="$application" title="Redeploy Swarm Service (rolling update)" wire:click="deploy">
+                                        <svg class="w-5 h-5 dark:text-warning" viewBox="0 0 24 24"
+                                            xmlns="http://www.w3.org/2000/svg">
+                                            <g fill="none" stroke="currentColor" stroke-linecap="round"
+                                                stroke-linejoin="round" stroke-width="2">
+                                                <path
+                                                    d="M19.933 13.041a8 8 0 1 1-9.925-8.788c3.899-1 7.935 1.007 9.425 4.747" />
+                                                <path d="M20 4v5h-5" />
+                                            </g>
+                                        </svg>
+                                        Update Service
+                                    </x-forms.button>
+                                @else
+                                    <x-modal-confirmation title="Confirm Application Restart?" buttonTitle="Restart"
+                                        submitAction="restart" :actions="[
+                                            'This application will be restarted without rebuilding.',
+                                        ]" :confirmWithText="false" :confirmWithPassword="false"
+                                        step2ButtonText="Confirm">
+                                        <x-slot:content>
+                                            <x-forms.button canGate="deploy" :canResource="$application" title="Restart without rebuilding">
+                                                <svg class="w-5 h-5 dark:text-warning" viewBox="0 0 24 24"
+                                                    xmlns="http://www.w3.org/2000/svg">
+                                                    <g fill="none" stroke="currentColor" stroke-linecap="round"
+                                                        stroke-linejoin="round" stroke-width="2">
+                                                        <path
+                                                            d="M19.933 13.041a8 8 0 1 1-9.925-8.788c3.899-1 7.935 1.007 9.425 4.747" />
+                                                        <path d="M20 4v5h-5" />
+                                                    </g>
+                                                </svg>
+                                                Restart
+                                            </x-forms.button>
+                                        </x-slot:content>
+                                    </x-modal-confirmation>
+
+                                @endif
+                            @endif
+                            <x-modal-confirmation :disabled="!auth()->user()->can('deploy', $application)" :authDisabled="!auth()->user()->can('deploy', $application)" title="Confirm Application Stopping?" buttonTitle="Stop"
+                                submitAction="stop" :checkboxes="$checkboxes" :actions="[
+                                    'This application will be stopped.',
+                                    'All non-persistent data of this application will be deleted.',
+                                ]" :confirmWithText="false" :confirmWithPassword="false"
+                                step1ButtonText="Continue" step2ButtonText="Confirm">
+                                <x-slot:button-title>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-error" viewBox="0 0 24 24"
+                                        stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                        <path
+                                            d="M6 5m0 1a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z">
+                                        </path>
+                                        <path
+                                            d="M14 5m0 1a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z">
+                                        </path>
+                                    </svg>
+                                    Stop
+                                </x-slot:button-title>
+                            </x-modal-confirmation>
+                        @else
+                            <x-forms.button class="bg-accent text-white border-transparent hover:bg-accent/85" canGate="deploy" :canResource="$application" wire:click="deploy">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 dark:text-warning"
+                                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                    <path d="M7 4v16l13 -8z" />
+                                </svg>
+                                Deploy
+                            </x-forms.button>
+                        @endif
+                    </div>
+                </div>
+            @endif
+        </div>
+    </div>
+    <div>
         <div class="w-full md:hidden">
             @if (!($application->build_pack === 'dockercompose' && is_null($application->docker_compose_raw)))
                 <div id="application-mobile-actions" class="mt-2 mb-3 md:hidden">
@@ -410,142 +541,31 @@
             </x-modal-confirmation>
         </div>
 
-        <nav
-            class="scrollbar hidden min-h-10 w-full flex-nowrap items-center gap-6 overflow-x-scroll overflow-y-hidden pb-1 whitespace-nowrap md:flex md:w-auto md:overflow-visible">
-            <a class="hidden md:block shrink-0 {{ request()->routeIs('project.application.configuration') ? 'dark:text-white' : '' }}" {{ wireNavigate() }}
-                href="{{ route('project.application.configuration', $parameters) }}">
-                Configuration
-            </a>
-            <a class="hidden md:block shrink-0 {{ request()->routeIs('project.application.deployment.index') ? 'dark:text-white' : '' }}" {{ wireNavigate() }}
-                href="{{ route('project.application.deployment.index', $parameters) }}">
-                Deployments
-            </a>
-            <a class="hidden md:block shrink-0 {{ request()->routeIs('project.application.backup.*') ? 'dark:text-white' : '' }}" {{ wireNavigate() }}
-                href="{{ route('project.application.backup.index', $parameters) }}">
-                Backups
-            </a>
-            <a class="hidden md:block shrink-0 {{ request()->routeIs('project.application.logs') ? 'dark:text-white' : '' }}"
-                href="{{ route('project.application.logs', $parameters) }}">
-                <div class="flex items-center gap-1">
-                    Logs
-                    @if ($application->restart_count > 0 && (!str($application->status)->startsWith('exited') || $application->stoppedAfterRestartLimit()))
-                        <svg class="w-4 h-4 dark:text-warning" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" title="Container has restarted {{ $application->restart_count }} time{{ $application->restart_count > 1 ? 's' : '' }}">
-                            <path d="M12 2L1 21h22L12 2zm0 4l7.53 13H4.47L12 6zm-1 5v4h2v-4h-2zm0 5v2h2v-2h-2z"/>
-                        </svg>
-                    @endif
-                </div>
-            </a>
-            @if (!$application->destination->server->isSwarm())
-                @can('canAccessTerminal')
-                    <a class="hidden md:block shrink-0 {{ request()->routeIs('project.application.command') ? 'dark:text-white' : '' }}"
-                        href="{{ route('project.application.command', $parameters) }}">
-                        Terminal
+        <div class="hidden w-full items-center justify-between gap-4 md:flex">
+            <div class="application-primary-tabs flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-[7px] border border-neutral-200 bg-neutral-100 p-1 dark:border-white/[0.07] dark:bg-white/[0.035]">
+                @foreach ($applicationMenuItems as $menuItem)
+                    @php
+                        $isApplicationMenuItemActive = $menuItem['active']
+                            || ($menuItem['label'] === 'Configuration' && $activeConfigurationMenuItem);
+                    @endphp
+                    <a wire:key="application-primary-nav-{{ str($menuItem['label'])->slug() }}"
+                        @class([
+                            'app-tab shrink-0',
+                            'bg-white text-black shadow-sm dark:bg-white/[0.09] dark:text-fg' => $isApplicationMenuItemActive,
+                        ])
+                        @if ($menuItem['navigate'] ?? true) {{ wireNavigate() }} @endif
+                        href="{{ route($menuItem['route'], $parameters) }}">
+                        {{ $menuItem['label'] }}
+                        @if ($menuItem['label'] === 'Logs' && $application->restart_count > 0 && (!str($application->status)->startsWith('exited') || $application->stoppedAfterRestartLimit()))
+                            <span class="size-1.5 rounded-full bg-warning"
+                                title="Container has restarted {{ $application->restart_count }} time{{ $application->restart_count > 1 ? 's' : '' }}"></span>
+                        @endif
                     </a>
-                @endcan
-            @endif
-            <div class="hidden shrink-0 md:block">
+                @endforeach
+            </div>
+            <div class="shrink-0">
                 <x-applications.links :application="$application" />
             </div>
-        </nav>
-        <div class="flex flex-wrap gap-2 items-center">
-            @if ($application->build_pack === 'dockercompose' && is_null($application->docker_compose_raw))
-                <div>Please load a Compose file.</div>
-            @else
-                <div class="hidden flex-wrap items-center gap-2 md:flex">
-                    @if (!$application->destination->server->isSwarm())
-                        <div>
-                            <x-applications.advanced :application="$application" />
-                        </div>
-                    @endif
-                    <div class="flex flex-wrap gap-2">
-                        @if (!str($application->status)->startsWith('exited'))
-                            @if (!$application->destination->server->isSwarm())
-                                <x-forms.button canGate="deploy" :canResource="$application" title="With rolling update if possible" wire:click="deploy">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 dark:text-orange-400"
-                                        viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
-                                        stroke-linecap="round" stroke-linejoin="round">
-                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                                        <path
-                                            d="M10.09 4.01l.496 -.495a2 2 0 0 1 2.828 0l7.071 7.07a2 2 0 0 1 0 2.83l-7.07 7.07a2 2 0 0 1 -2.83 0l-7.07 -7.07a2 2 0 0 1 0 -2.83l3.535 -3.535h-3.988">
-                                        </path>
-                                        <path d="M7.05 11.038v-3.988"></path>
-                                    </svg>
-                                    Redeploy
-                                </x-forms.button>
-                            @endif
-                            @if ($application->build_pack !== 'dockercompose')
-                                @if ($application->destination->server->isSwarm())
-                                    <x-forms.button canGate="deploy" :canResource="$application" title="Redeploy Swarm Service (rolling update)" wire:click="deploy">
-                                        <svg class="w-5 h-5 dark:text-warning" viewBox="0 0 24 24"
-                                            xmlns="http://www.w3.org/2000/svg">
-                                            <g fill="none" stroke="currentColor" stroke-linecap="round"
-                                                stroke-linejoin="round" stroke-width="2">
-                                                <path
-                                                    d="M19.933 13.041a8 8 0 1 1-9.925-8.788c3.899-1 7.935 1.007 9.425 4.747" />
-                                                <path d="M20 4v5h-5" />
-                                            </g>
-                                        </svg>
-                                        Update Service
-                                    </x-forms.button>
-                                @else
-                                    <x-modal-confirmation title="Confirm Application Restart?" buttonTitle="Restart"
-                                        submitAction="restart" :actions="[
-                                            'This application will be restarted without rebuilding.',
-                                        ]" :confirmWithText="false" :confirmWithPassword="false"
-                                        step2ButtonText="Confirm">
-                                        <x-slot:content>
-                                            <x-forms.button canGate="deploy" :canResource="$application" title="Restart without rebuilding">
-                                                <svg class="w-5 h-5 dark:text-warning" viewBox="0 0 24 24"
-                                                    xmlns="http://www.w3.org/2000/svg">
-                                                    <g fill="none" stroke="currentColor" stroke-linecap="round"
-                                                        stroke-linejoin="round" stroke-width="2">
-                                                        <path
-                                                            d="M19.933 13.041a8 8 0 1 1-9.925-8.788c3.899-1 7.935 1.007 9.425 4.747" />
-                                                        <path d="M20 4v5h-5" />
-                                                    </g>
-                                                </svg>
-                                                Restart
-                                            </x-forms.button>
-                                        </x-slot:content>
-                                    </x-modal-confirmation>
-
-                                @endif
-                            @endif
-                            <x-modal-confirmation :disabled="!auth()->user()->can('deploy', $application)" :authDisabled="!auth()->user()->can('deploy', $application)" title="Confirm Application Stopping?" buttonTitle="Stop"
-                                submitAction="stop" :checkboxes="$checkboxes" :actions="[
-                                    'This application will be stopped.',
-                                    'All non-persistent data of this application will be deleted.',
-                                ]" :confirmWithText="false" :confirmWithPassword="false"
-                                step1ButtonText="Continue" step2ButtonText="Confirm">
-                                <x-slot:button-title>
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-error" viewBox="0 0 24 24"
-                                        stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
-                                        stroke-linejoin="round">
-                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                                        <path
-                                            d="M6 5m0 1a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z">
-                                        </path>
-                                        <path
-                                            d="M14 5m0 1a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z">
-                                        </path>
-                                    </svg>
-                                    Stop
-                                </x-slot:button-title>
-                            </x-modal-confirmation>
-                        @else
-                            <x-forms.button canGate="deploy" :canResource="$application" wire:click="deploy">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 dark:text-warning"
-                                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none"
-                                    stroke-linecap="round" stroke-linejoin="round">
-                                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                                    <path d="M7 4v16l13 -8z" />
-                                </svg>
-                                Deploy
-                            </x-forms.button>
-                        @endif
-                    </div>
-                </div>
-            @endif
         </div>
     </div>
 </nav>
