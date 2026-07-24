@@ -1,303 +1,399 @@
-# Coolify UI Redesign — Graphite shell + Coollabs layer-card settings surfaces
+# Coolify UI redesign
 
-A visual redesign of Coolify on the existing **Livewire + Blade + Alpine + Tailwind v4**
-stack. No React, no framework change — Blade views are re-skinned and design
-tokens live in CSS.
+This branch restyles Coolify without changing its Livewire + Blade + Alpine +
+Tailwind v4 architecture. The visual system now covers the global shell,
+project and environment pages, application navigation, settings surfaces,
+tables, modals, toasts, terminals, and metrics.
 
-The redesign happened in two phases and both are live on this branch:
+Use this file as the source of truth when updating another page. The older
+Graphite-only notes are no longer accurate.
 
-1. **Graphite shell** — sidebar, topbar, dashboard (dark, layered-neutral UI).
-2. **Coollabs layer-card settings surfaces** — the application
-   *Configuration → General* page was rebuilt with the Coollabs layer design
-   language (layered neutral surfaces, compact card headers, custom dropdowns,
-   empty states). This phase defines the pattern for restyling **all remaining
-   settings pages** (Advanced, Environment Variables, Healthcheck, Resource
-   Limits, servers, databases, services, …). Follow this document when doing so.
-
-> **Ground rules from the maintainer (read first):**
-> - **Frontend only.** Features shown in the UI do NOT need backend support.
->   It is fine to render controls that aren't persisted (see `:wire="false"`
->   listboxes and the extra basic-auth users below).
-> - **Do not write or run tests.** Validate Blade syntax with
->   `docker exec coolify php artisan view:cache` (then `view:clear`) instead.
-> - Iterate in small steps; the maintainer reviews screenshots after each change.
-> - Prefer editing existing components; keep superseded ones in place so they
->   can be deprecated slowly later (don't delete legacy controls).
+> **Maintainer rules**
+>
+> - Keep the work frontend-focused unless existing data must be exposed to the
+>   view.
+> - Preserve routes, Livewire bindings, permissions, confirmations, and working
+>   interactions while changing layout and presentation.
+> - Do not write or run tests for this redesign branch.
+> - Validate Blade with `docker exec coolify php artisan view:cache`, then clear
+>   it with `docker exec coolify php artisan view:clear`.
+> - Build frontend assets in the Vite container with
+>   `docker exec coolify-vite npm run build`.
+> - Use existing components before adding another styling abstraction.
 
 ---
 
-## 1. Development workflow
+## 1. Visual direction
 
-- Dev environment runs in Docker. PHP lives in the `coolify` container:
-  `docker exec coolify php artisan …`. There is **no php on the host**.
-- Vite dev server runs in the `coolify-vite` container with HMR. Verify CSS
-  compiled: `curl -s http://localhost:5173/resources/css/app.css | grep <needle>`
-  and `docker logs coolify-vite --tail 5`.
-- `npm run build` on the host Mac is **broken** (missing
-  `@rolldown/binding-darwin-arm64`; fix is `rm -rf node_modules package-lock.json && npm i`).
-  Not needed for dev — the vite container serves assets.
-- Blade syntax check after edits:
-  `docker exec coolify php artisan view:cache && docker exec coolify php artisan view:clear`.
+The interface is compact and product-focused:
 
----
+- near-neutral layered surfaces instead of large bordered boxes;
+- 13–14px UI typography and 32px controls;
+- hairline rings instead of heavy borders;
+- full-width data tables for dense collections;
+- filled Reicon glyphs through `<x-reicon>`;
+- the Coolify purple brand accent in light mode;
+- the readable Coolify yellow accent in dark mode;
+- subtle active-item gradients that fade completely into the surrounding
+  background at the far edge;
+- sentence-case labels and headings.
 
-## 2. ⚠️ CSS cascade gotchas (the #1 source of "my styles don't apply")
-
-`resources/css/app.css` contains **unlayered global element rules** (`h1`–`h4`,
-`section { margin-bottom: 3rem }`, `label`, `a`, table rules, …). Tailwind v4
-puts utilities in `@layer utilities`. **Unlayered CSS always beats layered CSS**,
-so:
-
-- Utility classes on headings/sections/labels in markup (e.g. `text-sm` on an
-  `<h3>`) are silently overridden by those globals.
-- Rules added via `@layer components` **lose to utilities** (layer order:
-  theme → base → components → utilities), so component overrides written there
-  for `.input`/`.button` never applied.
-
-**The fix used everywhere in this redesign:** all settings-surface styling is
-**plain unlayered CSS at the END of `resources/css/app.css`** (section starts at
-the comment `Coollabs layer-card settings surfaces`). Class selectors there
-beat both the element globals and the utility layers. When you restyle a new
-page, put its CSS in that block — do not fight the cascade with utilities on
-`h3`/`h4`/`label`/`section` elements.
-
-Other gotchas learned the hard way:
-
-- **Monaco/Alpine `x-init` attributes are double-quoted HTML attributes.** Any
-  JS you inject there must not contain literal `"` — use `"` in regexes
-  and single quotes for strings (see the nginx Monarch grammar in
-  `monaco-editor.blade.php`).
-- Alpine `$refs` are scoped: a parent element's handler cannot see a child
-  `x-data`'s refs.
-- Blade `@entangle('prop')` works inside `x-data` attribute strings; append
-  `.live` for live sync (equivalent to `wire:model.live`).
-- `x-slot` inside `@if`/`@can` works fine for conditional slots.
+Avoid oversized titles, generic dashboard cards, strong shadows, thick
+dividers, native browser selects, and isolated colored buttons that do not
+match the current action styles.
 
 ---
 
-## 3. Design tokens
+## 2. Development and cascade notes
 
-### 3.1 Coollabs surface tokens (settings surfaces)
+PHP runs in the `coolify` container. The development app is normally available
+at `http://localhost:8000`, with Vite on port `5173`.
 
-Defined as CSS variables in the unlayered block of `app.css` (`:root` = light,
-`.dark` = dark). A pure-neutral oklch scale (zero chroma):
+`resources/css/app.css` still contains unlayered global element rules for
+headings, sections, labels, and tables. Tailwind utilities are layered, so the
+unlayered rules can win unexpectedly.
 
-| Var | Light | Dark | Role |
+The settings and dense-surface CSS therefore lives as plain unlayered CSS near
+the end of `resources/css/app.css`, beginning at:
+
+```css
+/* Coollabs layer-card settings surfaces */
+```
+
+Important consequences:
+
+- scope restyled forms with `.application-settings-form` or
+  `.application-settings-workspace`;
+- add shared surface overrides to the unlayered block instead of stacking
+  `!important` utilities;
+- listbox panels require ancestors with `overflow: visible`;
+- anchored cards use `scroll-margin-top: 7rem` to clear both fixed navigation
+  layers;
+- modal shells reuse the layer-card classes but keep content-width sizing on
+  desktop;
+- Alpine code inside quoted Blade attributes must not introduce conflicting
+  quote characters.
+
+---
+
+## 3. Tokens and color behavior
+
+The surface ladder is defined in `resources/css/app.css`.
+
+| Token | Light | Dark | Use |
 |---|---|---|---|
-| `--coollabs-canvas` | `oklch(98.75% 0 0)` | `oklch(10% 0 0)` | page background (neutral near-black, **not pure black**) |
-| `--coollabs-elevated` | `oklch(98% 0 0)` | `oklch(15% 0 0)` | card shell + card header strip |
-| `--coollabs-recessed` | `oklch(96% 0 0)` | `oklch(20% 0 0)` | input/select/listbox fills |
-| `--coollabs-base` | `#fff` | `oklch(17% 0 0)` | card body (the nested inner panel) |
-| `--coollabs-fill` | `oklch(92.2% 0 0)` | `oklch(26.9% 0 0)` | body ring, chips, selected pills, in-card dividers |
-| `--coollabs-line` | `oklch(14.5% 0 0 / .1)` | `oklch(32% 0 0)` | input/listbox/pill borders |
-| `--coollabs-hairline` | `oklch(93.5% 0 0)` | `oklch(26.9% 0 0)` | card shell ring |
-| `--coollabs-subtle` | `oklch(55.6% 0 0)` | `oklch(70.8% 0 0)` | card titles, field labels, muted text |
+| `--coollabs-canvas` | near white | 10% neutral | page canvas |
+| `--coollabs-elevated` | 98% neutral | 15% neutral | shells and card headers |
+| `--coollabs-base` | white | 17% neutral | nested card bodies |
+| `--coollabs-recessed` | 96% neutral | 20% neutral | inputs and listboxes |
+| `--coollabs-fill` | 92.2% neutral | 26.9% neutral | dividers and passive fills |
+| `--coollabs-line` | translucent dark | 32% neutral | control borders |
+| `--coollabs-hairline` | 93.5% neutral | 26.9% neutral | shell rings |
+| `--coollabs-subtle` | 55.6% neutral | 70.8% neutral | labels and muted titles |
 
-**Dark surface ladder (memorize):** page `10%` < shell/header `15%` < body `17%`
-< inputs `20%` < rings/fills `26.9%` < borders `32%`.
+Accent behavior is intentionally theme-aware:
 
-The app-wide `--color-panel` token (in `@theme`) is `oklch(10% 0 0)` — sidebar,
-topbar, content area (`<main>` uses `bg-white dark:bg-panel` in
-`layouts/app.blade.php`) and the unsaved-bar all share the exact canvas color.
-Light-mode content is `bg-white` to match the white sidebar.
+- **Light mode:** Coolify purple (`coollabs`) for active controls, focus,
+  primary actions, and navigation accents.
+- **Dark mode:** Coolify yellow (`warning`) for the same states because the
+  original purple did not provide sufficient text and ring contrast.
 
-### 3.2 Graphite tokens (shell: sidebar/topbar/dashboard)
+Do not hard-code blue focus rings or leave yellow accent utilities active in
+light mode. Primary action patterns should normally follow:
 
-Still in `@theme`: `--color-app #0c0c0d`, `--color-surface #161618`,
-`--color-raised #1c1c1e`, `--color-fg #f2f2f2`, `--color-fg-dim #b4b4b8`,
-`--color-fg-faint #6e6e74`, `--color-accent #4c8dff`, `--color-hairline
-rgba(255,255,255,.08)`. Hairline borders = `border-white/[0.06-0.12]`.
+```html
+bg-coollabs/10 text-coollabs ring-coollabs/25
+dark:bg-warning/15 dark:text-warning dark:ring-warning/25
+```
+
+The filled top-level action/tab treatment uses the same palette at a restrained
+opacity rather than a fully saturated fill.
 
 ---
 
-## 4. The layer card (every settings card)
+## 4. Page shells and navigation
 
-Anatomy:
+### Global shell
 
-- **Root shell**: `bg: --coollabs-elevated`, `border-radius: 8px`, 1px ring
-  (`box-shadow: 0 0 0 1px var(--coollabs-hairline)`), `scroll-margin-top: 4.5rem`
-  (so `scrollIntoView` clears the fixed 48px topbar).
-- **Header**: compact strip on the shell — `padding: .5rem 1rem`, 14px/500
-  title in `--coollabs-subtle`, optional gray ⓘ tooltip and a right-aligned
-  actions slot. **No border under the header** — the layering does the
-  separation. Cards keep `overflow: visible` so floating dropdown panels can
-  escape.
-- **Body**: its own nested rounded-lg panel — `bg: --coollabs-base`, 1px
-  `--coollabs-fill` ring, `padding: 1rem`.
+- Main sidebar groups are compact, use filled Reicons, and keep a 32px row
+  height.
+- Active sidebar rows have a curved accent rail and a subtle horizontal
+  gradient. The gradient must fade to the exact sidebar background at the
+  right edge in both themes.
+- Nested items use a thin guide line with a visible active segment, not a thick
+  box border.
+- The update badge sits on the version row and uses a tiny fully rounded
+  primary-action pill.
 
-Blade component: `resources/views/components/application/settings-section.blade.php`
+### Layer-2 navigation
+
+Application and server pages use a second navigation layer directly below the
+resource heading. Active tabs are a light brand fill:
+
+- purple tint in light mode;
+- yellow tint in dark mode;
+- no fully saturated tab background.
+
+Keep route-derived active state in Blade/Livewire. Do not rely only on Alpine
+state because it can disappear after polling or a Livewire morph.
+
+### Settings workspace
+
+Application configuration pages use a grouped left sidebar and a full-width
+content column. The sidebar and first content card start on the same horizontal
+line. Only show nested section anchors when a page has at least four useful
+sections.
+
+Standard content stack:
+
+```blade
+<div class="application-settings-workspace flex flex-col gap-6">
+    <x-application.settings-section ... />
+    <x-application.settings-section ... />
+</div>
+```
+
+The current cross-page section gap is `gap-6`. Do not introduce extra top
+padding on an individual page unless its toolbar is intentionally separated
+from the first card.
+
+---
+
+## 5. Layer cards
+
+Use `resources/views/components/application/settings-section.blade.php`.
 
 ```blade
 <x-application.settings-section
-    id="optional-anchor"
+    id="public-access-section"
     title="Public access"
-    helper="Tooltip text for the gray ⓘ next to the title">
-    <x-slot:actions> …right-aligned header buttons… </x-slot:actions>
-    …body…
+    helper="How this section affects the resource.">
+    <x-slot:actions>
+        <x-forms.button>Action</x-forms.button>
+    </x-slot:actions>
+
+    ...
 </x-application.settings-section>
 ```
 
-Page layout: cards stack **full-width, single column**, `flex flex-col gap-4`
-(no side-by-side cards). The page wrapper is
-`<form class="application-settings-form …">` — the scoped CSS keys off
-`.application-settings-form` / `.application-settings-workspace`, so keep one
-of those classes on any new page you restyle.
+Anatomy:
+
+- 8px shell radius;
+- elevated header strip;
+- no divider below the header;
+- nested base-color body with its own fill ring;
+- 16px body padding;
+- optional `flush` mode for full-bleed tables;
+- card-level actions belong in the header slot.
+
+Use an empty state when the section has no usable controls:
+
+```blade
+<x-empty size="sm" title="Nothing here" description="Explain what enables it.">
+    <x-slot:icon>
+        <x-reicon name="layers" class="size-8" />
+    </x-slot:icon>
+</x-empty>
+```
 
 ---
 
-## 5. Controls (all in the unlayered CSS block)
+## 6. Controls
 
-Heights are uniform **32px** (`2rem`) for inputs, selects, buttons, listboxes,
-pills; radius **8px** everywhere (10px for Monaco editors).
+All normal controls are 32px high with an 8px radius.
 
-| Thing | Where | Notes |
-|---|---|---|
-| Inputs/selects | `.application-settings-form .input/.select` | recessed fill, `--coollabs-line` border, accent focus ring, 13px/500 labels in `--coollabs-subtle` |
-| Buttons | `.application-settings-form .button` | 32px, radius 8, matches `x-forms.button` |
-| **Listbox (custom dropdown)** | `x-forms.listbox` + `.listbox-trigger/-panel/-option` | see §5.1 — use this instead of native `<select>` everywhere |
-| **Chip input** | `.chip-input`, `.chip`, `.chip-remove` | multi-value entry (Domains/URLs). Chips = `--coollabs-fill`, no border. Enter & comma & paste-with-commas add; Backspace removes last; placeholder only when empty. 3px block padding keeps total height exactly 32px |
-| Option pills | `.option-pill-group`, `.option-pill` | segmented radio groups rendered as detached pills (`peer` + sibling). Currently unused (all converted to listboxes) but kept for future use |
-| **Empty state** | `x-empty` (`components/empty.blade.php`) | `size sm/base/lg`, `icon`/`contents` slots. Use when a section is non-functional in the current state |
-| Footer save bar | `components/unsaved-bar.blade.php` | fixed full-width bottom bar, appears via `wire:dirty`, "← Cancel" + blue `#0e6ef4` "Save changes" |
-| Icons | `x-reicon name="…"` | filled 24×24 glyphs, `currentColor`. Added this phase: `eye`, `eye-off`, `globe` |
+### Inputs
 
-### 5.1 `x-forms.listbox` — the custom dropdown
+Use `x-forms.input` and `x-forms.textarea`. Fields need visible vertical spacing
+between the label and control. Password visibility uses the filled Reicon
+`eye`/`eye-off` treatment from the shared input component.
 
-`resources/views/components/forms/listbox.blade.php`. Alpine-based; Livewire
-binding via `@entangle`. Props:
+### Dropdowns
 
-- `id` — Livewire property to bind (entangled).
-- `options` — list of `['value' => …, 'label' => …, 'disabled' => bool]`
-  (values may be bools; comparison is `String(a) === String(b)`).
-- `live` — entangle `.live` (use when changing the value must re-render the
-  page, e.g. `buildPack`).
-- `onChange` — `$wire` method called after selection (e.g. `instantSave`,
-  `setSiteType`) — this is how instant-persist dropdowns work.
-- `wire="false"` + `value="…"` — **purely client-side** control for
-  frontend-only features (e.g. "Protocol redirection").
-- Forwarded: `x-bind:disabled` lands on the trigger button.
-- `label`, `helper`, `required`, `placeholder`.
+Do not use native `<select>` for redesigned desktop forms. Use:
 
-Panels float (`position:absolute; z-30`) — this is why cards must keep
-`overflow: visible`.
+```blade
+<x-forms.listbox id="property" label="Setting" :options="[
+    ['value' => true, 'label' => 'Enabled'],
+    ['value' => false, 'label' => 'Disabled'],
+]" onChange="instantSave" />
+```
 
-### 5.2 Monaco editors
+Boolean checkboxes should normally become descriptive two-option listboxes.
+Use `.live` behavior only when the selection needs an immediate server
+rerender.
 
-`components/forms/monaco-editor.blade.php` (used via
-`x-forms.textarea … useMonacoEditor monacoEditorLanguage="…"`):
+Toolbar filter and sort buttons keep static labels (`Filter`, `Sort`). The
+selected option is indicated inside the menu, not repeated on the trigger.
 
-- Custom **`coolify-dark`** theme: `editor.background #0b0b0c`, subtle
-  translucent scrollbar sliders; light mode stays `vs`.
-- Container: 10px radius, `--coollabs-line` border, `overflow: hidden`
-  (`.coolify-monaco-editor` in app.css).
-- Options: `renderLineHighlight: 'none'`, `padding: {top:12,bottom:12}`, 8px
-  scrollbars, overview ruler fully disabled.
-- **Height follows `rows`**: `textarea.blade.php` sets
-  `--editor-height: rows*23 + 38px`; without `rows` it falls back to
-  near-viewport height (min 150px).
-- Custom **nginx** Monarch language is registered when
-  `monacoEditorLanguage="nginx"` (comments, `$vars`, ~50 directives, strings,
-  units, operators). Remember the `"` quoting rule (§2) when editing it.
+### Buttons
+
+- neutral actions use the shared `.button`;
+- primary actions use the theme-aware purple/yellow tint;
+- destructive actions use the existing error treatment;
+- use filled Reicons where a matching glyph exists;
+- avoid raw browser-default buttons and old dark-mode purple fills.
+
+### Unsaved changes
+
+`resources/views/components/unsaved-bar.blade.php` is a compact floating
+bottom-center pill. It contains:
+
+- “You have changes that haven't been saved yet.”
+- a subtle Reset action;
+- a theme-aware Save changes button matching the tab accent.
+
+Do not restore the old full-width footer.
 
 ---
 
-## 6. UX conventions (apply to every page you restyle)
+## 7. Dense tables
 
-1. **Sentence case everywhere** — "Base directory", "Ports exposes", "Custom
-   Docker options". Proper nouns keep caps (Docker, Nginx, Dockerfile, SPA, URLs).
-2. **Dropdowns over checkboxes**, with self-explanatory option labels:
-   - booleans become two options, e.g. Label management → "Managed by Coolify
-     (auto-generated)" / "Managed manually (edit labels yourself)";
-     Builder selection → "Deployment server" / "Available build server
-     (auto-select)"; Authentication → "None" / "HTTP Basic Authentication".
-   - paired booleans can merge into one dropdown (isStatic+isSpa → "Site type":
-     Dynamic / Static / SPA (single-page application), via the UI-only
-     `siteType` property + `setSiteType()` in `General.php`).
-3. **Redirect phrasing**: "Redirect X to Y" / "Allow X & Y".
-4. **Label-row actions**: a big action related to one field goes right-aligned
-   in that field's label row (nginx "Generate default", labels "Reset to
-   defaults") — not as a full-width button.
-5. **Header actions slot** for card-level actions.
-6. **Equal-width field grids**: `grid gap-4 sm:grid-cols-2`. For rows that end
-   in a button use `sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]`; to make a
-   lone control align with such rows, add an `invisible` copy of the button as
-   the third cell (see Security's Authentication row).
-7. **Repeaters**: "Add user"-style lists use a `.button` "Remove user" per row
-   (disabled + tooltip on the non-removable default row) and a `.button`
-   "＋ Add …" below. Extra rows may be Alpine-local only (frontend-only rule).
-8. **Empty states instead of dead controls**: when a card is ineffective in the
-   current configuration (e.g. Public access & Security while container labels
-   are "Managed manually" — basic auth and domains are applied via proxy
-   labels), render `<x-empty size="sm">` with an explanation and a button that
-   `scrollIntoView`s the controlling card (give that card an `id`).
-9. Long helper text goes in the gray/yellow ⓘ tooltip (`x-helper`), not inline.
-10. Password fields: filled reicon `eye`/`eye-off` toggle (shared input
-    component already does this; replicate for raw inputs).
+Collections with many rows should use the Cloudflare-inspired table pattern:
+
+- toolbar above the table;
+- search on the left;
+- filters, sort, view toggles, and Add on the right;
+- 40px header row and roughly 48px data rows;
+- subtle row hover;
+- plain text or the shared status badge rather than large colored chips;
+- compact action at the far right;
+- no separate layer card for each item.
+
+The footer is always inside the table shell:
+
+- `Showing X–Y of Z` on the left;
+- first, previous, current page, next, and last controls on the right.
+
+Use `x-status-badge` for resource and execution state. It is a small neutral
+pill with a semantic dot, not a full colored rectangle.
+
+Relevant classes:
+
+- `.data-table`
+- `.data-table-header`
+- `.data-table-row`
+- `.table-badge`
+
+Create a page-specific grid class when columns differ. Add responsive rules
+that hide secondary columns before allowing horizontal overflow.
 
 ---
 
-## 7. Current state of the General page (reference implementation)
+## 8. Modals, confirmations, and toasts
 
-`resources/views/livewire/project/application/general.blade.php` — card order:
+### Modals
 
-1. **Application details** — Name, Description.
-2. **Public access** — URLs chip-input + "Generate domain"; "Domain
-   redirection" + "Protocol redirection" (frontend-only) dropdowns. Empty state
-   when labels are user-managed. Compose apps: per-service domain inputs.
-3. **Build pipeline** — Build strategy + Web server (static image) dropdowns →
-   Site type → directories/watch paths → install/build/start commands →
-   Builder selection → "Custom Nginx configuration" editor (label-row action).
-   Docker-image apps show a "Nothing to build" note.
-4. **Container image** — Image + Tag (equal columns, real placeholders like
-   `nginx` / `alpine`).
-5. **Networking** — port callouts, Ports exposes / Port mappings / Network
-   aliases.
-6. **Runtime** — Custom Docker options.
-7. **Security** — Authentication dropdown → credential rows with Remove
-   user/Add user (extra rows frontend-only). Empty state when labels
-   user-managed.
-8. **Deployment lifecycle** — Pre/Post-deployment side by side.
-9. **Container labels** (`id="container-labels-section"`) — Label management +
-   Special characters dropdowns → divider → "Active labels" editor with "Reset
-   to defaults" in its label row.
+`x-modal-input` and confirmation dialogs reuse the layer-card shell:
 
-Backend touches made (kept minimal): `General.php` gained `siteType` +
-`setSiteType()` only. Everything else is view/CSS.
+- compact elevated header;
+- nested base-color body;
+- content-width desktop sizing;
+- shared 32px controls;
+- right-aligned footer actions.
 
-Hidden for now: the "Compose parser N" dev hint and the "View details"
-resource-details modal trigger (left as a Blade comment near the top of the
-view).
+Edit modals should use the same field layout and option set as their matching
+create modal.
+
+### Toasts
+
+`resources/views/components/toast.blade.php` provides the global
+`window.toast(message, options)` API and Livewire event handling.
+
+Current toast behavior:
+
+- compact layered card, maximum width 26rem;
+- Reicon status tile for success, info, warning, danger, or default;
+- title plus optional description;
+- dismiss and copy-details actions;
+- up to four stacked notifications;
+- four-second dismissal, paused while hovered;
+- support for all six screen positions and sanitized custom HTML.
+
+Do not bring back the old oversized dark rectangle.
 
 ---
 
-## 8. Where things live
+## 9. Terminals, logs, and metrics
 
-| File | Contents |
+### Terminals
+
+Browser terminals use the browser-oriented application shell, theme picker,
+compact header controls, and the filled `browser-terminal` Reicon. Hide a
+container switcher when only one container exists.
+
+### Logs
+
+Runtime and deployment logs should feel like a clean terminal surface:
+
+- one compact toolbar;
+- a recessed monospace log viewport;
+- search and line-count controls aligned with icon actions;
+- clear live/follow state;
+- fullscreen support without changing the control language;
+- custom listbox-style menus instead of browser dropdowns.
+
+### Metrics
+
+Metrics pages use separate layer cards for range selection, CPU, and memory.
+Charts follow the application metrics implementation:
+
+- 240px area chart;
+- smooth 2px stroke and restrained gradient fill;
+- dashed neutral grid;
+- no ApexCharts toolbar;
+- tooltip positioned at the hovered point;
+- UTC on both axes and tooltip;
+- 20% headroom above observed values;
+- downsample long time ranges before rendering.
+
+Only add a metric if Sentinel exposes historical data for it. Current Sentinel
+history endpoints store CPU and memory. Root filesystem usage is included in
+the periodic push payload for threshold notifications, but it is not stored as
+a historical Sentinel metric and has no history endpoint, so it cannot power a
+disk-usage graph yet.
+
+---
+
+## 10. Current reference surfaces
+
+Use these as implementation references:
+
+| Surface | Reference |
 |---|---|
-| `resources/css/app.css` | `@theme` tokens; **unlayered layer-card block at the end** (cards, inputs, listbox, chips, pills, purpose-rows, monaco container) |
-| `resources/css/utilities.css` | `@utility` classes for the shell (`button`, `menu-item*`, `box`, …) |
-| `resources/views/components/application/settings-section.blade.php` | layer card |
-| `resources/views/components/forms/listbox.blade.php` | custom dropdown |
-| `resources/views/components/empty.blade.php` | empty state |
-| `resources/views/components/unsaved-bar.blade.php` | footer save bar |
-| `resources/views/components/reicon.blade.php` | icon map (add glyphs here, `currentColor`) |
-| `resources/views/components/forms/monaco-editor.blade.php` | theme, nginx language, editor options |
-| `resources/views/components/forms/textarea.blade.php` | rows → `--editor-height` bridge |
-| `resources/views/components/forms/input.blade.php` | reicon password toggle |
-| `resources/views/layouts/app.blade.php` | shell; `<main>` = `bg-white dark:bg-panel` |
-| `resources/views/components/navbar.blade.php` | graphite sidebar (phase 1) |
+| General settings and form anatomy | `resources/views/livewire/project/application/general.blade.php` |
+| Advanced settings | `resources/views/livewire/project/application/advanced.blade.php` |
+| Dense environment table and footer | `resources/views/livewire/project/shared/environment-variable/all.blade.php` |
+| Application metrics charts | `resources/views/livewire/project/shared/metrics.blade.php` |
+| Layer card | `resources/views/components/application/settings-section.blade.php` |
+| Custom dropdown | `resources/views/components/forms/listbox.blade.php` |
+| Empty state | `resources/views/components/empty.blade.php` |
+| Status pill | `resources/views/components/status-badge.blade.php` |
+| Floating save pill | `resources/views/components/unsaved-bar.blade.php` |
+| Global toast | `resources/views/components/toast.blade.php` |
+| Filled icons | `resources/views/components/reicon.blade.php` |
+| Shared styling | `resources/css/app.css`, `resources/css/utilities.css` |
 
-## 9. Playbook for restyling the next page
+Already restyled application configuration surfaces include General, Advanced,
+Environment Variables, Persistent Storage, Servers, Scheduled Tasks, Webhooks,
+Preview Deployments, Healthcheck, Rollback, Resource Limits, Resource
+Operations, Metrics, Tags, and Danger Zone.
 
-1. Wrap the page in a form/div carrying `application-settings-form` (or add the
-   class to the scoped CSS selectors).
-2. Convert each visual group into an `<x-application.settings-section>` with a
-   sentence-case title + ⓘ helper; stack them `flex flex-col gap-4`.
-3. Replace native selects and checkboxes with `x-forms.listbox`
-   (instant-persist via `onChange="instantSave"` where the old control did).
-4. Apply the grid/label/action conventions from §6; keep Livewire ids/bindings
-   untouched so persistence keeps working.
-5. Big editors → Monaco with `rows`, comma-lists → `.chip-input`, dead states →
-   `x-empty`.
-6. Validate: `view:cache`/`view:clear` in the coolify container, hard-refresh,
-   screenshot. **No tests.**
+---
+
+## 11. Restyling checklist
+
+1. Read the current Blade and Livewire class before changing presentation.
+2. Preserve every existing action, authorization check, loading state, and
+   confirmation.
+3. Add the correct scoped workspace/form class.
+4. Convert meaningful groups to layer cards and use `gap-6`.
+5. Replace native selects and checkbox-style configuration with listboxes.
+6. Use tables for dense collections and cards for forms or summaries.
+7. Use `x-status-badge`, `x-empty`, and `x-reicon`.
+8. Confirm light and dark accent behavior.
+9. Check fixed-nav anchor offsets and responsive stacking.
+10. Run `git diff --check`.
+11. Compile Blade views in the `coolify` container.
+12. Build assets in `coolify-vite`.
+13. Hard-refresh and inspect the actual route in both themes.
