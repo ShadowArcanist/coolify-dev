@@ -908,6 +908,117 @@ section {
     color: var(--color-fg-faint);
 }
 
+/* Runtime log viewer */
+.runtime-log-shell {
+    overflow: visible;
+    border-radius: 8px;
+    background: var(--coollabs-elevated);
+    box-shadow: 0 0 0 1px var(--coollabs-hairline);
+}
+
+.runtime-log-trigger {
+    display: flex;
+    min-height: 2.75rem;
+    cursor: pointer;
+    user-select: none;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 8px;
+    padding: 0.625rem 0.875rem;
+    color: #171717;
+    transition: background-color 0.15s;
+}
+
+.runtime-log-trigger:hover {
+    background: rgba(0, 0, 0, 0.025);
+}
+
+.dark .runtime-log-trigger {
+    color: var(--color-fg);
+}
+
+.dark .runtime-log-trigger:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.runtime-log-trigger h4 {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.8125rem;
+    font-weight: 500;
+}
+
+.runtime-log-panel {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    overflow: visible;
+    border-radius: 8px;
+    background: var(--coollabs-base);
+    box-shadow: 0 0 0 1px var(--coollabs-fill);
+}
+
+.runtime-log-toolbar {
+    display: flex;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--coollabs-fill);
+    padding: 0.5rem 0.75rem;
+}
+
+.runtime-log-icon-button {
+    display: inline-flex;
+    width: 1.75rem;
+    height: 1.75rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    color: #737373;
+    transition: color 0.15s, background-color 0.15s;
+}
+
+.runtime-log-icon-button:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: #171717;
+}
+
+.dark .runtime-log-icon-button {
+    color: var(--color-fg-faint);
+}
+
+.dark .runtime-log-icon-button:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--color-fg);
+}
+
+.runtime-log-icon-button-active {
+    background: color-mix(in oklab, var(--color-coollabs) 10%, transparent);
+    color: var(--color-coollabs);
+}
+
+.dark .runtime-log-icon-button-active {
+    background: color-mix(in oklab, var(--color-warning) 14%, transparent);
+    color: var(--color-warning);
+}
+
+.runtime-log-viewport {
+    min-height: 18rem;
+    border-radius: 0 0 8px 8px;
+    background: #fafafa;
+    color: #262626;
+}
+
+.dark .runtime-log-viewport {
+    background: oklch(11.5% 0 0);
+    color: var(--color-fg-dim);
+}
+
 .env-table-detail {
     padding: 0.25rem 1rem 1.25rem;
 }
