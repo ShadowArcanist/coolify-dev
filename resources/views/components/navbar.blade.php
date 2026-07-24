@@ -43,7 +43,7 @@
             }
     }">
     {{-- Search --}}
-    <div class="px-1 pb-4" :class="collapsed && 'lg:px-0 lg:flex lg:justify-center'">
+    <div class="px-1 pb-3" :class="collapsed && 'lg:px-0 lg:flex lg:justify-center'">
         <button @click="$dispatch('open-global-search')" type="button" title="Search (Press / or ⌘K)"
             class="menu-item justify-between !bg-neutral-100 dark:!bg-white/[0.04] hover:!bg-neutral-200 dark:hover:!bg-white/[0.07] !text-fg-faint"
             :class="collapsed && 'lg:w-8 lg:justify-center lg:px-0'">
@@ -56,10 +56,10 @@
         </button>
     </div>
 
-    <ul role="list" class="flex flex-col flex-1 gap-y-0.5 pb-2">
+    <ul role="list" class="flex min-h-0 flex-1 flex-col gap-y-0.5 overflow-y-auto pb-2 scrollbar">
         @if (isSubscribed() || !isCloud())
-            {{-- Platform --}}
-            <li class="nav-section" :class="collapsed && 'lg:hidden'">Platform</li>
+            {{-- Workspace --}}
+            <li class="nav-section" :class="collapsed && 'lg:hidden'">Workspace</li>
             <li>
                 <a title="Dashboard" href="/" {{ wireNavigate() }}
                     class="{{ request()->is('/') ? 'menu-item-active menu-item' : 'menu-item' }}"
@@ -76,6 +76,18 @@
                     <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Projects</span>
                 </a>
             </li>
+            @can('canAccessTerminal')
+                <li>
+                    <a title="Terminal" {{ wireNavigate() }}
+                        class="{{ request()->is('terminal*') ? 'menu-item-active menu-item' : 'menu-item' }}"
+                        :class="collapsed && 'lg:justify-center lg:px-0'" href="{{ route('terminal') }}">
+                        <x-reicon name="browser-terminal" class="menu-item-icon" />
+                        <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Terminal</span>
+                    </a>
+                </li>
+            @endcan
+            {{-- Infrastructure --}}
+            <li class="nav-section mt-3" :class="collapsed && 'lg:hidden'">Infrastructure</li>
             <li>
                 <a title="Servers" {{ wireNavigate() }}
                     class="{{ request()->is('server/*') || request()->is('servers') ? 'menu-item menu-item-active' : 'menu-item' }}"
@@ -84,18 +96,6 @@
                     <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Servers</span>
                 </a>
             </li>
-            <li>
-                <a title="Deployments" href="/" {{ wireNavigate() }}
-                    class="menu-item" :class="collapsed && 'lg:justify-center lg:px-0'">
-                    <x-reicon name="destinations" class="menu-item-icon" />
-                    <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Deployments</span>
-                    <span class="shrink-0 min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center rounded-full text-[10px] font-semibold bg-neutral-200 text-neutral-600 dark:bg-white/[0.08] dark:text-fg-dim"
-                        :class="collapsed && 'lg:hidden'">3</span>
-                </a>
-            </li>
-
-            {{-- Infrastructure --}}
-            <li class="nav-section mt-4" :class="collapsed && 'lg:hidden'">Infrastructure</li>
             <li>
                 <a title="Sources" {{ wireNavigate() }}
                     class="{{ request()->is('source*') ? 'menu-item-active menu-item' : 'menu-item' }}"
@@ -113,11 +113,11 @@
                 </a>
             </li>
             <li>
-                <a title="S3 Storages" {{ wireNavigate() }}
+                <a title="S3 Storage" {{ wireNavigate() }}
                     class="{{ request()->is('storages*') ? 'menu-item-active menu-item' : 'menu-item' }}"
                     :class="collapsed && 'lg:justify-center lg:px-0'" href="{{ route('storage.index') }}">
                     <x-reicon name="storages" class="menu-item-icon" />
-                    <span class="menu-item-label" :class="collapsed && 'lg:hidden'">S3 Storages</span>
+                    <span class="menu-item-label" :class="collapsed && 'lg:hidden'">S3 Storage</span>
                 </a>
             </li>
             <li>
@@ -129,22 +129,14 @@
                 </a>
             </li>
 
-            {{-- Observability --}}
-            <li class="nav-section mt-4" :class="collapsed && 'lg:hidden'">Observability</li>
+            {{-- Manage --}}
+            <li class="nav-section mt-3" :class="collapsed && 'lg:hidden'">Manage</li>
             <li>
-                <a title="Metrics" href="/" {{ wireNavigate() }}
-                    class="menu-item" :class="collapsed && 'lg:justify-center lg:px-0'">
-                    <x-reicon name="dashboard" class="menu-item-icon" />
-                    <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Metrics</span>
-                </a>
-            </li>
-            <li>
-                <a title="Logs" href="/" {{ wireNavigate() }}
-                    class="menu-item" :class="collapsed && 'lg:justify-center lg:px-0'">
-                    <x-reicon name="terminal" class="menu-item-icon" />
-                    <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Logs</span>
-                    <span class="shrink-0 px-1.5 h-[18px] inline-flex items-center justify-center rounded text-[10px] font-semibold bg-accent/15 text-accent"
-                        :class="collapsed && 'lg:hidden'">New</span>
+                <a title="Team" {{ wireNavigate() }}
+                    class="{{ request()->is('team*') ? 'menu-item-active menu-item' : 'menu-item' }}"
+                    :class="collapsed && 'lg:justify-center lg:px-0'" href="{{ route('team.index') }}">
+                    <x-reicon name="teams" class="menu-item-icon" />
+                    <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Team</span>
                 </a>
             </li>
             <li>
@@ -156,8 +148,6 @@
                 </a>
             </li>
 
-            {{-- Access --}}
-            <li class="nav-section mt-4" :class="collapsed && 'lg:hidden'">Access</li>
             <li>
                 <a title="Keys & Tokens" {{ wireNavigate() }}
                     class="{{ request()->is('security*') ? 'menu-item-active menu-item' : 'menu-item' }}"
@@ -174,34 +164,27 @@
                     <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Tags</span>
                 </a>
             </li>
-            @can('canAccessTerminal')
+            @if (isInstanceAdmin())
                 <li>
-                    <a title="Terminal"
-                        class="{{ request()->is('terminal*') ? 'menu-item-active menu-item' : 'menu-item' }}"
-                        :class="collapsed && 'lg:justify-center lg:px-0'" href="{{ route('terminal') }}">
-                        <x-reicon name="terminal" class="menu-item-icon" />
-                        <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Terminal</span>
+                    <a title="Settings" {{ wireNavigate() }}
+                        class="{{ request()->is('settings*') ? 'menu-item-active menu-item' : 'menu-item' }}"
+                        :class="collapsed && 'lg:justify-center lg:px-0'" href="{{ route('settings.index') }}">
+                        <x-reicon name="settings" class="menu-item-icon" />
+                        <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Settings</span>
                     </a>
                 </li>
-            @endcan
+            @endif
 
-            <div class="flex-1"></div>
+            <li class="flex-1" aria-hidden="true"></li>
 
-            <li class="mt-2">
+            <li class="mt-3 border-t border-neutral-200 pt-2 dark:border-white/[0.06]">
                 <livewire:settings-dropdown trigger="changelog-sidebar" />
             </li>
-            @if (isInstanceAdmin() && !isCloud())
-                @persist('upgrade')
-                    <li>
-                        <livewire:upgrade />
-                    </li>
-                @endpersist
-            @endif
             <li>
-                <a title="Sponsor us" class="menu-item" href="https://coolify.io/sponsorships" target="_blank"
-                    :class="collapsed && 'lg:justify-center lg:px-0'">
-                    <x-reicon name="sponsor" class="menu-item-icon !text-pink-500" />
-                    <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Sponsor us</span>
+                <a title="Documentation" class="menu-item" href="https://coolify.io/docs" target="_blank"
+                    rel="noopener noreferrer" :class="collapsed && 'lg:justify-center lg:px-0'">
+                    <x-reicon name="documentation" class="menu-item-icon" />
+                    <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Documentation</span>
                 </a>
             </li>
         @endif
@@ -211,7 +194,7 @@
         <li>
             <x-modal-input title="How can we help?">
                 <x-slot:content>
-                    <div title="Send us feedback or get help!" class="cursor-pointer menu-item mb-4" wire:click="help"
+                    <div title="Send us feedback or get help!" class="cursor-pointer menu-item" wire:click="help"
                         :class="collapsed && 'lg:justify-center lg:px-0'">
                         <x-reicon name="feedback" class="menu-item-icon" />
                         <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Feedback</span>
@@ -220,6 +203,15 @@
                 <livewire:help />
             </x-modal-input>
         </li>
+        @if (isSubscribed() || !isCloud())
+            <li>
+                <a title="Sponsor us" class="menu-item" href="https://coolify.io/sponsorships" target="_blank"
+                    rel="noopener noreferrer" :class="collapsed && 'lg:justify-center lg:px-0'">
+                    <x-reicon name="sponsor" class="menu-item-icon !text-pink-500" />
+                    <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Sponsor us</span>
+                </a>
+            </li>
+        @endif
     </ul>
     {{-- Sticky sidebar collapser --}}
     <div class="sticky bottom-0 mt-auto -mx-2 lg:-mx-3 border-t border-neutral-200 dark:border-white/[0.06] bg-white dark:bg-panel px-2 lg:px-3 py-2">

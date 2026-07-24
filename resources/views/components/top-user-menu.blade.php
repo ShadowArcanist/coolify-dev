@@ -17,9 +17,8 @@
     }
 }" @keydown.escape.window="open = false">
     <button type="button" @click="open = !open" @click.outside="open = false"
-        class="flex items-center gap-2 h-9 pl-1.5 pr-2 rounded-md transition-colors hover:bg-neutral-100 dark:hover:bg-white/[0.05]">
-        <span class="flex items-center justify-center size-6 shrink-0 rounded-full bg-gradient-to-br from-accent to-[#4d55cc] text-[11px] font-semibold text-white">{{ $userInitial }}</span>
-        <span class="hidden sm:block max-w-[9rem] truncate text-[13px] font-medium text-black dark:text-fg">{{ $userName }}</span>
+        class="flex items-center gap-1.5 h-9 px-2 rounded-md transition-colors hover:bg-neutral-100 dark:hover:bg-white/[0.05]">
+        <span class="hidden sm:block max-w-[9rem] truncate text-[12px] font-medium text-black dark:text-fg">{{ $userName }}</span>
         <svg class="size-3.5 shrink-0 text-neutral-400 dark:text-fg-faint transition-transform" :class="open && 'rotate-180'"
             viewBox="0 0 24 24" fill="none">
             <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
@@ -27,7 +26,7 @@
     </button>
 
     <div x-show="open" x-cloak x-transition.opacity.duration.120ms
-        class="absolute right-0 z-[90] mt-1.5 w-64 rounded-lg border border-neutral-200 dark:border-white/10 bg-white dark:bg-raised py-1.5 shadow-modal">
+        class="absolute right-0 z-[90] mt-1.5 w-64 rounded-lg border border-neutral-200 dark:border-white/[0.08] bg-white dark:bg-surface py-1.5 shadow-modal">
         {{-- Identity --}}
         <div class="flex items-center gap-2.5 px-3 py-2">
             <span class="flex items-center justify-center size-8 shrink-0 rounded-full bg-gradient-to-br from-accent to-[#4d55cc] text-[13px] font-semibold text-white">{{ $userInitial }}</span>

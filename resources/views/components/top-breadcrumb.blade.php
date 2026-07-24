@@ -29,7 +29,7 @@
                 </svg>
             </button>
             <div x-show="open" x-cloak x-transition.opacity.duration.120ms
-                class="absolute left-0 z-[90] mt-1 min-w-56 max-w-72 max-h-80 overflow-y-auto rounded-lg border border-neutral-200 dark:border-white/10 bg-white dark:bg-raised py-1.5 shadow-modal scrollbar">
+                class="absolute left-0 z-[90] mt-1 min-w-56 max-w-72 max-h-80 overflow-y-auto rounded-lg border border-neutral-200 dark:border-white/[0.08] bg-white dark:bg-surface py-1.5 shadow-modal scrollbar">
                 <div class="px-3 pb-1 pt-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-fg-faint">Projects</div>
                 @foreach ($projects as $p)
                     <a href="{{ route('project.show', ['project_uuid' => $p->uuid]) }}" {{ wireNavigate() }} @click="open = false"
@@ -56,7 +56,7 @@
                 </svg>
             </button>
             <div x-show="open" x-cloak x-transition.opacity.duration.120ms
-                class="absolute left-0 z-[90] mt-1 min-w-52 max-w-72 max-h-80 overflow-y-auto rounded-lg border border-neutral-200 dark:border-white/10 bg-white dark:bg-raised py-1.5 shadow-modal scrollbar">
+                class="absolute left-0 z-[90] mt-1 min-w-52 max-w-72 max-h-80 overflow-y-auto rounded-lg border border-neutral-200 dark:border-white/[0.08] bg-white dark:bg-surface py-1.5 shadow-modal scrollbar">
                 <div class="px-3 pb-1 pt-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-fg-faint">Environments</div>
                 @foreach ($environments as $env)
                     <a href="{{ route('project.resource.index', ['project_uuid' => $currentProject->uuid, 'environment_uuid' => $env->uuid]) }}" {{ wireNavigate() }} @click="open = false"

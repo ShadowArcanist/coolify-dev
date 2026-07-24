@@ -37,19 +37,24 @@
                 <div class="flex items-center gap-2 h-full shrink-0 border-r border-neutral-200 dark:border-white/[0.06] transition-[width] duration-200"
                     :class="collapsed ? 'w-16 justify-center px-0' : 'w-56 px-4'">
                     <a href="/" {{ wireNavigate() }} title="Coolify"
-                        class="flex items-baseline gap-1.5 min-w-0 hover:opacity-80 transition-opacity">
+                        class="flex shrink-0 items-baseline gap-1.5 min-w-0 hover:opacity-80 transition-opacity">
                         <span x-show="collapsed" x-cloak class="text-[15px] font-semibold tracking-tight text-black dark:text-white">C</span>
                         <span x-show="!collapsed" class="text-[15px] font-semibold tracking-tight text-black dark:text-white">Coolify</span>
                         <span x-show="!collapsed" class="text-[10.5px] font-medium text-neutral-400 dark:text-fg-faint">v{{ config('constants.coolify.version') }}</span>
                     </a>
+                    @if (isInstanceAdmin() && !isCloud())
+                        <div x-show="!collapsed" class="ml-auto shrink-0">
+                            @persist('upgrade')
+                                <livewire:upgrade />
+                            @endpersist
+                        </div>
+                    @endif
                 </div>
                 {{-- Collapse toggle + team switcher --}}
                 <div class="flex items-center gap-1.5 min-w-0 flex-1 pl-3 pr-4">
                     <x-top-breadcrumb />
                     <div class="flex-1"></div>
                     {{-- Right cluster --}}
-                    <a href="https://coolify.io/docs" target="_blank" title="Documentation"
-                        class="hidden xl:flex items-center h-9 px-3 rounded-md text-[13px] font-medium text-neutral-500 dark:text-fg-dim hover:bg-neutral-100 dark:hover:bg-white/[0.05] hover:text-black dark:hover:text-fg transition-colors">Docs</a>
                     <x-top-user-menu />
                 </div>
             </header>
