@@ -1,3 +1,7 @@
+@php
+    $canUpdate = auth()->user()->can('update', $resource);
+@endphp
+
 <form wire:submit="submit" class="application-settings-form flex flex-col gap-6 pb-32">
     <x-unsaved-bar action="submit" />
 
@@ -31,11 +35,10 @@
         @endif
 
         <div class="max-w-xs">
-            <x-forms.select canGate="update" :canResource="$resource" id="healthCheckType"
-                label="Check type" required wire:model.live="healthCheckType">
-                <option value="http">HTTP request</option>
-                <option value="cmd">Container command</option>
-            </x-forms.select>
+            <x-forms.listbox id="healthCheckType" label="Check type" required live :options="[
+                ['value' => 'http', 'label' => 'HTTP request'],
+                ['value' => 'cmd', 'label' => 'Container command'],
+            ]" x-bind:disabled="@js(!$canUpdate)" />
         </div>
     </x-application.settings-section>
 
@@ -43,18 +46,16 @@
         <x-application.settings-section id="healthcheck-request-section" title="HTTP request"
             helper="Coolify sends this request from inside the container and evaluates the response.">
             <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <x-forms.select canGate="update" :canResource="$resource" id="healthCheckMethod"
-                    label="Method" required>
-                    <option value="GET">GET</option>
-                    <option value="HEAD">HEAD</option>
-                    <option value="POST">POST</option>
-                    <option value="OPTIONS">OPTIONS</option>
-                </x-forms.select>
-                <x-forms.select canGate="update" :canResource="$resource" id="healthCheckScheme"
-                    label="Scheme" required>
-                    <option value="http">HTTP</option>
-                    <option value="https">HTTPS</option>
-                </x-forms.select>
+                <x-forms.listbox id="healthCheckMethod" label="Method" required :options="[
+                    ['value' => 'GET', 'label' => 'GET'],
+                    ['value' => 'HEAD', 'label' => 'HEAD'],
+                    ['value' => 'POST', 'label' => 'POST'],
+                    ['value' => 'OPTIONS', 'label' => 'OPTIONS'],
+                ]" x-bind:disabled="@js(!$canUpdate)" />
+                <x-forms.listbox id="healthCheckScheme" label="Scheme" required :options="[
+                    ['value' => 'http', 'label' => 'HTTP'],
+                    ['value' => 'https', 'label' => 'HTTPS'],
+                ]" x-bind:disabled="@js(!$canUpdate)" />
                 <x-forms.input canGate="update" :canResource="$resource" id="healthCheckHost"
                     placeholder="localhost" label="Host" required />
                 <x-forms.input canGate="update" :canResource="$resource" type="number"

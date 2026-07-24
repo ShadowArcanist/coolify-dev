@@ -41,7 +41,7 @@
                 </div>
             @endcan
         @endif
-        <form wire:submit='submit' class="flex flex-col gap-2">
+        <form wire:submit='submit' class="flex flex-col gap-4">
             @if (!$isReadOnly)
                 @can('update', $resource)
                     <div class="flex gap-2">

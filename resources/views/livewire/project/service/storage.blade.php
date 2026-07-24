@@ -117,7 +117,7 @@
                                                     })
                                                 }
                                             })">
-                                            <form class="flex flex-col w-full gap-2 rounded-sm"
+                                            <form class="flex w-full flex-col gap-4"
                                                 wire:submit='submitPersistentVolume'>
                                                 <p class="text-[13px] leading-5 text-neutral-500 dark:text-fg-dim">
                                                     Mount a Docker volume inside the container.
@@ -129,7 +129,7 @@
                                                         persistent
                                                         volumes.</div>
                                                 @endif
-                                                <div class="flex flex-col gap-2">
+                                                <div class="flex flex-col gap-4">
                                                     <x-forms.input canGate="update" :canResource="$resource" placeholder="pv-name"
                                                         id="name" label="Name" required helper="Volume name." />
                                                     @if ($isSwarm)
@@ -193,7 +193,7 @@
                                                     })
                                                 }
                                             })">
-                                            <form class="flex flex-col w-full gap-2 rounded-sm"
+                                            <form class="flex w-full flex-col gap-4"
                                                 x-data="{
                                                     hostPath: @js($this->fileStorageHostPath()),
                                                     filePath: @entangle('file_storage_path'),
@@ -207,7 +207,7 @@
                                                 <p class="text-[13px] leading-5 text-neutral-500 dark:text-fg-dim">
                                                     Create a managed file on the host and mount it inside the container.
                                                 </p>
-                                                <div class="flex flex-col gap-2">
+                                                <div class="flex flex-col gap-4">
                                                     <div class="rounded-lg bg-neutral-100 p-3 text-xs ring-1 ring-neutral-200 dark:bg-white/[0.04] dark:ring-white/[0.07]">
                                                         <div class="mb-1 font-medium">Host file path</div>
                                                         <code class="break-all" x-text="previewPath()">{{ $this->fileStoragePreviewPath() }}</code>
@@ -268,13 +268,13 @@
                                                     })
                                                 }
                                             })">
-                                            <form class="flex flex-col w-full gap-2 rounded-sm"
+                                            <form class="flex w-full flex-col gap-4"
                                                 wire:submit='submitHostFileStorage'>
                                                 <p class="text-[13px] leading-5 text-neutral-500 dark:text-fg-dim">
                                                     Bind an existing host file into the container. Coolify will not modify
                                                     or delete the source file.
                                                 </p>
-                                                <div class="flex flex-col gap-2">
+                                                <div class="flex flex-col gap-4">
                                                     <x-forms.input canGate="update" :canResource="$resource"
                                                         placeholder="/etc/nginx/nginx.conf"
                                                         id="host_file_storage_source" label="Host File Path" required
@@ -332,12 +332,12 @@
                                                     })
                                                 }
                                             })">
-                                            <form class="flex flex-col w-full gap-2 rounded-sm"
+                                            <form class="flex w-full flex-col gap-4"
                                                 wire:submit='submitFileStorageDirectory'>
                                                 <p class="text-[13px] leading-5 text-neutral-500 dark:text-fg-dim">
                                                     Bind a directory from the host system into the container.
                                                 </p>
-                                                <div class="flex flex-col gap-2">
+                                                <div class="flex flex-col gap-4">
                                                     <x-forms.input canGate="update" :canResource="$resource"
                                                         placeholder="{{ application_configuration_dir() }}/{{ $resource->uuid }}/etc/nginx"
                                                         id="file_storage_directory_source" label="Source Directory"

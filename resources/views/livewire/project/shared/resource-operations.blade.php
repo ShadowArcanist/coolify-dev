@@ -55,8 +55,46 @@
     },
     get isCurrentProjectSelected() {
         return this.selectedMoveProject == this.currentProjectId;
+    },
+    get cloneServerOptions() {
+        return [
+            ...this.servers.map(server => ({
+                value: server.id,
+                label: `${server.name} (${server.ip})`,
+            })),
+            ...@js(
+                $buildServers->map(
+                    fn ($server) => [
+                        'value' => "build-{$server->id}",
+                        'label' => "{$server->name} — build server",
+                        'disabled' => true,
+                    ],
+                )->values(),
+            ),
+        ];
+    },
+    get cloneDestinationOptions() {
+        return this.availableDestinations.map(destination => ({
+            value: destination.uuid,
+            label: destination.name,
+        }));
+    },
+    get moveProjectOptions() {
+        return this.projects.map(project => ({
+            value: project.id,
+            label: project.name + (project.id == this.currentProjectId ? ' (current)' : ''),
+        }));
+    },
+    get moveEnvironmentOptions() {
+        return this.availableEnvironments.map(environment => ({
+            value: environment.id,
+            label: environment.name,
+        }));
     }
-}" class="flex flex-col gap-6">
+}" x-init="
+    $watch('selectedCloneServer', () => selectedCloneDestination = null);
+    $watch('selectedMoveProject', () => selectedMoveEnvironment = null);
+" class="flex flex-col gap-6">
     @can('update', $resource)
         <x-application.settings-section id="clone-resource-section" title="Clone resource"
             helper="Duplicate this resource configuration onto another server and network destination.">
@@ -66,30 +104,13 @@
             </x-callout>
 
             <div class="mt-4 grid gap-4 md:grid-cols-2">
-                <div>
-                    <label for="clone-resource-server">Server</label>
-                    <select id="clone-resource-server" x-model="selectedCloneServer"
-                        @change="selectedCloneDestination = null" class="select w-full">
-                        <option value="">Choose a server…</option>
-                        <template x-for="server in servers" :key="server.id">
-                            <option :value="server.id" x-text="`${server.name} (${server.ip})`"></option>
-                        </template>
-                        @foreach ($buildServers as $buildServer)
-                            <option disabled>{{ $buildServer->name }} — build server</option>
-                        @endforeach
-                    </select>
-                </div>
+                <x-forms.listbox id="clone-resource-server" label="Server" :wire="false"
+                    x-model="selectedCloneServer" x-effect="options = cloneServerOptions"
+                    placeholder="Choose a server…" />
 
-                <div>
-                    <label for="clone-resource-destination">Network destination</label>
-                    <select id="clone-resource-destination" x-model="selectedCloneDestination"
-                        :disabled="!selectedCloneServer" class="select w-full">
-                        <option value="">Choose a destination…</option>
-                        <template x-for="destination in availableDestinations" :key="destination.uuid">
-                            <option :value="destination.uuid" x-text="destination.name"></option>
-                        </template>
-                    </select>
-                </div>
+                <x-forms.listbox id="clone-resource-destination" label="Network destination" :wire="false"
+                    x-model="selectedCloneDestination" x-effect="options = cloneDestinationOptions"
+                    x-bind:disabled="!selectedCloneServer" placeholder="Choose a destination…" />
             </div>
 
             <div x-show="selectedCloneDestination" x-cloak
@@ -107,37 +128,15 @@
             helper="Transfer this resource to another project environment without changing the running deployment.">
             @if ($projects->count() > 0)
                 <div class="grid gap-4 md:grid-cols-2">
-                    <div>
-                        <label for="move-resource-project">Project</label>
-                        <select id="move-resource-project" x-model="selectedMoveProject"
-                            @change="selectedMoveEnvironment = null" class="select w-full">
-                            <option value="">Choose a project…</option>
-                            <template x-for="project in projects" :key="project.id">
-                                <option :value="project.id"
-                                    x-text="project.name + (project.id == currentProjectId ? ' (current)' : '')">
-                                </option>
-                            </template>
-                        </select>
-                    </div>
+                    <x-forms.listbox id="move-resource-project" label="Project" :wire="false"
+                        x-model="selectedMoveProject" x-effect="options = moveProjectOptions"
+                        placeholder="Choose a project…" />
 
-                    <div>
-                        <label for="move-resource-environment" class="flex items-center gap-1.5">
-                            Environment
-                            <x-helper helper="The current environment is excluded." />
-                        </label>
-                        <select id="move-resource-environment" x-model="selectedMoveEnvironment"
-                            :disabled="!selectedMoveProject || availableEnvironments.length === 0"
-                            class="select w-full">
-                            <option value=""
-                                x-text="availableEnvironments.length === 0 && isCurrentProjectSelected
-                                    ? 'No other environments available'
-                                    : 'Choose an environment…'">
-                            </option>
-                            <template x-for="environment in availableEnvironments" :key="environment.id">
-                                <option :value="environment.id" x-text="environment.name"></option>
-                            </template>
-                        </select>
-                    </div>
+                    <x-forms.listbox id="move-resource-environment" label="Environment"
+                        helper="The current environment is excluded." :wire="false"
+                        x-model="selectedMoveEnvironment" x-effect="options = moveEnvironmentOptions"
+                        x-bind:disabled="!selectedMoveProject || availableEnvironments.length === 0"
+                        placeholder="Choose an environment…" />
                 </div>
 
                 <div x-show="selectedMoveEnvironment" x-cloak

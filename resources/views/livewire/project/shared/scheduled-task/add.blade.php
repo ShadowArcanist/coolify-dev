@@ -12,17 +12,17 @@
         <x-forms.input type="number" placeholder="300" id="timeout"
             helper="Maximum execution time from 60 to 36,000 seconds." label="Timeout (seconds)" />
         @if ($type === 'application' && $containerNames->count() > 1)
-            <x-forms.select id="container" label="Container">
-                @foreach ($containerNames as $containerName)
-                    <option value="{{ $containerName }}">{{ $containerName }}</option>
-                @endforeach
-            </x-forms.select>
+            <x-forms.listbox id="container" label="Container"
+                :options="$containerNames->map(fn ($containerName) => [
+                    'value' => $containerName,
+                    'label' => $containerName,
+                ])->values()->all()" />
         @elseif ($type === 'service')
-            <x-forms.select id="container" label="Container">
-                @foreach ($containerNames as $containerName)
-                    <option value="{{ $containerName }}">{{ $containerName }}</option>
-                @endforeach
-            </x-forms.select>
+            <x-forms.listbox id="container" label="Container"
+                :options="$containerNames->map(fn ($containerName) => [
+                    'value' => $containerName,
+                    'label' => $containerName,
+                ])->values()->all()" />
         @else
             <x-forms.input placeholder="php" id="container"
                 helper="Leave empty when the resource only has one container." label="Container" />

@@ -13,7 +13,7 @@
 
 <div class="w-full">
     @if ($label)
-        <label class="flex w-fit items-center gap-1.5">
+        <label for="{{ $id }}-trigger" class="mb-1.5 flex w-fit items-center gap-1.5">
             {{ $label }}
             @if ($required)
                 <x-highlighted text="*" />
@@ -38,8 +38,10 @@
             this.value = option.value;
             @if ($onChange) this.$nextTick(() => this.$wire.{{ $onChange }}()); @endif
         }
-    }" @click.outside="open = false" @keydown.escape="open = false">
-        <button type="button" class="listbox-trigger" @click="open = !open"
+    }" x-modelable="value" {{ $attributes->whereStartsWith('x-model') }}
+        {{ $attributes->whereStartsWith('x-effect') }}
+        @click.outside="open = false" @keydown.escape="open = false">
+        <button id="{{ $id }}-trigger" type="button" class="listbox-trigger" @click="open = !open"
             {{ $attributes->whereStartsWith('x-bind:disabled') }} aria-haspopup="listbox"
             :aria-expanded="open">
             <span class="truncate" x-text="current"></span>

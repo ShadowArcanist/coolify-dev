@@ -10,11 +10,12 @@
     @endphp
     <x-application.settings-section id="danger-zone-section" title="Danger zone"
         helper="Destructive resource actions cannot be undone.">
-        <div class="rounded-lg border border-error/25 bg-error/[0.035] p-4 dark:bg-error/[0.055]">
+        <div
+            class="rounded-lg border border-red-300 bg-red-50 p-4 ring-1 ring-inset ring-red-200/60 dark:border-error/30 dark:bg-error/[0.08] dark:ring-error/10">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div class="min-w-0">
                     <div class="flex flex-wrap items-center gap-2">
-                        <h4 class="text-sm font-semibold text-error">Delete {{ $resourceLabel }}</h4>
+                        <h4 class="text-sm font-semibold text-red-700 dark:text-error">Delete {{ $resourceLabel }}</h4>
                         <x-status-badge status="Permanent" type="error" />
                     </div>
                     <p class="mt-2 max-w-2xl text-[13px] leading-5 text-neutral-600 dark:text-fg-dim">
