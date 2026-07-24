@@ -7,6 +7,9 @@
     <div class="flex flex-col h-full gap-4 md:gap-8 md:flex-row">
         <x-server.sidebar :server="$server" activeMenu="general" />
         <div class="w-full">
+            @if ($server->isLocalhost())
+                @include('livewire.server.partials.localhost-general')
+            @else
             <form wire:submit.prevent='submit' class="flex flex-col">
                 <div class="flex gap-2">
                     <h2>General</h2>
@@ -776,6 +779,7 @@
                         </x-forms.button>
                     @endif
                 </div>
+            @endif
             @endif
         </div>
     </div>
