@@ -62,9 +62,6 @@
                             </header>
                             <div
                                 class="application-settings-section-body min-h-0 flex-1 overflow-y-auto">
-                                <p class="mb-4 text-sm leading-5 text-neutral-600 dark:text-fg-dim">
-                                    Review changes that are not part of the current deployment yet.
-                                </p>
                                 <div
                                     class="mb-4 flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-3 py-2.5 ring-1 ring-amber-200 dark:bg-warning/[0.07] dark:ring-warning/15">
                                     <div class="flex min-w-0 items-center gap-2.5">
