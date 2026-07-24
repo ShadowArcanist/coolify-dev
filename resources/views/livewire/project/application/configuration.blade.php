@@ -190,6 +190,10 @@
                 ],
                 ['id' => 'healthcheck-timing-section', 'label' => 'Timing and retries'],
             ],
+            'project.application.rollback' => [
+                ['id' => 'rollback-retention-section', 'label' => 'Image retention'],
+                ['id' => 'rollback-images-section', 'label' => 'Available images'],
+            ],
         ];
     @endphp
 
