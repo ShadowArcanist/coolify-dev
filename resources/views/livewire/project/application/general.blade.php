@@ -17,7 +17,7 @@
                 </x-forms.button>
             </div>
         @endif
-        <div class="application-settings-grid flex flex-col gap-4">
+        <div class="application-settings-grid flex flex-col gap-6">
             <x-application.settings-section id="application-details-section" title="Application details" helper="Name the application and choose the build strategy Coolify should use to deploy it." class="application-details-card">
             <div class="grid gap-4">
                 <x-forms.input x-bind:disabled="shouldDisable()" id="name" label="Name" required />

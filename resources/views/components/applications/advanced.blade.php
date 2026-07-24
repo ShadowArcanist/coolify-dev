@@ -1,6 +1,9 @@
 <x-dropdown>
     <x-slot:title>
-        Advanced
+        <span class="flex items-center gap-1.5">
+            <x-reicon name="sliders" class="size-3.5 opacity-70" />
+            Advanced
+        </span>
     </x-slot>
     @if ($application->status === 'running')
         @can('deploy', $application)

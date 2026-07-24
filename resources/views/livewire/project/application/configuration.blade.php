@@ -166,6 +166,10 @@
                 ['id' => 'advanced-logs-section', 'label' => 'Logs'],
                 $isComposeApp ? null : ['id' => 'advanced-gpu-section', 'label' => 'GPU'],
             ])),
+            'project.application.webhooks' => [
+                ['id' => 'deploy-webhook-section', 'label' => 'Deploy webhook'],
+                ['id' => 'manual-git-webhooks-section', 'label' => 'Manual Git webhooks'],
+            ],
         ];
     @endphp
 

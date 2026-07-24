@@ -9,7 +9,7 @@
         ];
     @endphp
 
-    <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-6">
         <x-application.settings-section id="advanced-build-section" title="Build"
             helper="Fine-tune how images are built for this application.">
             <div class="grid w-full gap-4 sm:grid-cols-2">
@@ -43,17 +43,13 @@
                         ['value' => false, 'label' => 'Generated name (rolling updates)'],
                         ['value' => true, 'label' => 'Consistent name (no rolling updates)'],
                     ]" x-bind:disabled="@js(!$canUpdate)" />
-            </div>
-            @if ($isConsistentContainerNameEnabled === false)
-                <form class="mt-4 grid w-full items-end gap-4 sm:grid-cols-[minmax(0,1fr)_auto]"
-                    wire:submit.prevent='saveCustomName'>
+                @if ($isConsistentContainerNameEnabled === false)
                     <x-forms.input
-                        helper="You can add a custom name for your container.<br><br>The name will be converted to slug format when you save it. <span class='font-bold dark:text-warning'>You will lose the rolling update feature!</span>"
+                        helper="You can add a custom name for your container.<br><br>The name is saved automatically and converted to slug format. <span class='font-bold dark:text-warning'>You will lose the rolling update feature!</span>"
                         id="customInternalName" label="Custom container name" canGate="update"
-                        :canResource="$application" />
-                    <x-forms.button canGate="update" :canResource="$application" type="submit">Save</x-forms.button>
-                </form>
-            @endif
+                        wire:change="saveCustomName" :canResource="$application" />
+                @endif
+            </div>
         </x-application.settings-section>
 
         @if ($application->git_based())

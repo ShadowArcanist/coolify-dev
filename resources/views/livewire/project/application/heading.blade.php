@@ -1,32 +1,33 @@
 <nav wire:poll.10000ms="checkStatus" class="w-full max-w-[1180px] pb-6 lg:pb-0">
     @php
+        $routeIs = fn (string|array $routes): bool => \Illuminate\Support\Str::is($routes, $activeRouteName);
         $applicationMenuItems = [
             [
                 'label' => 'Settings',
                 'route' => 'project.application.configuration',
-                'active' => request()->routeIs('project.application.configuration'),
+                'active' => $routeIs('project.application.configuration'),
             ],
             [
                 'label' => 'Backups',
                 'route' => 'project.application.backup.index',
-                'active' => request()->routeIs('project.application.backup.*'),
+                'active' => $routeIs('project.application.backup.*'),
             ],
             [
                 'label' => 'Console',
                 'route' => 'project.application.command',
-                'active' => request()->routeIs('project.application.command'),
+                'active' => $routeIs('project.application.command'),
                 'navigate' => false,
                 'visible' => ! $application->destination->server->isSwarm() && auth()->user()?->can('canAccessTerminal'),
             ],
             [
                 'label' => 'Deployment Logs',
                 'route' => 'project.application.deployment.index',
-                'active' => request()->routeIs('project.application.deployment.index', 'project.application.deployment.show'),
+                'active' => $routeIs(['project.application.deployment.index', 'project.application.deployment.show']),
             ],
             [
                 'label' => 'Runtime Logs',
                 'route' => 'project.application.logs',
-                'active' => request()->routeIs('project.application.logs'),
+                'active' => $routeIs('project.application.logs'),
             ],
         ];
 
@@ -34,91 +35,91 @@
             [
                 'label' => 'General',
                 'route' => 'project.application.configuration',
-                'active' => request()->routeIs('project.application.configuration'),
+                'active' => $routeIs('project.application.configuration'),
             ],
             [
                 'label' => 'Advanced',
                 'route' => 'project.application.advanced',
-                'active' => request()->routeIs('project.application.advanced'),
+                'active' => $routeIs('project.application.advanced'),
             ],
             [
                 'label' => 'Swarm',
                 'route' => 'project.application.swarm',
-                'active' => request()->routeIs('project.application.swarm'),
+                'active' => $routeIs('project.application.swarm'),
                 'visible' => $application->destination->server->isSwarm(),
             ],
             [
                 'label' => 'Environment Variables',
                 'route' => 'project.application.environment-variables',
-                'active' => request()->routeIs('project.application.environment-variables'),
+                'active' => $routeIs('project.application.environment-variables'),
             ],
             [
                 'label' => 'Persistent Storage',
                 'route' => 'project.application.persistent-storage',
-                'active' => request()->routeIs('project.application.persistent-storage'),
+                'active' => $routeIs('project.application.persistent-storage'),
             ],
             [
                 'label' => 'Git Source',
                 'route' => 'project.application.source',
-                'active' => request()->routeIs('project.application.source'),
+                'active' => $routeIs('project.application.source'),
                 'visible' => $application->git_based(),
             ],
             [
                 'label' => 'Servers',
                 'route' => 'project.application.servers',
-                'active' => request()->routeIs('project.application.servers'),
+                'active' => $routeIs('project.application.servers'),
             ],
             [
                 'label' => 'Scheduled Tasks',
                 'route' => 'project.application.scheduled-tasks.show',
-                'active' => request()->routeIs('project.application.scheduled-tasks.show', 'project.application.scheduled-tasks'),
+                'active' => $routeIs(['project.application.scheduled-tasks.show', 'project.application.scheduled-tasks']),
             ],
             [
                 'label' => 'Webhooks',
                 'route' => 'project.application.webhooks',
-                'active' => request()->routeIs('project.application.webhooks'),
+                'active' => $routeIs('project.application.webhooks'),
             ],
             [
                 'label' => 'Preview Deployments',
                 'route' => 'project.application.preview-deployments',
-                'active' => request()->routeIs('project.application.preview-deployments'),
+                'active' => $routeIs('project.application.preview-deployments'),
                 'visible' => $application->git_based() || $application->build_pack === 'dockerimage',
             ],
             [
                 'label' => 'Healthcheck',
                 'route' => 'project.application.healthcheck',
-                'active' => request()->routeIs('project.application.healthcheck'),
+                'active' => $routeIs('project.application.healthcheck'),
                 'visible' => $application->build_pack !== 'dockercompose',
             ],
             [
                 'label' => 'Rollback',
                 'route' => 'project.application.rollback',
-                'active' => request()->routeIs('project.application.rollback'),
+                'active' => $routeIs('project.application.rollback'),
             ],
             [
                 'label' => 'Resource Limits',
                 'route' => 'project.application.resource-limits',
-                'active' => request()->routeIs('project.application.resource-limits'),
+                'active' => $routeIs('project.application.resource-limits'),
             ],
             [
                 'label' => 'Resource Operations',
                 'route' => 'project.application.resource-operations',
-                'active' => request()->routeIs('project.application.resource-operations'),
+                'active' => $routeIs('project.application.resource-operations'),
             ],
             [
                 'label' => 'Metrics',
                 'route' => 'project.application.metrics',
-                'active' => request()->routeIs('project.application.metrics'),
+                'active' => $routeIs('project.application.metrics'),
             ],
             [
                 'label' => 'Tags',
                 'route' => 'project.application.tags',
-                'active' => request()->routeIs('project.application.tags'),
+                'active' => $routeIs('project.application.tags'),
             ],
             [
                 'label' => 'Danger Zone',
                 'route' => 'project.application.danger',
-                'active' => request()->routeIs('project.application.danger'),
+                'active' => $routeIs('project.application.danger'),
             ],
         ];
 
@@ -422,7 +423,7 @@
                     <a wire:key="application-primary-nav-{{ str($menuItem['label'])->slug() }}"
                         @class([
                             'app-tab shrink-0',
-                            'bg-white text-black shadow-sm dark:bg-white/[0.09] dark:text-fg' => $isApplicationMenuItemActive,
+                            'bg-warning/20 text-warning-900 shadow-sm ring-1 ring-warning/30 hover:bg-warning/25 dark:bg-warning/15 dark:text-warning dark:ring-warning/25 dark:hover:bg-warning/20' => $isApplicationMenuItemActive,
                         ])
                         @if ($menuItem['navigate'] ?? true) {{ wireNavigate() }} @endif
                         href="{{ route($menuItem['route'], $parameters) }}">
@@ -451,30 +452,14 @@
                         @if (!str($application->status)->startsWith('exited'))
                             @if (!$application->destination->server->isSwarm())
                                 <x-forms.button canGate="deploy" :canResource="$application" title="With rolling update if possible" wire:click="deploy">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 dark:text-orange-400"
-                                        viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
-                                        stroke-linecap="round" stroke-linejoin="round">
-                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                                        <path
-                                            d="M10.09 4.01l.496 -.495a2 2 0 0 1 2.828 0l7.071 7.07a2 2 0 0 1 0 2.83l-7.07 7.07a2 2 0 0 1 -2.83 0l-7.07 -7.07a2 2 0 0 1 0 -2.83l3.535 -3.535h-3.988">
-                                        </path>
-                                        <path d="M7.05 11.038v-3.988"></path>
-                                    </svg>
+                                    <x-reicon name="refresh" class="size-4 text-orange-500 dark:text-orange-400" />
                                     Redeploy
                                 </x-forms.button>
                             @endif
                             @if ($application->build_pack !== 'dockercompose')
                                 @if ($application->destination->server->isSwarm())
                                     <x-forms.button canGate="deploy" :canResource="$application" title="Redeploy Swarm Service (rolling update)" wire:click="deploy">
-                                        <svg class="w-5 h-5 dark:text-warning" viewBox="0 0 24 24"
-                                            xmlns="http://www.w3.org/2000/svg">
-                                            <g fill="none" stroke="currentColor" stroke-linecap="round"
-                                                stroke-linejoin="round" stroke-width="2">
-                                                <path
-                                                    d="M19.933 13.041a8 8 0 1 1-9.925-8.788c3.899-1 7.935 1.007 9.425 4.747" />
-                                                <path d="M20 4v5h-5" />
-                                            </g>
-                                        </svg>
+                                        <x-reicon name="refresh" class="size-4 text-warning" />
                                         Update Service
                                     </x-forms.button>
                                 @else
@@ -485,15 +470,7 @@
                                         step2ButtonText="Confirm">
                                         <x-slot:content>
                                             <x-forms.button canGate="deploy" :canResource="$application" title="Restart without rebuilding">
-                                                <svg class="w-5 h-5 dark:text-warning" viewBox="0 0 24 24"
-                                                    xmlns="http://www.w3.org/2000/svg">
-                                                    <g fill="none" stroke="currentColor" stroke-linecap="round"
-                                                        stroke-linejoin="round" stroke-width="2">
-                                                        <path
-                                                            d="M19.933 13.041a8 8 0 1 1-9.925-8.788c3.899-1 7.935 1.007 9.425 4.747" />
-                                                        <path d="M20 4v5h-5" />
-                                                    </g>
-                                                </svg>
+                                                <x-reicon name="restart" class="size-4 text-warning" />
                                                 Restart
                                             </x-forms.button>
                                         </x-slot:content>
@@ -507,28 +484,13 @@
                                 ]" :confirmWithText="false" :confirmWithPassword="false"
                                 step1ButtonText="Continue" step2ButtonText="Confirm">
                                 <x-slot:button-title>
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-error" viewBox="0 0 24 24"
-                                        stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
-                                        stroke-linejoin="round">
-                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                                        <path
-                                            d="M6 5m0 1a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z">
-                                        </path>
-                                        <path
-                                            d="M14 5m0 1a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z">
-                                        </path>
-                                    </svg>
+                                    <x-reicon name="stop" class="size-4 text-error" />
                                     Stop
                                 </x-slot:button-title>
                             </x-modal-confirmation>
                         @else
                             <x-forms.button canGate="deploy" :canResource="$application" wire:click="deploy">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 dark:text-warning"
-                                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none"
-                                    stroke-linecap="round" stroke-linejoin="round">
-                                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                                    <path d="M7 4v16l13 -8z" />
-                                </svg>
+                                <x-reicon name="play-circle" class="size-4 text-warning" />
                                 Deploy
                             </x-forms.button>
                         @endif
