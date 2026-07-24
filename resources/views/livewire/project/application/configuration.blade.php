@@ -231,7 +231,7 @@
                                     </span>
                                 @endif
                             </a>
-                            @if ($menuItem['active'] && !empty($pageSections[$menuItem['route']] ?? []))
+                            @if ($menuItem['active'] && count($pageSections[$menuItem['route']] ?? []) >= 4)
                                 <div class="nav-children hidden flex-col gap-0.5 py-1 xl:flex" x-data="{ activeSection: '' }">
                                     @foreach ($pageSections[$menuItem['route']] as $section)
                                         <button type="button" class="menu-subitem"
