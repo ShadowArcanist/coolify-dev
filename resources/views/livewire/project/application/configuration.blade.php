@@ -180,6 +180,16 @@
                     : null,
                 ['id' => 'preview-deployments-section', 'label' => 'Deployments'],
             ])),
+            'project.application.healthcheck' => [
+                ['id' => 'healthcheck-configuration-section', 'label' => 'Configuration'],
+                [
+                    'id' => $application->health_check_type === 'cmd'
+                        ? 'healthcheck-command-section'
+                        : 'healthcheck-request-section',
+                    'label' => $application->health_check_type === 'cmd' ? 'Command' : 'HTTP request',
+                ],
+                ['id' => 'healthcheck-timing-section', 'label' => 'Timing and retries'],
+            ],
         ];
     @endphp
 
