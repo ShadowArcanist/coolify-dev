@@ -34,24 +34,17 @@
             <header
                 class="hidden lg:flex fixed top-0 inset-x-0 z-50 h-12 items-center bg-white/95 dark:bg-panel/95 backdrop-blur border-b border-neutral-200 dark:border-white/[0.06]">
                 {{-- Brand (width tracks sidebar) --}}
-                <div class="flex items-center gap-2.5 h-full shrink-0 border-r border-neutral-200 dark:border-white/[0.06] transition-[width] duration-200"
+                <div class="flex items-center gap-2 h-full shrink-0 border-r border-neutral-200 dark:border-white/[0.06] transition-[width] duration-200"
                     :class="collapsed ? 'w-16 justify-center px-0' : 'w-56 px-4'">
                     <a href="/" {{ wireNavigate() }} title="Coolify"
-                        class="flex items-center justify-center size-8 shrink-0 rounded-lg bg-neutral-100 dark:bg-white/[0.06] dark:ring-1 dark:ring-white/10 hover:opacity-80 transition-opacity">
-                        <img src="/coolify-logo.svg" alt="Coolify" class="w-[18px] h-[18px]" />
+                        class="flex items-baseline gap-1.5 min-w-0 hover:opacity-80 transition-opacity">
+                        <span x-show="collapsed" x-cloak class="text-[15px] font-semibold tracking-tight text-black dark:text-white">C</span>
+                        <span x-show="!collapsed" class="text-[15px] font-semibold tracking-tight text-black dark:text-white">Coolify</span>
+                        <span x-show="!collapsed" class="text-[10.5px] font-medium text-neutral-400 dark:text-fg-faint">v{{ config('constants.coolify.version') }}</span>
                     </a>
-                    <span x-show="!collapsed" class="text-[15px] font-semibold tracking-tight text-black dark:text-white">Coolify</span>
                 </div>
                 {{-- Collapse toggle + team switcher --}}
                 <div class="flex items-center gap-1.5 min-w-0 flex-1 pl-3 pr-4">
-                    <button type="button" @click="toggleSidebar()" title="Toggle sidebar"
-                        class="flex items-center justify-center size-8 shrink-0 rounded-md text-neutral-500 dark:text-fg-faint hover:bg-neutral-100 dark:hover:bg-white/[0.06] hover:text-black dark:hover:text-fg transition-colors">
-                        <svg class="size-4" viewBox="0 0 24 24" fill="none">
-                            <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.6" />
-                            <path d="M9 4v16" stroke="currentColor" stroke-width="1.6" />
-                        </svg>
-                    </button>
-                    <span class="shrink-0 text-neutral-300 dark:text-fg-faint">/</span>
                     <x-top-breadcrumb />
                     <div class="flex-1"></div>
                     {{-- Right cluster --}}

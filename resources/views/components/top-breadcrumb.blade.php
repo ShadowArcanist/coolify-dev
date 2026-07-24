@@ -6,6 +6,10 @@
     $currentProject = $projectUuid ? $projects->firstWhere('uuid', $projectUuid) : null;
     $environments = $currentProject ? $currentProject->environments()->get() : collect();
     $currentEnvironment = $environmentUuid ? $environments->firstWhere('uuid', $environmentUuid) : null;
+    $applicationUuid = request()->route('application_uuid');
+    $currentApplication = $currentEnvironment && $applicationUuid
+        ? $currentEnvironment->applications()->where('uuid', $applicationUuid)->first()
+        : null;
 @endphp
 <div class="flex items-center gap-0.5 min-w-0 text-[13px]">
     {{-- Team --}}
@@ -18,7 +22,7 @@
         {{-- Project switcher --}}
         <div class="relative min-w-0 shrink" x-data="{ open: false }" @keydown.escape.window="open = false">
             <button type="button" @click="open = !open" @click.outside="open = false" title="Switch project"
-                class="flex items-center gap-1.5 min-w-0 h-8 px-2 rounded-md transition-colors hover:bg-neutral-100 dark:hover:bg-white/[0.05]">
+                class="flex items-center gap-1.5 min-w-0 h-8 px-2 rounded-md opacity-70 transition-[background-color,opacity] hover:opacity-100 hover:bg-neutral-100 dark:hover:bg-white/[0.05]">
                 <span class="min-w-0 truncate font-semibold text-black dark:text-fg">{{ $currentProject->name }}</span>
                 <svg class="size-4 shrink-0 text-neutral-400 dark:text-fg-faint" viewBox="0 0 24 24" fill="none">
                     <path d="M8 9l4-4 4 4M8 15l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
@@ -45,7 +49,7 @@
         {{-- Environment switcher --}}
         <div class="relative min-w-0 shrink" x-data="{ open: false }" @keydown.escape.window="open = false">
             <button type="button" @click="open = !open" @click.outside="open = false" title="Switch environment"
-                class="flex items-center gap-1.5 min-w-0 h-8 px-2 rounded-md transition-colors hover:bg-neutral-100 dark:hover:bg-white/[0.05]">
+                class="flex items-center gap-1.5 min-w-0 h-8 px-2 rounded-md opacity-70 transition-[background-color,opacity] hover:opacity-100 hover:bg-neutral-100 dark:hover:bg-white/[0.05]">
                 <span class="min-w-0 truncate font-semibold text-black dark:text-fg">{{ $currentEnvironment->name }}</span>
                 <svg class="size-4 shrink-0 text-neutral-400 dark:text-fg-faint" viewBox="0 0 24 24" fill="none">
                     <path d="M8 9l4-4 4 4M8 15l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
@@ -65,5 +69,27 @@
                 @endforeach
             </div>
         </div>
+    @endif
+
+    @if ($currentApplication)
+        @php
+            $applicationStatus = str($currentApplication->status ?? 'exited');
+            [$statusDotClass, $statusLabel] = match (true) {
+                $applicationStatus->startsWith('running') => ['bg-[#3fb950]', 'Running'],
+                $applicationStatus->startsWith('degraded') => ['bg-orange-400', 'Degraded'],
+                $applicationStatus->startsWith('restarting'),
+                $applicationStatus->startsWith('starting') => ['bg-warning', 'Restarting'],
+                default => ['bg-neutral-400 dark:bg-fg-faint', 'Stopped'],
+            };
+        @endphp
+        <span class="shrink-0 text-neutral-300 dark:text-fg-faint px-0.5">/</span>
+        <span class="flex min-w-0 shrink items-center gap-2 h-8 px-2">
+            <span class="min-w-0 truncate font-semibold text-black dark:text-fg">{{ $currentApplication->name }}</span>
+            <span class="inline-flex h-[22px] shrink-0 items-center gap-1.5 rounded-full bg-neutral-100 px-2.5 text-xs font-medium text-black dark:bg-white/[0.08] dark:text-fg"
+                title="{{ $currentApplication->status }}">
+                <span class="size-1.5 rounded-full {{ $statusDotClass }}"></span>
+                {{ $statusLabel }}
+            </span>
+        </span>
     @endif
 </div>

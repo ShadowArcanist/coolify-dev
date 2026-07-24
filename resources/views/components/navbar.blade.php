@@ -1,4 +1,4 @@
-<nav class="flex flex-col flex-1 bg-white border-r border-neutral-200 dark:border-white/[0.06] dark:bg-panel pt-4"
+<nav class="flex flex-col flex-1 bg-white border-r border-neutral-200 dark:border-white/[0.06] dark:bg-panel pt-2"
     :class="collapsed ? 'px-2 lg:px-3 sidebar-collapsed' : 'px-2 lg:px-3'"
     @mouseover="
         if (!collapsed) return;
@@ -221,6 +221,17 @@
             </x-modal-input>
         </li>
     </ul>
+    {{-- Sticky sidebar collapser --}}
+    <div class="sticky bottom-0 mt-auto -mx-2 lg:-mx-3 border-t border-neutral-200 dark:border-white/[0.06] bg-white dark:bg-panel px-2 lg:px-3 py-2">
+        <button type="button" @click="toggleSidebar()" title="Toggle sidebar" class="menu-item"
+            :class="collapsed && 'lg:w-8 lg:justify-center lg:px-0 lg:mx-auto'">
+            <svg class="menu-item-icon" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.6" />
+                <path d="M9 4v16" stroke="currentColor" stroke-width="1.6" />
+            </svg>
+            <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Collapse</span>
+        </button>
+    </div>
     <div x-show="collapsed && tooltip.show" x-cloak x-transition.opacity.duration.100ms
         :style="`left: ${tooltip.x}px; top: ${tooltip.y}px;`"
         class="fixed z-[100] -translate-y-1/2 px-2 py-1 text-xs font-medium rounded-lg bg-neutral-900 dark:bg-raised text-white whitespace-nowrap pointer-events-none shadow-lg border border-neutral-700 dark:border-white/10"
