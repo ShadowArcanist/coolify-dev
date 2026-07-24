@@ -96,10 +96,6 @@
                         </div>
 
                         <div class="mt-4 grid gap-4 lg:grid-cols-3">
-                            <x-forms.input canGate="update" :canResource="$server"
-                                placeholder="https://example.com" id="wildcardDomain" label="Wildcard domain"
-                                helper="New resources can receive generated subdomains from this domain."
-                                :disabled="$isValidating" />
                             <x-forms.input canGate="update" :canResource="$server" type="number"
                                 id="connectionTimeout" label="Connection timeout"
                                 helper="Seconds to wait before an SSH connection fails." min="1" max="300"
@@ -110,6 +106,10 @@
                                     'value' => $timezone,
                                     'label' => $timezone,
                                 ])->all()" x-bind:disabled="@js($isValidating || !auth()->user()->can('update', $server))" />
+                            <x-forms.input canGate="update" :canResource="$server"
+                                placeholder="https://example.com" id="wildcardDomain" label="Wildcard domain"
+                                helper="New resources can receive generated subdomains from this domain."
+                                :disabled="$isValidating" />
                         </div>
                     </x-application.settings-section>
                 </form>
