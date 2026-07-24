@@ -45,12 +45,6 @@
                                     </div>
                                 @endforeach
                             </dl>
-                            @if (isset($meta['collected_at']))
-                                <p
-                                    class="mt-5 border-t border-neutral-200 pt-3 text-xs text-neutral-500 dark:border-white/[0.08] dark:text-fg-faint">
-                                    Updated {{ \Carbon\Carbon::parse($meta['collected_at'])->diffForHumans() }}
-                                </p>
-                            @endif
                         @endif
                     </x-application.settings-section>
 
@@ -83,33 +77,33 @@
                             </x-forms.button>
                         </x-slot:actions>
 
-                        <div class="grid gap-4 sm:grid-cols-2">
-                            <x-forms.input canGate="update" :canResource="$server" id="name" label="Name"
-                                required :disabled="$isValidating" />
-                            <x-forms.input canGate="update" :canResource="$server" id="description"
-                                label="Description" :disabled="$isValidating" />
+                        <div class="grid gap-4 lg:grid-cols-3">
                             <x-forms.input canGate="update" :canResource="$server" type="password" id="ip"
                                 label="IP address or domain"
                                 helper="Enter a hostname or IP address without http:// or https://."
                                 required :disabled="$isValidating" />
+                            <x-forms.input canGate="update" :canResource="$server" id="user" label="SSH user"
+                                required :disabled="$isValidating" />
+                            <x-forms.input canGate="update" :canResource="$server" type="number" id="port"
+                                label="SSH port" required :disabled="$isValidating" />
+                        </div>
+
+                        <div class="mt-4 grid gap-4 lg:grid-cols-3">
+                            <x-forms.input canGate="update" :canResource="$server" id="name" label="Name"
+                                required :disabled="$isValidating" />
+                            <x-forms.input canGate="update" :canResource="$server" id="description"
+                                label="Description" :disabled="$isValidating" />
                             <x-forms.input canGate="update" :canResource="$server"
                                 placeholder="https://example.com" id="wildcardDomain" label="Wildcard domain"
                                 helper="New resources can receive generated subdomains from this domain."
                                 :disabled="$isValidating" />
                         </div>
 
-                        <div class="mt-4 grid gap-4 sm:grid-cols-3">
-                            <x-forms.input canGate="update" :canResource="$server" id="user" label="SSH user"
-                                required :disabled="$isValidating" />
-                            <x-forms.input canGate="update" :canResource="$server" type="number" id="port"
-                                label="SSH port" required :disabled="$isValidating" />
+                        <div class="mt-4 grid gap-4 lg:grid-cols-3">
                             <x-forms.input canGate="update" :canResource="$server" type="number"
                                 id="connectionTimeout" label="Connection timeout"
                                 helper="Seconds to wait before an SSH connection fails." min="1" max="300"
                                 required :disabled="$isValidating" />
-                        </div>
-
-                        <div class="mt-4 grid gap-4 sm:grid-cols-2">
                             <x-forms.listbox id="serverTimezone" label="Server timezone"
                                 helper="Used for backup schedules, cron jobs, and displayed timestamps."
                                 :options="collect($this->timezones)->map(fn ($timezone) => [
