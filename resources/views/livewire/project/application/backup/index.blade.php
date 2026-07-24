@@ -18,72 +18,124 @@
     <livewire:project.shared.configuration-checker :resource="$application" />
     <livewire:project.application.heading :application="$application" />
 
-    <div class="flex items-center gap-2 pb-4">
-        <h2>Scheduled Backups</h2>
-        @can('update', $application)
-            <x-modal-input buttonTitle="+ Add" title="New Scheduled Backup" :wireIgnore="false">
-                <livewire:project.application.backup.create :application="$application"
-                    wire:key="create-volume-backup-{{ $application->id }}" />
-            </x-modal-input>
-        @endcan
-    </div>
+    <div class="application-settings-form flex flex-col gap-6">
+        <x-application.settings-section title="Storage backups"
+            helper="Schedule backups for persistent volumes and directory mounts attached to this application.">
+            @can('update', $application)
+                <x-slot:actions>
+                    <x-modal-input title="New scheduled backup" :wireIgnore="false">
+                        <x-slot:content>
+                            <button type="button"
+                                class="button bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!">
+                                <x-reicon name="plus" class="size-3.5" />
+                                Add
+                            </button>
+                        </x-slot:content>
+                        <livewire:project.application.backup.create :application="$application"
+                            wire:key="create-volume-backup-{{ $application->id }}" />
+                    </x-modal-input>
+                </x-slot:actions>
+            @endcan
 
-    <div class="max-w-md pb-4">
-        <x-forms.input id="null" type="search" x-model="search" placeholder="Search by target name, type, or frequency..." />
-    </div>
+            <div class="grid gap-4 sm:grid-cols-3">
+                <div>
+                    <p class="text-xs font-medium text-neutral-500 dark:text-fg-dim">Schedules</p>
+                    <p class="mt-1 text-xl font-semibold tabular-nums text-neutral-950 dark:text-fg">
+                        {{ $backups->count() }}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-neutral-500 dark:text-fg-dim">Enabled</p>
+                    <p class="mt-1 text-xl font-semibold tabular-nums text-neutral-950 dark:text-fg">
+                        {{ $backups->where('enabled', true)->count() }}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-neutral-500 dark:text-fg-dim">Total executions</p>
+                    <p class="mt-1 text-xl font-semibold tabular-nums text-neutral-950 dark:text-fg">
+                        {{ $backups->sum('executions_count') }}
+                    </p>
+                </div>
+            </div>
+        </x-application.settings-section>
 
-    <div class="flex flex-col gap-2">
-        <div x-cloak x-show="search !== '' && backups.length > 0 && !hasMatches()">
-            No scheduled backups match your search.
+        <div class="flex flex-wrap items-center gap-2">
+            <div class="relative min-w-0 max-w-md flex-1">
+                <input type="search" x-model="search" placeholder="Search backups" aria-label="Search backups"
+                    class="input w-full pl-8!" />
+                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
+                    <x-reicon name="search" class="size-3.5 text-neutral-400 dark:text-fg-faint" />
+                </div>
+            </div>
         </div>
-        @forelse ($backups as $backup)
-            @php($latestExecution = $backup->latestExecution)
-            <a x-show="search === '' || @js(strtolower($backup->targetName())).includes(search.toLowerCase()) || @js(strtolower($backup->targetType())).includes(search.toLowerCase()) || @js(strtolower($backup->frequency)).includes(search.toLowerCase())" @class([
-                'flex flex-col border-l-2 transition-colors p-4 cursor-pointer bg-white hover:bg-gray-100 dark:bg-coolgray-100 dark:hover:bg-coolgray-200 text-black dark:text-white',
-                'border-blue-500/50 border-dashed' => $latestExecution?->status === 'running',
-                'border-error' => $latestExecution?->status === 'failed',
-                'border-success' => $latestExecution?->status === 'success',
-                'border-gray-200 dark:border-coolgray-300' => !$latestExecution,
-            ]) {{ wireNavigate() }}
-                href="{{ route('project.application.backup.show', [...$parameters, 'backup_uuid' => $backup->uuid]) }}">
-                <div class="flex flex-wrap items-center gap-2 mb-2">
-                    @if ($latestExecution)
-                        <span @class([
-                            'px-3 py-1 rounded-md text-xs font-medium tracking-wide shadow-xs',
-                            'bg-blue-100/80 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300' => $latestExecution->status === 'running',
-                            'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200' => $latestExecution->status === 'failed',
-                            'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200' => $latestExecution->status === 'success',
-                        ])>
-                            {{ $latestExecution->status === 'running' ? 'In Progress' : ucfirst($latestExecution->status) }}
-                        </span>
-                    @else
-                        <span class="px-3 py-1 text-xs font-medium tracking-wide text-gray-800 bg-gray-100 rounded-md shadow-xs dark:bg-neutral-800 dark:text-gray-200">
-                            No executions yet
-                        </span>
-                    @endif
-                    <h3 class="font-semibold">{{ $backup->frequency }}</h3>
-                    @if (!$backup->enabled)
-                        <span class="text-xs text-neutral-500">Disabled</span>
-                    @endif
+
+        <div class="application-settings-section-body is-flush w-full">
+            <div x-cloak x-show="search !== '' && backups.length > 0 && !hasMatches()">
+                <x-empty size="sm" title="No backups found"
+                    description="No scheduled backups match your search." />
+            </div>
+
+            @if ($backups->isNotEmpty())
+                <div class="data-table w-full" x-show="search === '' || hasMatches()">
+                    <div class="data-table-header backup-table-grid">
+                        <span>Target</span>
+                        <span>Type</span>
+                        <span>Schedule</span>
+                        <span>Status</span>
+                        <span>Last run</span>
+                        <span class="text-right">Executions</span>
+                        <span></span>
+                    </div>
+
+                    @foreach ($backups as $backup)
+                        @php
+                            $latestExecution = $backup->latestExecution;
+                            $status = $latestExecution?->status;
+                            $statusLabel = match ($status) {
+                                'running' => 'In progress',
+                                'success' => 'Success',
+                                'failed' => 'Failed',
+                                default => $backup->enabled ? 'Waiting' : 'Disabled',
+                            };
+                            $statusType = match ($status) {
+                                'running' => 'warning',
+                                'success' => 'success',
+                                'failed' => 'error',
+                                default => 'neutral',
+                            };
+                        @endphp
+                        <a wire:key="volume-backup-{{ $backup->uuid }}"
+                            x-show="search === '' || @js(strtolower($backup->targetName())).includes(search.toLowerCase()) || @js(strtolower($backup->targetType())).includes(search.toLowerCase()) || @js(strtolower($backup->frequency)).includes(search.toLowerCase())"
+                            href="{{ route('project.application.backup.show', [...$parameters, 'backup_uuid' => $backup->uuid]) }}"
+                            {{ wireNavigate() }}
+                            class="data-table-row backup-table-grid text-[13px] text-neutral-700 dark:text-fg-dim">
+                            <span class="min-w-0 truncate font-medium text-neutral-950 dark:text-fg"
+                                title="{{ $backup->targetName() }}">
+                                {{ $backup->targetName() }}
+                            </span>
+                            <span>{{ $backup->targetType() }}</span>
+                            <span class="font-mono text-xs">{{ $backup->frequency }}</span>
+                            <span><x-status-badge :status="$statusLabel" :type="$statusType" /></span>
+                            <span>
+                                {{ $latestExecution?->finished_at?->diffForHumans() ?? ($status === 'running' ? 'Running now' : 'Never') }}
+                            </span>
+                            <span class="text-right tabular-nums text-neutral-950 dark:text-fg">
+                                {{ $backup->executions_count }}
+                            </span>
+                            <span class="flex justify-end text-neutral-400 dark:text-fg-faint">
+                                <x-reicon name="arrow-right" class="size-3.5" />
+                            </span>
+                        </a>
+                    @endforeach
                 </div>
-                <div class="text-sm text-gray-600 dark:text-gray-400">
-                    {{ $backup->targetType() }}: {{ $backup->targetName() }}
-                    @if ($latestExecution?->finished_at)
-                        • Last run {{ $latestExecution->finished_at->diffForHumans() }}
-                    @else
-                        • Last run: Never
-                    @endif
-                    • Total executions: {{ $backup->executions_count }}
-                    @if ($backup->save_s3)
-                        • S3: Enabled
-                    @endif
-                    @if (($latestExecution?->size ?? 0) > 0)
-                        • Size: {{ formatBytes($latestExecution->size) }}
-                    @endif
-                </div>
-            </a>
-        @empty
-            <div>No scheduled backups configured.</div>
-        @endforelse
+            @else
+                <x-empty size="sm" title="No scheduled backups"
+                    description="Add a persistent volume or directory backup schedule to protect application data.">
+                    <x-slot:icon>
+                        <x-reicon name="storages" class="size-8" />
+                    </x-slot:icon>
+                </x-empty>
+            @endif
+        </div>
     </div>
 </div>
