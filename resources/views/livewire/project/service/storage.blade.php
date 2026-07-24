@@ -41,8 +41,8 @@
                                     x-transition:enter="ease-out duration-100"
                                     x-transition:enter-start="opacity-0 -translate-y-1"
                                     x-transition:enter-end="opacity-100 translate-y-0"
-                                    class="listbox-panel left-auto! right-0 min-w-52!">
-                                    <button type="button" class="listbox-option" role="menuitem"
+                                    class="listbox-panel left-auto! right-0 min-w-0! w-44!">
+                                    <button type="button" class="listbox-option justify-start! gap-2.5!" role="menuitem"
                                         @click="volumeModalOpen = true; dropdownOpen = false">
                                         <svg class="size-4" fill="none" stroke="currentColor"
                                             viewBox="0 0 24 24">
@@ -51,7 +51,7 @@
                                         </svg>
                                         Volume mount
                                     </button>
-                                    <button type="button" class="listbox-option" role="menuitem"
+                                    <button type="button" class="listbox-option justify-start! gap-2.5!" role="menuitem"
                                         @click="fileModalOpen = true; dropdownOpen = false">
                                         <svg class="size-4" fill="none" stroke="currentColor"
                                             viewBox="0 0 24 24">
@@ -60,7 +60,7 @@
                                         </svg>
                                         File mount
                                     </button>
-                                    <button type="button" class="listbox-option" role="menuitem"
+                                    <button type="button" class="listbox-option justify-start! gap-2.5!" role="menuitem"
                                         @click="hostFileModalOpen = true; dropdownOpen = false">
                                         <svg class="size-4" fill="none" stroke="currentColor"
                                             viewBox="0 0 24 24">
@@ -69,7 +69,7 @@
                                         </svg>
                                         Host file mount
                                     </button>
-                                    <button type="button" class="listbox-option" role="menuitem"
+                                    <button type="button" class="listbox-option justify-start! gap-2.5!" role="menuitem"
                                         @click="directoryModalOpen = true; dropdownOpen = false">
                                         <svg class="size-4" fill="none" stroke="currentColor"
                                             viewBox="0 0 24 24">
