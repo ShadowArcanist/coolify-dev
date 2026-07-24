@@ -29,54 +29,55 @@
                             if ($event.detail === 'directory') directoryModalOpen = false;
                         ">
                             <div class="relative" @click.outside="dropdownOpen = false">
-                                <x-forms.button @click="dropdownOpen = !dropdownOpen">
-                                    <x-reicon name="plus" class="size-4 text-coollabs dark:text-warning" />
+                                <x-forms.button
+                                    class="bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!"
+                                    @click="dropdownOpen = !dropdownOpen" aria-haspopup="menu"
+                                    x-bind:aria-expanded="dropdownOpen">
+                                    <x-reicon name="plus" class="size-3.5" />
                                     Add mount
                                 </x-forms.button>
 
-                                <div x-show="dropdownOpen" @click.away="dropdownOpen=false"
-                                    x-transition:enter="ease-out duration-200" x-transition:enter-start="-translate-y-2"
-                                    x-transition:enter-end="translate-y-0" class="absolute top-0 z-50 mt-10 min-w-max"
-                                    x-cloak>
-                                    <div
-                                        class="mt-1 rounded-lg border border-neutral-200 bg-white p-1 shadow-lg dark:border-white/[0.08] dark:bg-raised">
-                                        <div class="flex flex-col gap-1">
-                                            <a class="dropdown-item" @click="volumeModalOpen = true; dropdownOpen = false">
-                                                <svg class="size-4" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
-                                                </svg>
-                                                Volume mount
-                                            </a>
-                                            <a class="dropdown-item" @click="fileModalOpen = true; dropdownOpen = false">
-                                                <svg class="size-4" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                                </svg>
-                                                File mount
-                                            </a>
-                                            <a class="dropdown-item"
-                                                @click="hostFileModalOpen = true; dropdownOpen = false">
-                                                <svg class="size-4" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                                </svg>
-                                                Host file mount
-                                            </a>
-                                            <a class="dropdown-item"
-                                                @click="directoryModalOpen = true; dropdownOpen = false">
-                                                <svg class="size-4" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                                                </svg>
-                                                Directory mount
-                                            </a>
-                                        </div>
-                                    </div>
+                                <div x-show="dropdownOpen" x-cloak role="menu"
+                                    x-transition:enter="ease-out duration-100"
+                                    x-transition:enter-start="opacity-0 -translate-y-1"
+                                    x-transition:enter-end="opacity-100 translate-y-0"
+                                    class="listbox-panel left-auto! right-0 min-w-52!">
+                                    <button type="button" class="listbox-option" role="menuitem"
+                                        @click="volumeModalOpen = true; dropdownOpen = false">
+                                        <svg class="size-4" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+                                        </svg>
+                                        Volume mount
+                                    </button>
+                                    <button type="button" class="listbox-option" role="menuitem"
+                                        @click="fileModalOpen = true; dropdownOpen = false">
+                                        <svg class="size-4" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                        </svg>
+                                        File mount
+                                    </button>
+                                    <button type="button" class="listbox-option" role="menuitem"
+                                        @click="hostFileModalOpen = true; dropdownOpen = false">
+                                        <svg class="size-4" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                        </svg>
+                                        Host file mount
+                                    </button>
+                                    <button type="button" class="listbox-option" role="menuitem"
+                                        @click="directoryModalOpen = true; dropdownOpen = false">
+                                        <svg class="size-4" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                        </svg>
+                                        Directory mount
+                                    </button>
                                 </div>
                             </div>
 

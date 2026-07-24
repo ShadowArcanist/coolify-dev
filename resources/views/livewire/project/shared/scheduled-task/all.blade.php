@@ -3,7 +3,14 @@
         helper="Run commands inside this resource automatically using a cron schedule." flush>
         <x-slot:actions>
             @can('update', $resource)
-                <x-modal-input buttonTitle="Add task" title="New scheduled task" :closeOutside="false">
+                <x-modal-input title="New scheduled task" :closeOutside="false">
+                    <x-slot:content>
+                        <button type="button"
+                            class="button bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!">
+                            <x-reicon name="plus" class="size-3.5" />
+                            Add task
+                        </button>
+                    </x-slot:content>
                     <livewire:project.shared.scheduled-task.add :type="$resource->type()" :id="$resource->id"
                         :containerNames="$containerNames" />
                 </x-modal-input>
