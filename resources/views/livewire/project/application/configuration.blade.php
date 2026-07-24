@@ -198,6 +198,10 @@
                 ['id' => 'cpu-limits-section', 'label' => 'CPU'],
                 ['id' => 'memory-limits-section', 'label' => 'Memory'],
             ],
+            'project.application.resource-operations' => [
+                ['id' => 'clone-resource-section', 'label' => 'Clone resource'],
+                ['id' => 'move-resource-section', 'label' => 'Move resource'],
+            ],
         ];
     @endphp
 
