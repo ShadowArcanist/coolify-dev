@@ -71,6 +71,7 @@
             helper="Percentage of available CPU capacity used by the application container.">
             <div wire:ignore id="{!! $chartId !!}-cpu" class="min-h-[240px] w-full"></div>
 
+            @script
             <script>
                 (() => {
                     checkTheme();
@@ -194,12 +195,14 @@
                     });
                 })();
             </script>
+            @endscript
         </x-application.settings-section>
 
         <x-application.settings-section id="memory-metrics-section" title="Memory usage"
             helper="Memory consumed by the application container, measured in megabytes.">
             <div wire:ignore id="{!! $chartId !!}-memory" class="min-h-[240px] w-full"></div>
 
+            @script
             <script>
                 (() => {
                     checkTheme();
@@ -323,6 +326,7 @@
                     });
                 })();
             </script>
+            @endscript
         </x-application.settings-section>
     @endif
 </div>
