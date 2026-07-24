@@ -77,7 +77,14 @@
                             </x-forms.button>
                         </x-slot:actions>
 
-                        <div class="grid gap-4 lg:grid-cols-3">
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <x-forms.input canGate="update" :canResource="$server" id="name" label="Name"
+                                required :disabled="$isValidating" />
+                            <x-forms.input canGate="update" :canResource="$server" id="description"
+                                label="Description" :disabled="$isValidating" />
+                        </div>
+
+                        <div class="mt-4 grid gap-4 lg:grid-cols-3">
                             <x-forms.input canGate="update" :canResource="$server" type="password" id="ip"
                                 label="IP address or domain"
                                 helper="Enter a hostname or IP address without http:// or https://."
@@ -89,17 +96,10 @@
                         </div>
 
                         <div class="mt-4 grid gap-4 lg:grid-cols-3">
-                            <x-forms.input canGate="update" :canResource="$server" id="name" label="Name"
-                                required :disabled="$isValidating" />
-                            <x-forms.input canGate="update" :canResource="$server" id="description"
-                                label="Description" :disabled="$isValidating" />
                             <x-forms.input canGate="update" :canResource="$server"
                                 placeholder="https://example.com" id="wildcardDomain" label="Wildcard domain"
                                 helper="New resources can receive generated subdomains from this domain."
                                 :disabled="$isValidating" />
-                        </div>
-
-                        <div class="mt-4 grid gap-4 lg:grid-cols-3">
                             <x-forms.input canGate="update" :canResource="$server" type="number"
                                 id="connectionTimeout" label="Connection timeout"
                                 helper="Seconds to wait before an SSH connection fails." min="1" max="300"
