@@ -1,5 +1,6 @@
 <div>
-    <div class="flex flex-col gap-4 p-4 bg-white border dark:bg-base dark:border-coolgray-300 border-neutral-200">
+    <div
+        class="flex flex-col gap-4 rounded-lg bg-neutral-50 p-4 ring-1 ring-neutral-200 dark:bg-white/[0.025] dark:ring-white/[0.07]">
         @if ($fileStorage->is_too_large)
             <div class="w-full p-2 text-sm rounded bg-warning/10 text-warning">
                 File on server exceeds 5 MB and cannot be edited from the UI. Edit it directly on the server.
@@ -18,7 +19,7 @@
             </div>
         @endif
         <div class="flex flex-col justify-center text-sm select-text">
-            <div class="flex gap-2  md:flex-row flex-col">
+            <div class="grid gap-4 md:grid-cols-2">
                 <x-forms.input label="Source Path" :value="$fileStorage->fs_path" readonly>
                     <x-slot:labelSuffix>
                         @if ($hasEnabledBackup)
