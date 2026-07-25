@@ -1,4 +1,4 @@
-<div>
+<div class="application-settings-form w-full max-w-[1180px]">
     <x-slot:title>
         Servers | Coolify
     </x-slot>
@@ -122,12 +122,11 @@
                             </div>
                         </div>
                         <div class="mt-auto flex items-center justify-between gap-2 pt-4">
-                            <span
-                                class="inline-flex h-6 items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-100 px-2 text-xs font-medium text-neutral-700 dark:border-white/[0.12] dark:bg-white/[0.07] dark:text-white">
+                            <x-status-badge dynamic>
                                 <span class="size-1.5 rounded-full"
                                     :class="server.ready ? 'bg-emerald-500' : 'bg-red-500'"></span>
                                 <span x-text="server.status"></span>
-                            </span>
+                            </x-status-badge>
                             <x-reicon name="arrow-right"
                                 class="size-3.5 text-neutral-400 transition-transform group-hover:translate-x-0.5 dark:text-fg-faint" />
                         </div>
@@ -161,12 +160,11 @@
                         </div>
                         <div class="truncate text-neutral-500 dark:text-fg-dim" x-text="server.address"></div>
                         <div>
-                            <span
-                                class="inline-flex h-6 items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-100 px-2 text-xs font-medium text-neutral-700 dark:border-white/[0.12] dark:bg-white/[0.07] dark:text-white">
+                            <x-status-badge dynamic>
                                 <span class="size-1.5 rounded-full"
                                     :class="server.ready ? 'bg-emerald-500' : 'bg-red-500'"></span>
                                 <span x-text="server.status"></span>
-                            </span>
+                            </x-status-badge>
                         </div>
                         <x-reicon name="arrow-right"
                             class="size-3.5 justify-self-end text-neutral-400 dark:text-fg-faint" />

@@ -110,6 +110,10 @@
             ['label' => 'General', 'route' => 'storage.show', 'active' => request()->routeIs('storage.show')],
             ['label' => 'Resources', 'route' => 'storage.resources', 'active' => request()->routeIs('storage.resources')],
         ],
+        'subscription' => [
+            ['label' => 'Plan', 'route' => 'subscription.show', 'active' => request()->routeIs('subscription.show'), 'icon' => 'subscription'],
+            ['label' => 'Pricing', 'route' => 'subscription.index', 'active' => request()->routeIs('subscription.index'), 'icon' => 'dashboard'],
+        ],
         default => [],
     };
 

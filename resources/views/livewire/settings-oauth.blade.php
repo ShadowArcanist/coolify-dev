@@ -1,52 +1,54 @@
 <div>
     <x-slot:title>
-        Settings | Coolify
+        Authentication | Coolify
     </x-slot>
+
     <x-settings.navbar />
-    <form wire:submit='submit' class="flex flex-col">
-        <div class="flex flex-col">
-            <div class="flex items-center gap-2 pb-2">
-                <h2>Authentication</h2>
-                <x-forms.button type="submit">
-                    Save
-                </x-forms.button>
-            </div>
-            <div class="pb-4 ">Custom authentication (OAuth) configurations.</div>
-        </div>
-        <div class="flex flex-col gap-2 pt-4">
+
+    <form wire:submit="submit" class="application-settings-form">
+        <x-unsaved-bar action="submit" />
+
+        <div class="application-settings-workspace flex flex-col gap-6">
             @foreach ($oauth_settings_map as $oauth_setting)
-                <div class="p-4 border dark:border-coolgray-300 border-neutral-200">
-                    <h3>{{ ucfirst($oauth_setting['provider']) }}</h3>
-                    <div class="w-32">
-                        <x-forms.checkbox instantSave="instantSave('{{ $oauth_setting['provider'] }}')"
-                            id="oauth_settings_map.{{ $oauth_setting['provider'] }}.enabled" label="Enabled" />
-                    </div>
-                    <div class="flex flex-col w-full gap-2 xl:flex-row">
-                        <x-forms.input id="oauth_settings_map.{{ $oauth_setting['provider'] }}.client_id"
+                @php
+                    $provider = $oauth_setting['provider'];
+                    $providerLabel = str($provider)->headline();
+                @endphp
+
+                <x-application.settings-section title="{{ $providerLabel }}"
+                    description="Configure {{ $providerLabel }} as an authentication provider.">
+                    <div class="grid gap-4 lg:grid-cols-2">
+                        <x-forms.listbox id="oauth_settings_map.{{ $provider }}.enabled"
+                            label="Provider status" :options="[
+                                ['value' => true, 'label' => 'Enabled'],
+                                ['value' => false, 'label' => 'Disabled'],
+                            ]" />
+
+                        <x-forms.input id="oauth_settings_map.{{ $provider }}.redirect_uri"
+                            placeholder="{{ route('auth.callback', $provider) }}" label="Redirect URI" />
+
+                        <x-forms.input id="oauth_settings_map.{{ $provider }}.client_id"
                             label="Client ID" />
-                        <x-forms.input id="oauth_settings_map.{{ $oauth_setting['provider'] }}.client_secret"
-                            type="password" label="Client Secret" autocomplete="new-password" />
-                        <x-forms.input id="oauth_settings_map.{{ $oauth_setting['provider'] }}.redirect_uri"
-                            placeholder="{{ route('auth.callback', $oauth_setting['provider']) }}" label="Redirect URI" />
-                        @if ($oauth_setting['provider'] == 'azure')
-                            <x-forms.input id="oauth_settings_map.{{ $oauth_setting['provider'] }}.tenant"
+                        <x-forms.input id="oauth_settings_map.{{ $provider }}.client_secret"
+                            type="password" label="Client secret" autocomplete="new-password" />
+
+                        @if ($provider === 'azure')
+                            <x-forms.input id="oauth_settings_map.{{ $provider }}.tenant"
                                 label="Tenant" />
                         @endif
-                        @if ($oauth_setting['provider'] == 'google')
-                            <x-forms.input id="oauth_settings_map.{{ $oauth_setting['provider'] }}.tenant"
-                                helper="Optional parameter that supplies a hosted domain (HD) to Google, which<br>triggers a login hint to be displayed on the OAuth screen with this domain.<br><br><a class='underline dark:text-warning text-coollabs' href='https://developers.google.com/identity/openid-connect/openid-connect#hd-param' target='_blank'>Google Documentation</a>"
-                                label="Tenant" />
+
+                        @if ($provider === 'google')
+                            <x-forms.input id="oauth_settings_map.{{ $provider }}.tenant"
+                                helper="Optional hosted domain supplied to Google as a login hint."
+                                label="Hosted domain" />
                         @endif
-                        @if (
-                            $oauth_setting['provider'] == 'authentik' ||
-                                $oauth_setting['provider'] == 'clerk' ||
-                                $oauth_setting['provider'] == 'zitadel' ||
-                                $oauth_setting['provider'] == 'gitlab')
-                            <x-forms.input id="oauth_settings_map.{{ $oauth_setting['provider'] }}.base_url"
+
+                        @if (in_array($provider, ['authentik', 'clerk', 'zitadel', 'gitlab'], true))
+                            <x-forms.input id="oauth_settings_map.{{ $provider }}.base_url"
                                 label="Base URL" />
                         @endif
                     </div>
-                </div>
+                </x-application.settings-section>
             @endforeach
         </div>
     </form>
