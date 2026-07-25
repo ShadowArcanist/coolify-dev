@@ -67,17 +67,18 @@
                 </svg>
             </button>
             <div x-show="open" x-cloak x-transition.opacity.duration.120ms
-                class="absolute left-0 z-[90] mt-1 max-h-80 min-w-52 overflow-y-auto rounded-lg border border-neutral-200 bg-white py-1.5 shadow-modal scrollbar dark:border-white/[0.08] dark:bg-surface">
+                class="scrollbar absolute left-0 z-[90] mt-1 flex max-h-80 min-w-52 flex-col gap-px overflow-y-auto rounded-[10px] border border-neutral-200 bg-white p-1 shadow-modal dark:border-white/[0.08] dark:bg-surface">
                 <div
-                    class="px-3 pt-0.5 pb-1 text-[10.5px] font-semibold tracking-wide text-neutral-400 uppercase dark:text-fg-faint">
+                    class="px-2 pt-1 pb-1.5 text-[10.5px] font-semibold tracking-wide text-neutral-400 uppercase dark:text-fg-faint">
                     Pages
                 </div>
                 @foreach ($pageDestinations as $destination)
                     <a href="{{ $destination['href'] }}" {{ wireNavigate() }} @click="open = false"
-                        class="flex h-8 items-center gap-2 px-3 text-[13px] transition-colors hover:bg-neutral-100 dark:hover:bg-white/[0.06] {{ $destination['label'] === $dashboardContext ? 'font-medium text-black dark:text-fg' : 'text-neutral-600 dark:text-fg-dim' }}">
+                        class="flex h-8 items-center gap-2 rounded-md px-2 text-[13px] transition-colors {{ $destination['label'] === $dashboardContext ? 'bg-coollabs/10 font-medium text-coollabs ring-1 ring-coollabs/20 ring-inset dark:bg-warning/15 dark:text-warning dark:ring-warning/25' : 'text-neutral-600 hover:bg-neutral-100 dark:text-fg-dim dark:hover:bg-white/[0.06]' }}">
                         <span class="min-w-0 flex-1 truncate">{{ $destination['label'] }}</span>
                         @if ($destination['label'] === $dashboardContext)
-                            <svg class="size-3.5 shrink-0 text-accent" viewBox="0 0 24 24" fill="none">
+                            <svg class="size-3.5 shrink-0 text-coollabs dark:text-warning" viewBox="0 0 24 24"
+                                fill="none">
                                 <path d="M5 12l5 5 9-11" stroke="currentColor" stroke-width="2"
                                     stroke-linecap="round" stroke-linejoin="round" />
                             </svg>
@@ -100,14 +101,14 @@
                 </svg>
             </button>
             <div x-show="open" x-cloak x-transition.opacity.duration.120ms
-                class="absolute left-0 z-[90] mt-1 min-w-56 max-w-72 max-h-80 overflow-y-auto rounded-lg border border-neutral-200 dark:border-white/[0.08] bg-white dark:bg-surface py-1.5 shadow-modal scrollbar">
-                <div class="px-3 pb-1 pt-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-fg-faint">Projects</div>
+                class="scrollbar absolute left-0 z-[90] mt-1 flex max-h-80 min-w-56 max-w-72 flex-col gap-px overflow-y-auto rounded-[10px] border border-neutral-200 bg-white p-1 shadow-modal dark:border-white/[0.08] dark:bg-surface">
+                <div class="px-2 pt-1 pb-1.5 text-[10.5px] font-semibold tracking-wide text-neutral-400 uppercase dark:text-fg-faint">Projects</div>
                 @foreach ($projects as $p)
                     <a href="{{ route('project.show', ['project_uuid' => $p->uuid]) }}" {{ wireNavigate() }} @click="open = false"
-                        class="flex items-center gap-2 px-3 h-8 text-[13px] transition-colors hover:bg-neutral-100 dark:hover:bg-white/[0.06] {{ $p->uuid === $currentProject->uuid ? 'text-black dark:text-fg font-medium' : 'text-neutral-600 dark:text-fg-dim' }}">
+                        class="flex h-8 items-center gap-2 rounded-md px-2 text-[13px] transition-colors {{ $p->uuid === $currentProject->uuid ? 'bg-coollabs/10 font-medium text-coollabs ring-1 ring-coollabs/20 ring-inset dark:bg-warning/15 dark:text-warning dark:ring-warning/25' : 'text-neutral-600 hover:bg-neutral-100 dark:text-fg-dim dark:hover:bg-white/[0.06]' }}">
                         <span class="min-w-0 flex-1 truncate">{{ $p->name }}</span>
                         @if ($p->uuid === $currentProject->uuid)
-                            <svg class="size-3.5 shrink-0 text-accent" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5 9-11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                            <svg class="size-3.5 shrink-0 text-coollabs dark:text-warning" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5 9-11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
                         @endif
                     </a>
                 @endforeach
@@ -127,14 +128,14 @@
                 </svg>
             </button>
             <div x-show="open" x-cloak x-transition.opacity.duration.120ms
-                class="absolute left-0 z-[90] mt-1 min-w-52 max-w-72 max-h-80 overflow-y-auto rounded-lg border border-neutral-200 dark:border-white/[0.08] bg-white dark:bg-surface py-1.5 shadow-modal scrollbar">
-                <div class="px-3 pb-1 pt-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-fg-faint">Environments</div>
+                class="scrollbar absolute left-0 z-[90] mt-1 flex max-h-80 min-w-52 max-w-72 flex-col gap-px overflow-y-auto rounded-[10px] border border-neutral-200 bg-white p-1 shadow-modal dark:border-white/[0.08] dark:bg-surface">
+                <div class="px-2 pt-1 pb-1.5 text-[10.5px] font-semibold tracking-wide text-neutral-400 uppercase dark:text-fg-faint">Environments</div>
                 @foreach ($environments as $env)
                     <a href="{{ route('project.resource.index', ['project_uuid' => $currentProject->uuid, 'environment_uuid' => $env->uuid]) }}" {{ wireNavigate() }} @click="open = false"
-                        class="flex items-center gap-2 px-3 h-8 text-[13px] transition-colors hover:bg-neutral-100 dark:hover:bg-white/[0.06] {{ $env->uuid === $currentEnvironment->uuid ? 'text-black dark:text-fg font-medium' : 'text-neutral-600 dark:text-fg-dim' }}">
+                        class="flex h-8 items-center gap-2 rounded-md px-2 text-[13px] transition-colors {{ $env->uuid === $currentEnvironment->uuid ? 'bg-coollabs/10 font-medium text-coollabs ring-1 ring-coollabs/20 ring-inset dark:bg-warning/15 dark:text-warning dark:ring-warning/25' : 'text-neutral-600 hover:bg-neutral-100 dark:text-fg-dim dark:hover:bg-white/[0.06]' }}">
                         <span class="min-w-0 flex-1 truncate">{{ $env->name }}</span>
                         @if ($env->uuid === $currentEnvironment->uuid)
-                            <svg class="size-3.5 shrink-0 text-accent" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5 9-11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                            <svg class="size-3.5 shrink-0 text-coollabs dark:text-warning" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5 9-11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
                         @endif
                     </a>
                 @endforeach
