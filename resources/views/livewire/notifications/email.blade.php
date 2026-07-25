@@ -76,18 +76,9 @@
         </form>
 
         @if (!$useInstanceEmailSettings)
-            <form wire:submit="submitSmtp" class="application-settings-form">
+            <div class="application-settings-form">
                 <x-application.settings-section title="SMTP server"
                     description="Deliver messages through your own SMTP server.">
-                    <x-slot:actions>
-                        @can('update', $settings)
-                            <button type="submit"
-                                class="button bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!">
-                                Save SMTP
-                            </button>
-                        @endcan
-                    </x-slot:actions>
-
                     <div class="grid gap-4 lg:grid-cols-3">
                         <div class="lg:col-span-3">
                             <x-forms.checkbox canGate="update" :canResource="$settings" wire:model="smtpEnabled"
@@ -115,20 +106,11 @@
                             helper="Timeout value for sending emails." label="Timeout" />
                     </div>
                 </x-application.settings-section>
-            </form>
+            </div>
 
-            <form wire:submit="submitResend" class="application-settings-form">
+            <div class="application-settings-form">
                 <x-application.settings-section title="Resend"
                     description="Use Resend as an alternative email delivery provider.">
-                    <x-slot:actions>
-                        @can('update', $settings)
-                            <button type="submit"
-                                class="button bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!">
-                                Save Resend
-                            </button>
-                        @endcan
-                    </x-slot:actions>
-
                     <div class="grid gap-4 lg:grid-cols-2">
                         <div class="lg:col-span-2">
                             <x-forms.checkbox canGate="update" :canResource="$settings" wire:model="resendEnabled"
@@ -142,7 +124,7 @@
                         @endcan
                     </div>
                 </x-application.settings-section>
-            </form>
+            </div>
         @endif
 
         <div class="application-settings-form">
