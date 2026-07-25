@@ -99,17 +99,18 @@
             @endif
         </div>
     @else
-        <div class="flex flex-col gap-2">
-            <div class="flex items-center gap-2">
-                <h2>Webhooks</h2>
-                <x-helper
-                    helper="For more details goto our <a class='underline dark:text-white' href='https://coolify.io/docs/api-reference/authorization' target='_blank'>docs</a>." />
-            </div>
-            <div>
-                <x-forms.input readonly
-                    helper="See details in our <a target='_blank' class='underline dark:text-white' href='https://coolify.io/docs/api-reference/authorization'>documentation</a>."
-                    label="Deploy Webhook (auth required)" id="deploywebhook"></x-forms.input>
-            </div>
+        <div class="application-settings-form">
+            <x-application.settings-section title="Deploy webhook"
+                helper="Trigger an external deployment with a valid Coolify API authorization token.">
+                <x-slot:actions>
+                    <a class="button" href="https://coolify.io/docs/api-reference/authorization" target="_blank"
+                        rel="noopener noreferrer">
+                        Documentation
+                        <x-external-link />
+                    </a>
+                </x-slot:actions>
+                <x-forms.copy-button label="Deploy webhook URL" :text="$deploywebhook ?? ''" />
+            </x-application.settings-section>
         </div>
     @endif
 </div>

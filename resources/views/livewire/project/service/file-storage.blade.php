@@ -2,21 +2,21 @@
     <div
         class="flex flex-col gap-4 rounded-lg bg-neutral-50 p-4 ring-1 ring-neutral-200 dark:bg-white/[0.025] dark:ring-white/[0.07]">
         @if ($fileStorage->is_too_large)
-            <div class="w-full p-2 text-sm rounded bg-warning/10 text-warning">
+            <x-callout type="warning" title="File too large">
                 File on server exceeds 5 MB and cannot be edited from the UI. Edit it directly on the server.
-            </div>
+            </x-callout>
         @elseif ($fileStorage->is_host_file)
-            <div class="w-full p-2 text-sm rounded bg-warning/10 text-warning">
+            <x-callout type="info" title="Host-managed file">
                 This host file mount is bind-only. Coolify will not create, edit, load, chmod, or delete the source file.
-            </div>
+            </x-callout>
         @elseif ($isReadOnly)
-            <div class="w-full p-2 text-sm rounded bg-warning/10 text-warning">
+            <x-callout type="info" title="Read-only mount">
                 @if ($fileStorage->is_directory)
                     This directory is mounted as read-only and cannot be modified from the UI.
                 @else
                     This file is mounted as read-only and cannot be modified from the UI.
                 @endif
-            </div>
+            </x-callout>
         @endif
         <div class="flex flex-col justify-center text-sm select-text">
             <div class="grid gap-4 md:grid-cols-2">
@@ -42,6 +42,7 @@
             @endcan
         @endif
         <form wire:submit='submit' class="flex flex-col gap-4">
+            <x-unsaved-bar action="submit" />
             @if (!$isReadOnly)
                 @can('update', $resource)
                     <div class="flex gap-2">
@@ -109,9 +110,6 @@
                             helper="The content shown may be outdated. Click 'Load from server' to fetch the latest version."
                             rows="20" id="content"
                             readonly="{{ $fileStorage->is_based_on_git || $fileStorage->is_binary || $fileStorage->is_too_large }}"></x-forms.textarea>
-                        @if (!$fileStorage->is_based_on_git && !$fileStorage->is_binary && !$fileStorage->is_too_large)
-                            <x-forms.button class="w-full" type="submit">Save</x-forms.button>
-                        @endif
                     @else
                         @if (data_get($resource, 'settings.is_preserve_repository_enabled'))
                             <div class="w-full sm:w-96">

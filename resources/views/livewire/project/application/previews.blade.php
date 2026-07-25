@@ -181,12 +181,12 @@
                     @if ($application->build_pack === 'dockercompose')
                         @if (collect(json_decode($preview->docker_compose_domains))->count() === 0)
                             <form wire:submit="save_preview('{{ $preview->id }}')"
-                                class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-end">
+                                class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
                                 <x-forms.input label="Domain" helper="One domain per preview."
                                     id="previewFqdns.{{ $previewName }}" canGate="update"
-                                    :canResource="$application" />
+                                    :canResource="$application"
+                                    wire:change="save_preview('{{ $preview->id }}')" />
                                 @can('update', $application)
-                                    <x-forms.button type="submit">Save domain</x-forms.button>
                                     <x-forms.button wire:click="generate_preview('{{ $preview->id }}')">
                                         Generate domain
                                     </x-forms.button>
@@ -204,18 +204,19 @@
                     @else
                         <form wire:submit="save_preview('{{ $preview->id }}')"
                             class="grid gap-3 {{ $application->build_pack === 'dockerimage'
-                                ? 'md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto]'
-                                : 'md:grid-cols-[minmax(0,1fr)_auto_auto]' }} md:items-end">
+                                ? 'md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]'
+                                : 'md:grid-cols-[minmax(0,1fr)_auto]' }} md:items-end">
                             <x-forms.input label="Domain" helper="One domain per preview."
                                 id="previewFqdns.{{ $previewName }}" canGate="update"
-                                :canResource="$application" />
+                                :canResource="$application"
+                                wire:change="save_preview('{{ $preview->id }}')" />
                             @if ($application->build_pack === 'dockerimage')
                                 <x-forms.input label="Docker tag" helper="Image tag used by this preview."
                                     id="previewDockerTags.{{ $previewName }}" canGate="update"
-                                    :canResource="$application" />
+                                    :canResource="$application"
+                                    wire:change="save_preview('{{ $preview->id }}')" />
                             @endif
                             @can('update', $application)
-                                <x-forms.button type="submit">Save</x-forms.button>
                                 <x-forms.button wire:click="generate_preview('{{ $preview->id }}')">
                                     Generate domain
                                 </x-forms.button>

@@ -7,6 +7,7 @@
 
     <div class="flex flex-col gap-6">
         <form wire:submit="submit" class="application-settings-form">
+            <x-unsaved-bar action="submit" />
             <x-application.settings-section title="Email delivery"
                 description="Configure the sender identity and email service used for this team.">
                 <x-slot:actions>
@@ -36,13 +37,6 @@
                             @endif
                         @endcan
                     @endif
-
-                    @can('update', $settings)
-                        <button type="submit"
-                            class="button bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!">
-                            Save changes
-                        </button>
-                    @endcan
                 </x-slot:actions>
 
                 <div class="grid gap-4 lg:grid-cols-2">

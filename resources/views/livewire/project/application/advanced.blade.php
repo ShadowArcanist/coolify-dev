@@ -186,13 +186,6 @@
         @if ($application->build_pack !== 'dockercompose')
             <x-application.settings-section id="advanced-gpu-section" title="GPU"
                 helper="Give this application access to the host's GPUs. More info <a href='https://docs.docker.com/compose/gpu-support/' class='underline dark:text-white' target='_blank'>here</a>.">
-                @if ($isGpuEnabled)
-                    <x-slot:actions>
-                        @can('update', $application)
-                            <button type="submit" form="gpu-settings-form" class="button">Save</button>
-                        @endcan
-                    </x-slot:actions>
-                @endif
                 <div class="grid w-full gap-4 sm:grid-cols-2">
                     <x-forms.listbox id="isGpuEnabled" label="GPU access" onChange="instantSave"
                         :options="[
@@ -203,6 +196,7 @@
                 @if ($isGpuEnabled)
                     <form id="gpu-settings-form" wire:submit="submit"
                         class="mt-5 flex w-full flex-col gap-4 border-t border-neutral-200 pt-5 dark:border-white/[0.07]">
+                        <x-unsaved-bar action="submit" />
                         <div class="grid gap-4 sm:grid-cols-2">
                             <x-forms.input label="GPU driver" id="gpuDriver" canGate="update" :canResource="$application" />
                             <x-forms.input label="GPU count" placeholder="Empty means use all GPUs" id="gpuCount"

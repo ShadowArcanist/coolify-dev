@@ -4,13 +4,13 @@
 
     <div class="mt-8 w-full max-w-[920px] space-y-8 lg:mt-3">
         <form wire:submit="submit">
+            <x-unsaved-bar action="submit" />
             <section class="application-settings-section">
                 <div class="application-settings-section-header">
                     <div>
                         <h2>Profile details</h2>
                         <p>Your display name and verified sign-in address.</p>
                     </div>
-                    <x-forms.button type="submit">Update profile</x-forms.button>
                 </div>
                 <div class="application-settings-section-body grid gap-4 sm:grid-cols-2">
                     <x-forms.input id="name" label="Name" required />
