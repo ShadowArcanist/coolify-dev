@@ -146,9 +146,10 @@ topbar instead of repeating its name or status summary in layer 2. Mobile
 resource navigation may repeat this context because the desktop global topbar
 is hidden there.
 
-The dashboard is a compact overview, not a metrics wall. Use side-by-side
-layer-card lists for projects and servers, keep creation actions in each card
-header, and communicate server health with the shared status badge.
+The dashboard is a compact overview, not a metrics wall. Use two full-width
+sections that follow the projects-page grid pattern: projects first, then
+servers. Keep one `New` action in the page header and let its modal choose the
+resource type. Communicate server health with the shared status badge.
 
 ### Settings workspace
 
