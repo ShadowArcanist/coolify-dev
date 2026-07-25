@@ -127,8 +127,10 @@ opacity rather than a fully saturated fill.
 
 ### Layer-2 navigation
 
-Application and server pages use a second navigation layer directly below the
-resource heading. Active tabs are a light brand fill:
+Application and server pages use the same fixed second navigation layer
+directly below the global topbar. Do not keep a large in-flow resource heading
+or legacy `.navbar-main` tabs on one resource type while using the compact
+layer-2 bar on another. Active tabs are a light brand fill:
 
 - purple tint in light mode;
 - yellow tint in dark mode;
@@ -139,10 +141,28 @@ state because it can disappear after polling or a Livewire morph.
 
 ### Settings workspace
 
-Application configuration pages use a grouped left sidebar and a full-width
-content column. The sidebar and first content card start on the same horizontal
-line. Only show nested section anchors when a page has at least four useful
+Application and server configuration pages use the same 210px grouped,
+icon-led sidebar and a full-width content column. The workspace is capped at
+1180px, the sidebar becomes sticky at `xl`, and the sidebar label and first
+content card start on the same visual line. Do not use the legacy
+`sub-menu-wrapper`, native mobile page selects, or an in-flow row of top-level
+tabs. Only show nested section anchors when a page has at least four useful
 sections.
+
+The shared workspace grid is:
+
+```blade
+<div
+    class="application-settings-workspace mt-8 grid min-w-0 gap-8
+        xl:mt-0 xl:grid-cols-[210px_minmax(0,1fr)] xl:gap-10">
+    <aside class="application-settings-navigation min-w-0 xl:sticky xl:top-26 xl:self-start">
+        ...
+    </aside>
+    <div class="min-w-0 xl:mt-3">
+        ...
+    </div>
+</div>
+```
 
 Standard content stack:
 
@@ -186,6 +206,22 @@ Anatomy:
 - optional `flush` mode for full-bleed tables;
 - card-level actions belong in the header slot.
 
+### Nested radii
+
+Concentric boxes must follow:
+
+```text
+outer radius = inner radius + visible inset
+```
+
+Examples:
+
+- a 6px tab or listbox option inside 4px padding uses a 10px outer well;
+- an 8px button inside the unsaved pill's 8px padding uses a 16px outer pill.
+
+Do not give visibly inset parent and child boxes the same radius. Flush or
+edge-to-edge children are exempt because there is no visible inset to add.
+
 Use an empty state when the section has no usable controls:
 
 ```blade
@@ -201,6 +237,21 @@ Use an empty state when the section has no usable controls:
 ## 6. Controls
 
 All normal controls are 32px high with an 8px radius.
+
+### Field grids
+
+The grid must match the controls visible in the current state:
+
+- two visible peer controls use two columns, not a three-column grid with an
+  empty track;
+- three visible peer controls may use three columns when their content stays
+  readable;
+- conditional fields remain in the same grid when they are part of that field
+  group, so a URL or text input does not become wider than its peer column;
+- collapse to one column at smaller breakpoints.
+
+Do not pick a column count from the maximum possible state if the normal state
+shows fewer controls.
 
 ### Inputs
 
@@ -223,6 +274,10 @@ Boolean checkboxes should normally become descriptive two-option listboxes.
 Use `.live` behavior only when the selection needs an immediate server
 rerender.
 
+The popup panel uses a 10px radius around 6px options with a 4px inset. Keep
+the option content left-aligned and size the panel to its content or trigger;
+do not create an unnecessarily wide menu.
+
 Toolbar filter and sort buttons keep static labels (`Filter`, `Sort`). The
 selected option is indicated inside the menu, not repeated on the trigger.
 
@@ -244,6 +299,11 @@ bottom-center pill. It contains:
 - a theme-aware Save changes button matching the tab accent.
 
 Do not restore the old full-width footer.
+
+Deferred fields in one Livewire component use one floating unsaved bar and one
+submit action. Do not add a separate “Save configuration” button to every
+card. Selectors that are safe to persist independently should use the existing
+instant-save pattern.
 
 ---
 
@@ -290,7 +350,10 @@ that hide secondary columns before allowing horizontal overflow.
 - nested base-color body;
 - content-width desktop sizing;
 - shared 32px controls;
-- right-aligned footer actions.
+- no redundant description below a self-explanatory title;
+- custom listboxes instead of native browser selects;
+- right-aligned footer actions below a divider;
+- compact action buttons, never a submit button stretched by a column layout.
 
 Edit modals should use the same field layout and option set as their matching
 create modal.
@@ -363,6 +426,8 @@ Use these as implementation references:
 |---|---|
 | General settings and form anatomy | `resources/views/livewire/project/application/general.blade.php` |
 | Advanced settings | `resources/views/livewire/project/application/advanced.blade.php` |
+| Fixed layer-2 resource navigation | `resources/views/livewire/project/application/heading.blade.php`, `resources/views/livewire/server/navbar.blade.php` |
+| Grouped settings sidebar | `resources/views/livewire/project/application/configuration.blade.php`, `resources/views/components/server/sidebar.blade.php` |
 | Dense environment table and footer | `resources/views/livewire/project/shared/environment-variable/all.blade.php` |
 | Application metrics charts | `resources/views/livewire/project/shared/metrics.blade.php` |
 | Layer card | `resources/views/components/application/settings-section.blade.php` |
@@ -388,12 +453,16 @@ Operations, Metrics, Tags, and Danger Zone.
    confirmation.
 3. Add the correct scoped workspace/form class.
 4. Convert meaningful groups to layer cards and use `gap-6`.
-5. Replace native selects and checkbox-style configuration with listboxes.
-6. Use tables for dense collections and cards for forms or summaries.
-7. Use `x-status-badge`, `x-empty`, and `x-reicon`.
-8. Confirm light and dark accent behavior.
-9. Check fixed-nav anchor offsets and responsive stacking.
-10. Run `git diff --check`.
-11. Compile Blade views in the `coolify` container.
-12. Build assets in `coolify-vite`.
-13. Hard-refresh and inspect the actual route in both themes.
+5. Make the responsive column count match the controls visible in every state.
+6. Replace native selects and checkbox-style configuration with listboxes.
+7. Use one save model per component: instant-save or one floating dirty bar.
+8. Check nested radii using `outer = inner + inset`.
+9. Keep modal descriptions purposeful and footer actions compact/right-aligned.
+10. Use tables for dense collections and cards for forms or summaries.
+11. Use `x-status-badge`, `x-empty`, and `x-reicon`.
+12. Confirm light and dark accent behavior.
+13. Check fixed-nav anchor offsets and responsive stacking.
+14. Run `git diff --check`.
+15. Compile Blade views in the `coolify` container.
+16. Build assets in `coolify-vite`.
+17. Hard-refresh and inspect the actual route in both themes.
