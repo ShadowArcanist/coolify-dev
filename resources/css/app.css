@@ -553,7 +553,7 @@ section {
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
-    padding: 0.5rem 1rem;
+    padding: 0.5rem 0.5rem 0.5rem 1rem;
     border-radius: 8px 8px 0 0;
     background: var(--coollabs-elevated);
     font-weight: 500;
@@ -971,6 +971,10 @@ section {
     border-radius: 8px;
     background: var(--coollabs-base);
     box-shadow: 0 0 0 1px var(--coollabs-fill);
+}
+
+.settings-log-panel .runtime-log-panel {
+    box-shadow: none;
 }
 
 .runtime-log-toolbar {

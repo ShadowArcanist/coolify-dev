@@ -64,21 +64,19 @@
         @if ($server->isSentinelEnabled())
             <x-application.settings-section id="server-sentinel-connection-section" title="Connection"
                 helper="Configure how Sentinel authenticates with and reports to Coolify.">
+                <x-slot:actions>
+                    <x-forms.button canGate="update" :canResource="$server"
+                        wire:click="regenerateSentinelToken">
+                        Regenerate token
+                    </x-forms.button>
+                </x-slot:actions>
                 <div class="grid gap-4 lg:grid-cols-2">
                     <x-forms.input canGate="update" :canResource="$server" id="sentinelCustomUrl"
                         required label="Coolify URL"
                         helper="Public URL used by Sentinel to reach this Coolify instance." />
-                    <div>
-                        <x-forms.input canGate="update" :canResource="$server" type="password"
-                            id="sentinelToken" label="Sentinel token" required
-                            helper="Authentication token used by Sentinel." />
-                        <div class="mt-2">
-                            <x-forms.button canGate="update" :canResource="$server"
-                                wire:click="regenerateSentinelToken">
-                                Regenerate token
-                            </x-forms.button>
-                        </div>
-                    </div>
+                    <x-forms.input canGate="update" :canResource="$server" type="password"
+                        id="sentinelToken" label="Sentinel token" required
+                        helper="Authentication token used by Sentinel." />
                 </div>
             </x-application.settings-section>
 
