@@ -5,7 +5,7 @@
 
     <x-settings.navbar />
 
-    <form wire:submit="submit" class="application-settings-form max-w-[930px]">
+    <form wire:submit="submit" class="application-settings-form mx-auto w-full max-w-[930px]">
         <x-unsaved-bar action="submit" />
 
         <div class="application-settings-workspace flex flex-col gap-6">

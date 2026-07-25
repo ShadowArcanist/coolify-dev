@@ -1,4 +1,4 @@
-<div class="application-settings-form w-full max-w-[930px]">
+<div class="application-settings-form mx-auto w-full max-w-[930px]">
     <x-slot:title>
         Servers | Coolify
     </x-slot>

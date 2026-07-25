@@ -6,7 +6,7 @@
     <x-settings.navbar />
 
     <div
-        class="application-settings-workspace grid w-full max-w-[1180px] min-w-0 gap-8 xl:grid-cols-[210px_minmax(0,1fr)] xl:gap-10">
+        class="application-settings-workspace mx-auto grid w-full max-w-[1180px] min-w-0 gap-8 xl:grid-cols-[210px_minmax(0,1fr)] xl:gap-10">
         <x-settings.sidebar activeMenu="advanced" />
 
         <form wire:submit="submit" class="application-settings-form flex min-w-0 flex-col gap-6">

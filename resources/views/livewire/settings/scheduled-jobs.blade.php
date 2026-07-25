@@ -12,7 +12,7 @@
         </x-slot:actions>
     </x-settings.navbar>
 
-    <div class="application-settings-form w-full max-w-[930px]" x-data="{
+    <div class="application-settings-form mx-auto w-full max-w-[930px]" x-data="{
         activeTab: ['executions', 'scheduler-runs', 'skipped-jobs'].includes(location.hash.slice(1))
             ? location.hash.slice(1)
             : 'executions',
