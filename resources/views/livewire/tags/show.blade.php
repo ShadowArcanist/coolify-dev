@@ -3,8 +3,6 @@
         Tags | Coolify
     </x-slot>
 
-    <x-dashboard.navbar section="manage" />
-
     @if ($tags->isEmpty())
         <div
             class="flex min-h-80 flex-col items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-neutral-50 px-6 text-center dark:border-white/[0.1] dark:bg-white/[0.02]">

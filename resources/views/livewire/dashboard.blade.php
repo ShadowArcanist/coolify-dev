@@ -34,12 +34,6 @@
         $canCreateServer = auth()->user()->can('create', App\Models\Server::class);
     @endphp
 
-    <x-dashboard.navbar section="workspace">
-        <x-slot:actions>
-            <div id="dashboard-create-action"></div>
-        </x-slot:actions>
-    </x-dashboard.navbar>
-
     <header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div class="min-w-0">
             <p class="text-[12px] text-neutral-500 dark:text-fg-dim">
@@ -52,8 +46,7 @@
         </div>
 
         @if ($canCreateProject || $canCreateServer)
-            @teleport('#dashboard-create-action')
-                <x-modal-input title="Create new">
+            <x-modal-input title="Create new">
                     <x-slot:content>
                         <button type="button"
                             class="button bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!">
@@ -153,8 +146,7 @@
                         </div>
                     @endif
                     </div>
-                </x-modal-input>
-            @endteleport
+            </x-modal-input>
         @endif
     </header>
 

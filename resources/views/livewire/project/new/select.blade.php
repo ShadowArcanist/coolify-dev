@@ -79,58 +79,65 @@
                 <x-loading text="Loading resources..." />
             </div>
             <div x-show="!loading" class="mt-6 flex flex-col gap-6">
-                <div x-show="filteredGitBasedApplications.length > 0 || filteredDockerBasedApplications.length > 0">
-                    <div class="mb-3 flex items-center gap-2">
-                        <x-reicon name="globe" class="size-4 text-neutral-400 dark:text-fg-faint" />
-                        <h2 class="text-[14px]! font-semibold!">Applications</h2>
+                <section x-show="filteredGitBasedApplications.length > 0 || filteredDockerBasedApplications.length > 0"
+                    class="application-settings-section">
+                    <div class="application-settings-section-header">
+                        <div class="flex items-center gap-2">
+                            <x-reicon name="globe" class="size-4 text-neutral-400 dark:text-fg-faint" />
+                            <h2>Applications</h2>
+                        </div>
                     </div>
-                <div x-show="filteredGitBasedApplications.length > 0 || filteredDockerBasedApplications.length > 0"
-                        class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                    <div x-show="filteredGitBasedApplications.length > 0" class="space-y-2">
+                    <div class="application-settings-section-body grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <div x-show="filteredGitBasedApplications.length > 0" class="space-y-2">
                             <p class="text-[11px] font-medium text-neutral-500 dark:text-fg-faint">Git based</p>
-                        <div class="grid justify-start grid-cols-1 gap-2 text-left">
-                            <template x-for="application in filteredGitBasedApplications" :key="application.name">
-                                <div x-on:click='setType(application.id)'
-                                    :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }">
-                                    <x-resource-view>
-                                        <x-slot:title><span x-text="application.name"></span></x-slot>
-                                        <x-slot:description>
-                                            <span x-html="window.sanitizeHTML(application.description)"></span>
-                                        </x-slot>
-                                        <x-slot:logo>
-                                            <img class="w-full h-full p-2 transition-all duration-200 dark:bg-white/10 bg-black/10 object-contain"
-                                                :src="application.logo">
-                                        </x-slot:logo>
-                                    </x-resource-view>
-                                </div>
-                            </template>
+                            <div class="grid grid-cols-1 justify-start gap-2 text-left">
+                                <template x-for="application in filteredGitBasedApplications" :key="application.name">
+                                    <div x-on:click='setType(application.id)'
+                                        :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }">
+                                        <x-resource-view>
+                                            <x-slot:title><span x-text="application.name"></span></x-slot>
+                                            <x-slot:description>
+                                                <span x-html="window.sanitizeHTML(application.description)"></span>
+                                            </x-slot>
+                                            <x-slot:logo>
+                                                <img class="h-full w-full bg-black/10 object-contain p-2 transition-all duration-200 dark:bg-white/10"
+                                                    :src="application.logo">
+                                            </x-slot:logo>
+                                        </x-resource-view>
+                                    </div>
+                                </template>
+                            </div>
                         </div>
-                    </div>
-                    <div x-show="filteredDockerBasedApplications.length > 0" class="space-y-2">
+                        <div x-show="filteredDockerBasedApplications.length > 0" class="space-y-2">
                             <p class="text-[11px] font-medium text-neutral-500 dark:text-fg-faint">Docker based</p>
-                        <div class="grid justify-start grid-cols-1 gap-2 text-left">
-                            <template x-for="application in filteredDockerBasedApplications" :key="application.name">
-                                <div x-on:click="setType(application.id)"
-                                    :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }">
-                                    <x-resource-view>
-                                        <x-slot:title><span x-text="application.name"></span></x-slot>
-                                        <x-slot:description><span x-text="application.description"></span></x-slot>
-                                        <x-slot:logo> <img
-                                                class="w-full h-full p-2 transition-all duration-200 dark:bg-white/10 bg-black/10 object-contain"
-                                                :src="application.logo"></x-slot>
-                                    </x-resource-view>
-                                </div>
-                            </template>
+                            <div class="grid grid-cols-1 justify-start gap-2 text-left">
+                                <template x-for="application in filteredDockerBasedApplications" :key="application.name">
+                                    <div x-on:click="setType(application.id)"
+                                        :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }">
+                                        <x-resource-view>
+                                            <x-slot:title><span x-text="application.name"></span></x-slot>
+                                            <x-slot:description><span x-text="application.description"></span></x-slot>
+                                            <x-slot:logo>
+                                                <img class="h-full w-full bg-black/10 object-contain p-2 transition-all duration-200 dark:bg-white/10"
+                                                    :src="application.logo">
+                                            </x-slot:logo>
+                                        </x-resource-view>
+                                    </div>
+                                </template>
+                            </div>
                         </div>
                     </div>
-                </div>
-                </div>
-                <div x-show="filteredDatabases.length > 0">
-                    <div class="mb-3 flex items-center gap-2">
-                        <x-reicon name="database" class="size-4 text-neutral-400 dark:text-fg-faint" />
-                        <h2 class="text-[14px]! font-semibold!">Databases</h2>
+                </section>
+
+                <section x-show="filteredDatabases.length > 0" class="application-settings-section">
+                    <div class="application-settings-section-header">
+                        <div class="flex items-center gap-2">
+                            <x-reicon name="database" class="size-4 text-neutral-400 dark:text-fg-faint" />
+                            <h2>Databases</h2>
+                        </div>
                     </div>
-                    <div class="grid justify-start grid-cols-1 gap-2 text-left md:grid-cols-2 xl:grid-cols-3">
+                    <div
+                        class="application-settings-section-body grid grid-cols-1 justify-start gap-2 text-left md:grid-cols-2 xl:grid-cols-3">
                         <template x-for="database in filteredDatabases" :key="database.id">
                             <div x-on:click="setType(database.id)"
                                 :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }">
@@ -146,104 +153,111 @@
                             </div>
                         </template>
                     </div>
-                </div>
-                <div x-show="filteredServices.length > 0">
-                    <div class="mb-3 flex flex-wrap items-center gap-3" x-init="loadResources">
-                        <x-reicon name="layers" class="size-4 text-neutral-400 dark:text-fg-faint" />
-                        <h2 class="text-[14px]! font-semibold!">Services</h2>
-                        <button type="button" class="button" x-on:click="loadResources">
-                            <x-reicon name="refresh" class="size-3.5" />
-                            Reload
-                        </button>
-                        <div x-show="serviceTemplatesLastUpdated"
+                </section>
+
+                <section x-show="filteredServices.length > 0" class="application-settings-section">
+                    <div class="application-settings-section-header" x-init="loadResources">
+                        <div class="flex items-center gap-2">
+                            <x-reicon name="layers" class="size-4 text-neutral-400 dark:text-fg-faint" />
+                            <h2>Services</h2>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <div x-show="serviceTemplatesLastUpdated"
                                 class="text-[11px] text-neutral-500 dark:text-fg-faint">
-                            Updated
-                            <span x-text="serviceTemplatesLastUpdated"></span>
+                                Updated <span x-text="serviceTemplatesLastUpdated"></span>
+                            </div>
+                            <button type="button" class="button" x-on:click="loadResources">
+                                <x-reicon name="refresh" class="size-3.5" />
+                                Reload
+                            </button>
                         </div>
                     </div>
-                    <x-callout type="info" title="Trademarks policy" class="mb-4">
-                        The respective trademarks mentioned here are owned by the respective companies, and use of them
-                        does not imply any affiliation or endorsement.
-                    </x-callout>
+                    <div class="application-settings-section-body">
+                        <x-callout type="info" title="Trademarks policy" class="mb-4">
+                            The respective trademarks mentioned here are owned by the respective companies, and use of them
+                            does not imply any affiliation or endorsement.
+                        </x-callout>
 
-                    <div class="grid justify-start grid-cols-1 gap-2 text-left md:grid-cols-2 xl:grid-cols-3">
-                        <template x-for="service in filteredServices" :key="service.name">
-                            <div class="relative" x-on:click="setType('one-click-service-' + service.id)"
-                                :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }">
-                                <x-resource-view>
-                                    <x-slot:title>
-                                        <template x-if="service.name">
-                                            <div>
-                                                <span x-text="service.name"></span>
-                                                <template x-if="service.templateLastUpdated">
-                                                    <div class="mt-1 text-[0.7rem] font-normal text-neutral-500 dark:text-neutral-500">
-                                                        Updated: <span x-text="service.templateLastUpdated"></span>
-                                                    </div>
-                                                </template>
-                                            </div>
-                                        </template>
-                                    </x-slot>
-                                    <x-slot:description>
-                                        <template x-if="service.slogan">
-                                            <span x-text="service.slogan"></span>
-                                        </template>
-                                    </x-slot>
-                                    <x-slot:logo>
-                                        <template x-if="service.logo">
-                                            <img class="w-full h-full p-2 transition-all duration-200 dark:bg-white/10 bg-black/10 object-contain"
-                                                :src='service.logo'
-                                                x-on:error.window="$event.target.src = service.logo_github_url"
-                                                onerror="this.onerror=null; this.src=this.getAttribute('data-fallback');"
-                                                x-on:error="$event.target.src = '/coolify-logo.svg'"
-                                                :data-fallback='service.logo_github_url' />
-                                        </template>
-                                    </x-slot:logo>
-                                </x-resource-view>
-                                <template x-if="service.amd_only">
-                                    <div class="absolute top-2 right-10 group">
-                                        <span
-                                            class="px-2 py-0.5 text-xs rounded bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 cursor-pointer">
-                                            AMD only
-                                        </span>
-                                        <div class="info-helper-popup right-0 w-sm">
-                                            <div class="p-4">
-                                                This service only supports AMD64/x86_64 architecture. It will not work
-                                                on ARM-based servers (e.g., Apple Silicon, Raspberry Pi, AWS Graviton).
-                                            </div>
-                                        </div>
-                                    </div>
-                                </template>
-                                <template x-if="service.arm_only">
-                                    <div class="absolute top-2 right-10 group">
-                                        <span
-                                            class="px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 cursor-pointer">
-                                            ARM only
-                                        </span>
-                                        <div class="info-helper-popup right-0 w-sm">
-                                            <div class="p-4">
-                                                This service only supports ARM64/aarch64 architecture. It will not work
-                                                on AMD64/x86_64-based servers.
+                        <div class="grid grid-cols-1 justify-start gap-2 text-left md:grid-cols-2 xl:grid-cols-3">
+                            <template x-for="service in filteredServices" :key="service.name">
+                                <div class="relative" x-on:click="setType('one-click-service-' + service.id)"
+                                    :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }">
+                                    <x-resource-view>
+                                        <x-slot:title>
+                                            <template x-if="service.name">
+                                                <div>
+                                                    <span x-text="service.name"></span>
+                                                    <template x-if="service.templateLastUpdated">
+                                                        <div
+                                                            class="mt-1 text-[0.7rem] font-normal text-neutral-500 dark:text-neutral-500">
+                                                            Updated: <span x-text="service.templateLastUpdated"></span>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </x-slot>
+                                        <x-slot:description>
+                                            <template x-if="service.slogan">
+                                                <span x-text="service.slogan"></span>
+                                            </template>
+                                        </x-slot>
+                                        <x-slot:logo>
+                                            <template x-if="service.logo">
+                                                <img class="h-full w-full bg-black/10 object-contain p-2 transition-all duration-200 dark:bg-white/10"
+                                                    :src='service.logo'
+                                                    x-on:error.window="$event.target.src = service.logo_github_url"
+                                                    onerror="this.onerror=null; this.src=this.getAttribute('data-fallback');"
+                                                    x-on:error="$event.target.src = '/coolify-logo.svg'"
+                                                    :data-fallback='service.logo_github_url' />
+                                            </template>
+                                        </x-slot:logo>
+                                    </x-resource-view>
+                                    <template x-if="service.amd_only">
+                                        <div class="group absolute top-2 right-10">
+                                            <span
+                                                class="cursor-pointer rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">
+                                                AMD only
+                                            </span>
+                                            <div class="info-helper-popup right-0 w-sm">
+                                                <div class="p-4">
+                                                    This service only supports AMD64/x86_64 architecture. It will not work
+                                                    on ARM-based servers (e.g., Apple Silicon, Raspberry Pi, AWS Graviton).
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </template>
-                                <template x-if="shouldShowDocIcon(service)">
-                                    <a :href="getDocLink(service) || coolifyDocsUrl(service)" target="_blank"
-                                        @click.stop @mouseenter="resolveDocLink(service)"
-                                        class="absolute top-2 right-2 p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-coolgray-300 transition-colors"
-                                        :class="{ 'opacity-50': docCheckInProgress[service.name] }"
-                                        title="View documentation">
-                                        <svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none"
-                                            stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                    </a>
-                                </template>
-                            </div>
-                        </template>
+                                    </template>
+                                    <template x-if="service.arm_only">
+                                        <div class="group absolute top-2 right-10">
+                                            <span
+                                                class="cursor-pointer rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">
+                                                ARM only
+                                            </span>
+                                            <div class="info-helper-popup right-0 w-sm">
+                                                <div class="p-4">
+                                                    This service only supports ARM64/aarch64 architecture. It will not work
+                                                    on AMD64/x86_64-based servers.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                    <template x-if="shouldShowDocIcon(service)">
+                                        <a :href="getDocLink(service) || coolifyDocsUrl(service)" target="_blank"
+                                            @click.stop @mouseenter="resolveDocLink(service)"
+                                            class="absolute top-2 right-2 rounded p-1.5 transition-colors hover:bg-neutral-200 dark:hover:bg-coolgray-300"
+                                            :class="{ 'opacity-50': docCheckInProgress[service.name] }"
+                                            title="View documentation">
+                                            <svg class="h-4 w-4 text-neutral-600 dark:text-neutral-400" fill="none"
+                                                stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                        </a>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
                     </div>
-                </div>
+                </section>
                 <div
                     x-show="filteredGitBasedApplications.length === 0 && filteredDockerBasedApplications.length === 0 && filteredDatabases.length === 0 && filteredServices.length === 0 && loading === false">
                     <div>No resources found.</div>

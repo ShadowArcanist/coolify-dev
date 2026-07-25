@@ -146,6 +146,14 @@ topbar instead of repeating its name or status summary in layer 2. Mobile
 resource navigation may repeat this context because the desktop global topbar
 is hidden there.
 
+Only add layer-2 tabs when they represent real sibling routes inside one
+context. Never repeat main-sidebar destinations such as Dashboard, Projects,
+Terminal, Servers, Sources, Destinations, or Storage as a second tab row. A
+single collection page does not need a tab just to fill the bar; keep its
+primary action in the page header instead. When tabs are useful, their left edge
+uses the same compact `pl-2` alignment as application navigation rather than
+the content container's wide horizontal padding.
+
 The dashboard is a compact overview, not a metrics wall. Use two full-width
 sections that follow the projects-page grid pattern: projects first, then
 servers. Keep one `New` action in the page header and let its modal choose the
@@ -155,10 +163,9 @@ the shared status badge.
 
 ### Top-level dashboard destinations
 
-Every page opened directly from the main sidebar uses the same compact shell:
+Every page opened directly from the main sidebar uses the same compact content
+shell:
 
-- a fixed layer-2 route bar below the global topbar, even when the family only
-  has one primary collection route;
 - 24px page title and a 13px muted summary;
 - the primary action at the top right using the restrained brand fill;
 - no legacy `coolbox`, `.navbar-main`, or oversized subtitle block;
@@ -184,8 +191,8 @@ updated. Treat every route family as one deliverable:
 
 - index, create, detail, settings, logs, metrics, backup, execution, and danger
   routes must share the same navigation hierarchy and surface language;
-- every main-sidebar destination must have the fixed global topbar plus the
-  fixed layer-2 route bar;
+- main-sidebar collection routes use the global shell without duplicating those
+  destinations in a layer-2 tab row;
 - resource detail families use resource identity and status in the global
   topbar, route tabs and actions in layer 2, and the grouped settings sidebar
   only for the third level;
@@ -199,6 +206,11 @@ updated. Treat every route family as one deliverable:
 
 Do not report a family as redesigned while a sibling route still uses the old
 tabs, a large in-flow title, a browser select, or a different modal anatomy.
+
+The New Resource page keeps its filter controls in the top layer card, then
+renders Applications, Databases, and Services as separate layer-card sections.
+Do not leave category headings and resource grids floating as uncontained
+content below the filter card.
 
 ### Settings workspace
 

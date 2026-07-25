@@ -3,35 +3,33 @@
         New Server | Coolify
     </x-slot>
 
-    <x-dashboard.navbar section="infrastructure">
-        <x-slot:actions>
-            <a href="{{ $selectedType ? route('server.create') : route('server.index') }}" class="button"
-                {{ wireNavigate() }}>
-                {{ $selectedType ? 'Change method' : 'Back to servers' }}
-            </a>
-            @if ($selectedType && $selectedType !== 'manual' && ! $selectedTokenUuid)
-                @php
-                    $tokenProvider = $selectedType === 'digital-ocean' ? 'digitalocean' : $selectedType;
-                    $tokenProviderName = $selectedType === 'digital-ocean'
-                        ? 'DigitalOcean'
-                        : str($selectedType)->headline();
-                @endphp
-                @can('create', App\Models\CloudProviderToken::class)
-                    <x-modal-input title="New {{ $tokenProviderName }} token">
-                        <x-slot:content>
-                            <button type="button"
-                                class="button bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!">
-                                <x-reicon name="plus" class="size-3.5" />
-                                New token
-                            </button>
-                        </x-slot:content>
-                        <livewire:security.cloud-provider-token-form :modal_mode="true" :provider="$tokenProvider"
-                            wire:key="new-server-token-{{ $tokenProvider }}" />
-                    </x-modal-input>
-                @endcan
-            @endif
-        </x-slot:actions>
-    </x-dashboard.navbar>
+    <div class="mb-4 flex flex-wrap items-center justify-end gap-2">
+        <a href="{{ $selectedType ? route('server.create') : route('server.index') }}" class="button"
+            {{ wireNavigate() }}>
+            {{ $selectedType ? 'Change method' : 'Back to servers' }}
+        </a>
+        @if ($selectedType && $selectedType !== 'manual' && ! $selectedTokenUuid)
+            @php
+                $tokenProvider = $selectedType === 'digital-ocean' ? 'digitalocean' : $selectedType;
+                $tokenProviderName = $selectedType === 'digital-ocean'
+                    ? 'DigitalOcean'
+                    : str($selectedType)->headline();
+            @endphp
+            @can('create', App\Models\CloudProviderToken::class)
+                <x-modal-input title="New {{ $tokenProviderName }} token">
+                    <x-slot:content>
+                        <button type="button"
+                            class="button bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!">
+                            <x-reicon name="plus" class="size-3.5" />
+                            New token
+                        </button>
+                    </x-slot:content>
+                    <livewire:security.cloud-provider-token-form :modal_mode="true" :provider="$tokenProvider"
+                        wire:key="new-server-token-{{ $tokenProvider }}" />
+                </x-modal-input>
+            @endcan
+        @endif
+    </div>
 
     @if (!$selectedType)
         <div class="application-settings-form">

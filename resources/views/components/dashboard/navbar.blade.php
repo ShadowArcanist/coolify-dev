@@ -5,24 +5,6 @@
 
 @php
     $items = match ($section) {
-        'workspace' => [
-            ['label' => 'Dashboard', 'route' => 'dashboard', 'active' => request()->routeIs('dashboard'), 'icon' => 'dashboard'],
-            ['label' => 'Projects', 'route' => 'project.index', 'active' => request()->routeIs('project.index'), 'icon' => 'projects'],
-            [
-                'label' => 'Terminal',
-                'route' => 'terminal',
-                'active' => request()->routeIs('terminal'),
-                'icon' => 'browser-terminal',
-                'visible' => auth()->user()?->can('canAccessTerminal'),
-            ],
-        ],
-        'infrastructure' => [
-            ['label' => 'Servers', 'route' => 'server.index', 'active' => request()->routeIs('server.index', 'server.create*'), 'icon' => 'servers'],
-            ['label' => 'Sources', 'route' => 'source.all', 'active' => request()->routeIs('source.all'), 'icon' => 'sources'],
-            ['label' => 'Destinations', 'route' => 'destination.index', 'active' => request()->routeIs('destination.index'), 'icon' => 'destinations'],
-            ['label' => 'S3 Storage', 'route' => 'storage.index', 'active' => request()->routeIs('storage.index'), 'icon' => 'storages'],
-            ['label' => 'Shared Variables', 'route' => 'shared-variables.index', 'active' => request()->routeIs('shared-variables.index'), 'icon' => 'variables'],
-        ],
         'shared-variables' => [
             ['label' => 'Overview', 'route' => 'shared-variables.index', 'active' => request()->routeIs('shared-variables.index')],
             ['label' => 'Team', 'route' => 'shared-variables.team.index', 'active' => request()->routeIs('shared-variables.team.*')],
@@ -43,11 +25,6 @@
         'profile' => [
             ['label' => 'General', 'route' => 'profile', 'active' => request()->routeIs('profile')],
             ['label' => 'Appearance', 'route' => 'profile.appearance', 'active' => request()->routeIs('profile.appearance')],
-        ],
-        'admin' => [
-            ['label' => 'Overview', 'route' => 'admin.index', 'active' => request()->routeIs('admin.index'), 'icon' => 'admin'],
-            ['label' => 'Settings', 'route' => 'settings.index', 'active' => false, 'icon' => 'settings'],
-            ['label' => 'Teams', 'route' => 'team.admin-view', 'active' => false, 'icon' => 'teams'],
         ],
         'notifications' => [
             ['label' => 'Email', 'route' => 'notifications.email', 'active' => request()->routeIs('notifications.email')],
@@ -84,19 +61,6 @@
             ['label' => 'OAuth', 'route' => 'settings.oauth', 'active' => request()->routeIs('settings.oauth')],
             ['label' => 'Scheduled Jobs', 'route' => 'settings.scheduled-jobs', 'active' => request()->routeIs('settings.scheduled-jobs')],
         ],
-        'manage' => [
-            ['label' => 'Team', 'route' => 'team.index', 'active' => request()->routeIs('team.*'), 'icon' => 'teams'],
-            ['label' => 'Notifications', 'route' => 'notifications.email', 'active' => request()->routeIs('notifications.*'), 'icon' => 'notifications'],
-            ['label' => 'Keys & Tokens', 'route' => 'security.private-key.index', 'active' => request()->routeIs('security.*'), 'icon' => 'keys'],
-            ['label' => 'Tags', 'route' => 'tags.show', 'active' => request()->routeIs('tags.*'), 'icon' => 'tags'],
-            [
-                'label' => 'Settings',
-                'route' => 'settings.index',
-                'active' => request()->routeIs('settings.*'),
-                'icon' => 'settings',
-                'visible' => isInstanceAdmin(),
-            ],
-        ],
         'source' => [
             ['label' => 'General', 'route' => 'source.github.show', 'active' => request()->routeIs('source.github.show')],
             ['label' => 'Permissions', 'route' => 'source.github.permissions', 'active' => request()->routeIs('source.github.permissions')],
@@ -121,7 +85,7 @@
 @endphp
 
 <nav class="mb-6 w-full lg:mb-0">
-    <div class="w-full lg:fixed lg:top-12 lg:right-0 lg:z-30 lg:h-12 lg:w-auto lg:border-b lg:border-neutral-200 lg:bg-white/95 lg:px-10 lg:backdrop-blur lg:transition-[left] lg:duration-200 lg:dark:border-white/[0.06] lg:dark:bg-panel/95"
+    <div class="w-full lg:fixed lg:top-12 lg:right-0 lg:z-30 lg:h-12 lg:w-auto lg:border-b lg:border-neutral-200 lg:bg-white/95 lg:pr-4 lg:pl-2 lg:backdrop-blur lg:transition-[left] lg:duration-200 lg:dark:border-white/[0.06] lg:dark:bg-panel/95"
         :class="[typeof collapsed !== 'undefined' && collapsed ? 'lg:left-16' : 'lg:left-56']">
         <div class="flex w-full max-w-[1180px] items-center justify-between gap-4 lg:h-full">
             <div

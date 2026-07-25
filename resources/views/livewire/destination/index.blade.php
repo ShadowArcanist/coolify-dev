@@ -3,8 +3,11 @@
         Destinations | Coolify
     </x-slot>
 
-    <x-dashboard.navbar section="infrastructure">
-        <x-slot:actions>
+    <div class="mb-4 flex items-center justify-between gap-4">
+        <div class="text-[11px] text-neutral-500 dark:text-fg-faint">
+            {{ $destinations->count() }} {{ Str::plural('network endpoint', $destinations->count()) }}
+        </div>
+        <div class="shrink-0">
             @if ($servers->count() > 0)
                 @can('createAnyResource')
                     <x-modal-input title="New Destination">
@@ -19,11 +22,7 @@
                     </x-modal-input>
                 @endcan
             @endif
-        </x-slot:actions>
-    </x-dashboard.navbar>
-
-    <div class="mb-4 text-[11px] text-neutral-500 dark:text-fg-faint">
-        {{ $destinations->count() }} {{ Str::plural('network endpoint', $destinations->count()) }}
+        </div>
     </div>
 
     @if ($destinations->isEmpty())

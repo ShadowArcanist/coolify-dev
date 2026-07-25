@@ -3,8 +3,6 @@
         Terminal | Coolify
     </x-slot>
 
-    <x-dashboard.navbar section="workspace" />
-
     <div x-init="$wire.loadContainers()">
         @if ($isLoadingContainers)
             <div

@@ -212,19 +212,17 @@
             </div>
         @endif
     @else
-        <x-dashboard.navbar section="infrastructure">
-            <x-slot:actions>
-                @can('delete', $github_app)
-                    <x-modal-confirmation title="Confirm GitHub App Deletion?" isErrorButton
-                        buttonTitle="Delete" submitAction="delete"
-                        :actions="['The selected GitHub App will be permanently deleted.']"
-                        confirmationText="{{ data_get($github_app, 'name') }}"
-                        confirmationLabel="Please confirm the execution of the actions by entering the GitHub App Name below"
-                        shortConfirmationLabel="GitHub App Name" :confirmWithPassword="false"
-                        step2ButtonText="Permanently Delete" />
-                @endcan
-            </x-slot:actions>
-        </x-dashboard.navbar>
+        <div class="mb-4 flex justify-end">
+            @can('delete', $github_app)
+                <x-modal-confirmation title="Confirm GitHub App Deletion?" isErrorButton
+                    buttonTitle="Delete" submitAction="delete"
+                    :actions="['The selected GitHub App will be permanently deleted.']"
+                    confirmationText="{{ data_get($github_app, 'name') }}"
+                    confirmationLabel="Please confirm the execution of the actions by entering the GitHub App Name below"
+                    shortConfirmationLabel="GitHub App Name" :confirmWithPassword="false"
+                    step2ButtonText="Permanently Delete" />
+            @endcan
+        </div>
 
         @can('create', $github_app)
             @php

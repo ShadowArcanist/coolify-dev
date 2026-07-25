@@ -3,8 +3,11 @@
         Sources | Coolify
     </x-slot>
 
-    <x-dashboard.navbar section="infrastructure">
-        <x-slot:actions>
+    <div class="mb-4 flex items-center justify-between gap-4">
+        <div class="text-[11px] text-neutral-500 dark:text-fg-faint">
+            {{ $sources->count() }} {{ Str::plural('Git source', $sources->count()) }} connected to your team
+        </div>
+        <div class="shrink-0">
             @can('createAnyResource')
                 <x-modal-input title="New GitHub App" :closeOutside="false">
                     <x-slot:content>
@@ -17,11 +20,7 @@
                     <livewire:source.github.create />
                 </x-modal-input>
             @endcan
-        </x-slot:actions>
-    </x-dashboard.navbar>
-
-    <div class="mb-4 text-[11px] text-neutral-500 dark:text-fg-faint">
-        {{ $sources->count() }} {{ Str::plural('Git source', $sources->count()) }} connected to your team
+        </div>
     </div>
 
     @if ($sources->isEmpty())
