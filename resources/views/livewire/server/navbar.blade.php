@@ -84,6 +84,49 @@
         $showSentinelStatus = $server->isFunctional() && $server->isSentinelEnabled();
     @endphp
 
+    @teleport('#server-topbar-context')
+        <div data-testid="server-topbar-context"
+            class="flex min-w-0 items-center gap-1 text-[13px]">
+            <span class="shrink-0 px-0.5 text-neutral-300 dark:text-fg-faint">/</span>
+            <span class="flex min-w-0 shrink items-center gap-2 px-1">
+                <span class="max-w-48 min-w-0 truncate font-semibold text-black dark:text-fg xl:max-w-64">
+                    {{ $server->name }}
+                </span>
+                <x-status-badge :status="$server->isFunctional() ? 'Ready' : 'Validation required'"
+                    :type="$server->isFunctional() ? 'success' : 'warning'" />
+            </span>
+
+            <div class="hidden shrink-0 items-center gap-1 xl:flex">
+                @if ($server->proxySet())
+                    @if ($proxyStatus === 'running')
+                        <x-status-badge label="Proxy" status="Running" type="success" />
+                    @elseif (in_array($proxyStatus, ['restarting', 'stopping', 'starting']))
+                        <x-status-badge label="Proxy" :status="str($proxyStatus)->headline()" type="warning" />
+                    @elseif (data_get($server, 'proxy.force_stop'))
+                        <x-status-badge wire:loading.remove wire:target="checkProxyStatus" label="Proxy"
+                            status="Force stopped" type="error" />
+                    @elseif ($proxyStatus === 'exited')
+                        <x-status-badge wire:loading.remove wire:target="checkProxyStatus" label="Proxy"
+                            status="Exited" type="error" />
+                    @endif
+                    <x-status-badge wire:loading wire:target="checkProxyStatus" label="Proxy"
+                        status="Checking…" type="warning" />
+                @endif
+                @if ($showSentinelStatus)
+                    <x-status-badge label="Sentinel"
+                        :status="$server->isSentinelLive() ? 'In sync' : 'Out of sync'"
+                        :type="$server->isSentinelLive() ? 'success' : 'error'" />
+                @endif
+                @if ($server->proxySet())
+                    <x-status-badge as="button" wire:target="checkProxyStatus"
+                        wire:loading.attr="disabled" wire:click="checkProxyStatus" status="Refresh"
+                        type="neutral" title="Refresh status" aria-label="Refresh proxy status"
+                        class="min-w-[4.5rem] cursor-pointer justify-center border-transparent hover:bg-neutral-200 disabled:cursor-wait disabled:opacity-70 dark:hover:bg-coolgray-300" />
+                @endif
+            </div>
+        </div>
+    @endteleport
+
     <div>
         <div class="w-full md:hidden">
             <div class="mb-3 flex min-w-0 flex-wrap items-center gap-2">
@@ -255,89 +298,55 @@
                 @endforeach
             </div>
 
-            <div class="flex shrink-0 items-center gap-2">
-                @if ($server->proxySet() || $showSentinelStatus)
-                    <div data-testid="server-status-summary" class="flex items-center gap-1">
-                        @if ($server->proxySet())
-                            @if ($proxyStatus === 'running')
-                                <x-status-badge label="Proxy" status="Running" type="success" />
-                            @elseif (in_array($proxyStatus, ['restarting', 'stopping', 'starting']))
-                                <x-status-badge label="Proxy" :status="str($proxyStatus)->headline()"
-                                    type="warning" />
-                            @elseif (data_get($server, 'proxy.force_stop'))
-                                <x-status-badge wire:loading.remove wire:target="checkProxyStatus" label="Proxy"
-                                    status="Force stopped" type="error" />
-                            @elseif ($proxyStatus === 'exited')
-                                <x-status-badge wire:loading.remove wire:target="checkProxyStatus" label="Proxy"
-                                    status="Exited" type="error" />
+            @if ($server->proxySet())
+                @can('manageProxy', $server)
+                    <div
+                        class="application-heading-actions flex shrink-0 items-center gap-0.5 rounded-[10px] border border-neutral-200 bg-neutral-100 p-1 dark:border-white/[0.07] dark:bg-white/[0.035]">
+                        @if ($proxyStatus === 'running')
+                            <div class="mt-1" wire:loading wire:target="loadProxyConfiguration">
+                                <x-loading text="Checking Traefik dashboard" />
+                            </div>
+                            @if ($traefikDashboardAvailable)
+                                <a class="button" target="_blank" href="http://{{ $serverIp }}:8080">
+                                    Traefik Dashboard
+                                    <x-external-link />
+                                </a>
                             @endif
-                            <x-status-badge wire:loading wire:target="checkProxyStatus" label="Proxy"
-                                status="Checking…" type="warning" />
-                        @endif
-                        @if ($showSentinelStatus)
-                            <x-status-badge label="Sentinel"
-                                :status="$server->isSentinelLive() ? 'In sync' : 'Out of sync'"
-                                :type="$server->isSentinelLive() ? 'success' : 'error'" />
-                        @endif
-                        @if ($server->proxySet())
-                            <x-status-badge as="button" wire:target="checkProxyStatus"
-                                wire:loading.attr="disabled" wire:click="checkProxyStatus" status="Refresh"
-                                type="neutral" title="Refresh status" aria-label="Refresh proxy status"
-                                class="min-w-[4.5rem] cursor-pointer justify-center border-transparent hover:bg-neutral-200 disabled:cursor-wait disabled:opacity-70 dark:hover:bg-coolgray-300" />
+                            <x-modal-confirmation title="Confirm Proxy Restart?" buttonTitle="Restart Proxy"
+                                submitAction="restart" :actions="[
+                                    'This proxy will be stopped and started again.',
+                                    'All resources hosted on Coolify will be unavailable during the restart.',
+                                ]" :confirmWithText="false" :confirmWithPassword="false"
+                                step2ButtonText="Restart Proxy" :dispatchEvent="true"
+                                dispatchEventType="restartEvent">
+                                <x-slot:button-title>
+                                    <x-reicon name="restart"
+                                        class="size-4 text-orange-500 dark:text-warning" />
+                                    Restart Proxy
+                                </x-slot:button-title>
+                            </x-modal-confirmation>
+                            <x-modal-confirmation title="Confirm Proxy Stopping?" buttonTitle="Stop Proxy"
+                                submitAction="stop(true)" :actions="[
+                                    'The Coolify proxy will be stopped.',
+                                    'All resources hosted on Coolify will be unavailable.',
+                                ]" :confirmWithText="false" :confirmWithPassword="false"
+                                step2ButtonText="Stop Proxy" :dispatchEvent="true"
+                                dispatchEventType="stopEvent">
+                                <x-slot:button-title>
+                                    <x-reicon name="stop" class="size-4 text-error" />
+                                    Stop Proxy
+                                </x-slot:button-title>
+                            </x-modal-confirmation>
+                        @else
+                            <x-forms.button @click="$wire.dispatch('checkProxyEvent')">
+                                <x-reicon name="play-circle"
+                                    class="size-4 text-coollabs dark:text-warning" />
+                                Start Proxy
+                            </x-forms.button>
                         @endif
                     </div>
-                @endif
-
-                @if ($server->proxySet())
-                    @can('manageProxy', $server)
-                        <div
-                            class="application-heading-actions flex items-center gap-0.5 rounded-[10px] border border-neutral-200 bg-neutral-100 p-1 dark:border-white/[0.07] dark:bg-white/[0.035]">
-                            @if ($proxyStatus === 'running')
-                                <div class="mt-1" wire:loading wire:target="loadProxyConfiguration">
-                                    <x-loading text="Checking Traefik dashboard" />
-                                </div>
-                                @if ($traefikDashboardAvailable)
-                                    <a class="button" target="_blank" href="http://{{ $serverIp }}:8080">
-                                        Traefik Dashboard
-                                        <x-external-link />
-                                    </a>
-                                @endif
-                                <x-modal-confirmation title="Confirm Proxy Restart?" buttonTitle="Restart Proxy"
-                                    submitAction="restart" :actions="[
-                                        'This proxy will be stopped and started again.',
-                                        'All resources hosted on Coolify will be unavailable during the restart.',
-                                    ]" :confirmWithText="false" :confirmWithPassword="false"
-                                    step2ButtonText="Restart Proxy" :dispatchEvent="true"
-                                    dispatchEventType="restartEvent">
-                                    <x-slot:button-title>
-                                        <x-reicon name="restart"
-                                            class="size-4 text-orange-500 dark:text-warning" />
-                                        Restart Proxy
-                                    </x-slot:button-title>
-                                </x-modal-confirmation>
-                                <x-modal-confirmation title="Confirm Proxy Stopping?" buttonTitle="Stop Proxy"
-                                    submitAction="stop(true)" :actions="[
-                                        'The Coolify proxy will be stopped.',
-                                        'All resources hosted on Coolify will be unavailable.',
-                                    ]" :confirmWithText="false" :confirmWithPassword="false"
-                                    step2ButtonText="Stop Proxy" :dispatchEvent="true"
-                                    dispatchEventType="stopEvent">
-                                    <x-slot:button-title>
-                                        <x-reicon name="stop" class="size-4 text-error" />
-                                        Stop Proxy
-                                    </x-slot:button-title>
-                                </x-modal-confirmation>
-                            @else
-                                <x-forms.button @click="$wire.dispatch('checkProxyEvent')">
-                                    <x-reicon name="play-circle"
-                                        class="size-4 text-coollabs dark:text-warning" />
-                                    Start Proxy
-                                </x-forms.button>
-                            @endif
-                        </div>
-                    @endcan
-                @endif
-            </div>
+                @endcan
+            @endif
         </div>
         <div class="hidden lg:block lg:h-10" aria-hidden="true"></div>
     </div>

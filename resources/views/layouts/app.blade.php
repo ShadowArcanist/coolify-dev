@@ -53,6 +53,7 @@
                 {{-- Collapse toggle + team switcher --}}
                 <div class="flex items-center gap-1.5 min-w-0 flex-1 pl-3 pr-4">
                     <x-top-breadcrumb />
+                    <div id="server-topbar-context" class="min-w-0"></div>
                     <div class="flex-1"></div>
                     {{-- Right cluster --}}
                     <x-top-user-menu />
