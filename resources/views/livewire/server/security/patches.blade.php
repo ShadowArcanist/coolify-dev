@@ -20,18 +20,16 @@
             <x-application.settings-section id="server-patching-overview-section" title="Server patching"
                 helper="Discover and apply operating system package updates.">
                 <x-slot:actions>
-                    <div class="flex items-center gap-2">
-                        <x-status-badge status="Experimental" type="warning" />
-                        @if (isDev())
-                            <x-forms.button type="button" wire:click="sendTestEmail">
-                                Send test email
-                            </x-forms.button>
-                        @endif
-                        <x-forms.button type="button" wire:click="$dispatch('checkForUpdates')">
-                            <x-reicon name="refresh" class="size-3.5" />
-                            Check for updates
+                    <x-status-badge status="Experimental" type="warning" />
+                    @if (isDev())
+                        <x-forms.button type="button" wire:click="sendTestEmail">
+                            Send test email
                         </x-forms.button>
-                    </div>
+                    @endif
+                    <x-forms.button type="button" wire:click="$dispatch('checkForUpdates')">
+                        <x-reicon name="refresh" class="size-3.5" />
+                        Check for updates
+                    </x-forms.button>
                 </x-slot:actions>
 
                 <x-callout type="info" title="Supported package managers">
@@ -86,56 +84,46 @@
                                 step2ButtonText="Update All Packages" />
                         </x-slot:actions>
 
-                        <div class="overflow-x-auto">
-                            <table class="w-full min-w-[640px] text-left">
-                                <thead>
-                                    <tr class="border-b border-neutral-200 bg-neutral-50/80 dark:border-white/[0.08] dark:bg-white/[0.025]">
-                                        <th class="px-4 py-2.5 text-xs font-medium text-neutral-500 dark:text-fg-dim">
-                                            Package
-                                        </th>
-                                        <th class="px-4 py-2.5 text-xs font-medium text-neutral-500 dark:text-fg-dim">
-                                            New version
-                                        </th>
-                                        <th class="px-4 py-2.5 text-right text-xs font-medium text-neutral-500 dark:text-fg-dim">
-                                            Action
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($updates as $update)
-                                        <tr
-                                            class="border-b border-neutral-200 last:border-b-0 dark:border-white/[0.08]">
-                                            <td class="px-4 py-3">
-                                                <div class="flex items-center gap-2">
-                                                    @if (data_get_str($update, 'package')->contains('docker') || data_get_str($update, 'package')->contains('kernel'))
-                                                        <x-reicon name="alert-triangle"
-                                                            class="size-4 shrink-0 text-red-500" />
-                                                    @endif
-                                                    <span class="break-all font-mono text-sm text-neutral-950 dark:text-fg">
-                                                        {{ data_get($update, 'package') }}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td class="px-4 py-3">
-                                                <p class="font-mono text-sm text-neutral-700 dark:text-fg-dim">
-                                                    {{ data_get($update, 'new_version') }}
-                                                </p>
-                                                @if ($packageManager !== 'dnf' && data_get($update, 'current_version'))
-                                                    <p class="mt-0.5 text-xs text-neutral-500 dark:text-fg-faint">
-                                                        Current: {{ data_get($update, 'current_version') }}
-                                                    </p>
-                                                @endif
-                                            </td>
-                                            <td class="px-4 py-3 text-right">
-                                                <x-forms.button type="button"
-                                                    wire:click="$dispatch('updatePackage', { package: '{{ data_get($update, 'package') }}' })">
-                                                    Update
-                                                </x-forms.button>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
+                        <div class="data-table">
+                            <div class="data-table-header package-updates-table-grid">
+                                <span>Package</span>
+                                <span>New version</span>
+                                <span class="text-right">Action</span>
+                            </div>
+                            @foreach ($updates as $update)
+                                <div
+                                    class="data-table-row package-updates-table-grid border-b border-neutral-200 last:border-b-0 dark:border-white/[0.08]">
+                                    <div class="flex min-w-0 items-center gap-2">
+                                        @if (data_get_str($update, 'package')->contains('docker') || data_get_str($update, 'package')->contains('kernel'))
+                                            <x-reicon name="alert-triangle"
+                                                class="size-4 shrink-0 text-red-500" />
+                                        @endif
+                                        <span class="min-w-0 truncate font-mono text-[12px] text-neutral-950 dark:text-fg">
+                                            {{ data_get($update, 'package') }}
+                                        </span>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="truncate font-mono text-[12px] text-neutral-700 dark:text-fg-dim">
+                                            {{ data_get($update, 'new_version') }}
+                                        </p>
+                                        @if ($packageManager !== 'dnf' && data_get($update, 'current_version'))
+                                            <p class="mt-0.5 truncate text-[10px] text-neutral-500 dark:text-fg-faint">
+                                                Current: {{ data_get($update, 'current_version') }}
+                                            </p>
+                                        @endif
+                                    </div>
+                                    <div class="flex justify-end">
+                                        <x-forms.button type="button"
+                                            wire:click="$dispatch('updatePackage', { package: '{{ data_get($update, 'package') }}' })">
+                                            Update
+                                        </x-forms.button>
+                                    </div>
+                                </div>
+                            @endforeach
+                            <div
+                                class="flex min-h-11 items-center border-t border-neutral-200 px-4 text-[11px] text-neutral-500 dark:border-white/[0.08] dark:text-fg-faint">
+                                {{ count($updates) }} {{ Str::plural('package update', count($updates)) }}
+                            </div>
                         </div>
                     </x-application.settings-section>
                 @endif

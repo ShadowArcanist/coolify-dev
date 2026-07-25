@@ -13,7 +13,7 @@
                     <p>Automate database backups and track the latest execution for each schedule.</p>
                 </div>
                 @can('update', $database)
-                    <x-modal-input buttonTitle="+ Add" title="New Scheduled Backup">
+                    <x-modal-input buttonTitle="+ Add" title="New Scheduled Backup" isHighlightedButton>
                         <livewire:project.database.create-scheduled-backup :database="$database" />
                     </x-modal-input>
                 @endcan

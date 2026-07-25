@@ -57,53 +57,49 @@
                 </form>
 
                 @if ($search)
-                    <div class="overflow-x-auto">
-                        <table class="w-full min-w-[640px] table-fixed text-left">
-                            <thead>
-                                <tr
-                                    class="border-b border-neutral-200 bg-neutral-50 text-[11px] font-semibold tracking-wide text-neutral-500 uppercase dark:border-white/[0.06] dark:bg-white/[0.025] dark:text-fg-faint">
-                                    <th class="w-[34%] px-4 py-2.5">Name</th>
-                                    <th class="w-[38%] px-4 py-2.5">Email</th>
-                                    <th class="w-[14%] px-4 py-2.5">Subscription</th>
-                                    <th class="w-[14%] px-4 py-2.5 text-right"><span class="sr-only">Action</span></th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-neutral-200 dark:divide-white/[0.06]">
-                                @forelse ($foundUsers as $user)
-                                    @php
-                                        $hasActiveSubscription = $user->teams()
-                                            ->whereRelation('subscription', 'stripe_invoice_paid', true)
-                                            ->exists();
-                                    @endphp
-                                    <tr class="transition-colors hover:bg-neutral-50 dark:hover:bg-white/[0.025]">
-                                        <td class="truncate px-4 py-3 text-sm font-semibold text-black dark:text-fg">
-                                            {{ $user->name }}
-                                        </td>
-                                        <td class="truncate px-4 py-3 text-sm text-neutral-600 dark:text-fg-dim">
-                                            {{ $user->email }}
-                                        </td>
-                                        <td class="px-4 py-3">
-                                            <x-status-badge :status="$hasActiveSubscription ? 'Active' : 'Inactive'"
-                                                :type="$hasActiveSubscription ? 'success' : 'neutral'" />
-                                        </td>
-                                        <td class="px-4 py-3 text-right">
-                                            <button type="button" class="button"
-                                                wire:click="switchUser({{ $user->id }})">
-                                                Switch user
-                                            </button>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="4">
-                                            <x-empty size="sm" title="No users found"
-                                                description="No account matches {{ $search }}." />
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                    @if ($foundUsers->isEmpty())
+                        <x-empty size="sm" title="No users found"
+                            description="No account matches {{ $search }}." />
+                    @else
+                        <div class="data-table">
+                            <div class="data-table-header admin-search-table-grid">
+                                <span>Name</span>
+                                <span>Email</span>
+                                <span>Subscription</span>
+                                <span class="text-right">Action</span>
+                            </div>
+                            @foreach ($foundUsers as $user)
+                                @php
+                                    $hasActiveSubscription = $user->teams()
+                                        ->whereRelation('subscription', 'stripe_invoice_paid', true)
+                                        ->exists();
+                                @endphp
+                                <div
+                                    class="data-table-row admin-search-table-grid border-b border-neutral-200 last:border-b-0 dark:border-white/[0.06]">
+                                    <div class="truncate text-[12px] font-semibold text-black dark:text-fg">
+                                        {{ $user->name }}
+                                    </div>
+                                    <div class="truncate text-[11px] text-neutral-600 dark:text-fg-dim">
+                                        {{ $user->email }}
+                                    </div>
+                                    <div>
+                                        <x-status-badge :status="$hasActiveSubscription ? 'Active' : 'Inactive'"
+                                            :type="$hasActiveSubscription ? 'success' : 'neutral'" />
+                                    </div>
+                                    <div class="flex justify-end">
+                                        <button type="button" class="button"
+                                            wire:click="switchUser({{ $user->id }})">
+                                            Switch user
+                                        </button>
+                                    </div>
+                                </div>
+                            @endforeach
+                            <div
+                                class="flex min-h-11 items-center border-t border-neutral-200 px-4 text-[11px] text-neutral-500 dark:border-white/[0.08] dark:text-fg-faint">
+                                {{ $foundUsers->count() }} {{ Str::plural('matching user', $foundUsers->count()) }}
+                            </div>
+                        </div>
+                    @endif
                 @else
                     <x-empty size="sm" title="Search for an account"
                         description="Enter a name or email address to begin.">

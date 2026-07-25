@@ -25,46 +25,47 @@
                 </div>
             </div>
             <div class="application-settings-section-body p-0!">
-                <div class="overflow-x-auto">
-                    <table class="w-full min-w-[620px] table-fixed text-left">
-                        <thead>
-                            <tr
-                                class="border-b border-neutral-200 bg-neutral-50 text-[11px] font-semibold tracking-wide text-neutral-500 uppercase dark:border-white/[0.06] dark:bg-white/[0.025] dark:text-fg-faint">
-                                <th class="w-8 px-4 py-2.5"><span class="sr-only">Selected</span></th>
-                                <th class="w-[46%] px-4 py-2.5">Server</th>
-                                <th class="px-4 py-2.5">Network</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-neutral-200 dark:divide-white/[0.06]">
-                            @foreach ($servers->sortBy('id') as $server)
-                                @foreach ($server->destinations() as $destination)
-                                    <tr wire:click="selectServer('{{ $server->id }}', '{{ $destination->uuid }}')"
-                                        @class([
-                                            'cursor-pointer transition-colors hover:bg-neutral-50 dark:hover:bg-white/[0.025]',
-                                            'bg-coollabs/5 dark:bg-warning/[0.06]' => $selectedDestination === $destination->uuid,
-                                        ])>
-                                        <td class="px-4 py-3">
-                                            <span @class([
-                                                'flex size-4 items-center justify-center rounded-full border',
-                                                'border-coollabs bg-coollabs text-white dark:border-warning dark:bg-warning dark:text-black' => $selectedDestination === $destination->uuid,
-                                                'border-neutral-300 dark:border-white/[0.15]' => $selectedDestination !== $destination->uuid,
-                                            ])>
-                                                @if ($selectedDestination === $destination->uuid)
-                                                    <span class="size-1.5 rounded-full bg-current"></span>
-                                                @endif
-                                            </span>
-                                        </td>
-                                        <td class="px-4 py-3 text-sm font-semibold text-black dark:text-fg">
-                                            {{ $server->name }}
-                                        </td>
-                                        <td class="px-4 py-3 font-mono text-xs text-neutral-600 dark:text-fg-dim">
-                                            {{ $destination->name }}
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            @endforeach
-                        </tbody>
-                    </table>
+                @php
+                    $destinationCount = $servers->sum(
+                        fn ($server) => $server->destinations()->count()
+                    );
+                @endphp
+                <div class="data-table">
+                    <div class="data-table-header clone-destinations-table-grid">
+                        <span><span class="sr-only">Selected</span></span>
+                        <span>Server</span>
+                        <span>Network</span>
+                    </div>
+                    @foreach ($servers->sortBy('id') as $server)
+                        @foreach ($server->destinations() as $destination)
+                            <button type="button"
+                                wire:click="selectServer('{{ $server->id }}', '{{ $destination->uuid }}')"
+                                @class([
+                                    'data-table-row clone-destinations-table-grid w-full border-b border-neutral-200 text-left last:border-b-0 dark:border-white/[0.06]',
+                                    'bg-coollabs/5 dark:bg-warning/[0.06]' => $selectedDestination === $destination->uuid,
+                                ])>
+                                <span @class([
+                                    'flex size-4 items-center justify-center rounded-full border',
+                                    'border-coollabs bg-coollabs text-white dark:border-warning dark:bg-warning dark:text-black' => $selectedDestination === $destination->uuid,
+                                    'border-neutral-300 dark:border-white/[0.15]' => $selectedDestination !== $destination->uuid,
+                                ])>
+                                    @if ($selectedDestination === $destination->uuid)
+                                        <span class="size-1.5 rounded-full bg-current"></span>
+                                    @endif
+                                </span>
+                                <span class="truncate text-[12px] font-semibold text-black dark:text-fg">
+                                    {{ $server->name }}
+                                </span>
+                                <span class="truncate font-mono text-[11px] text-neutral-600 dark:text-fg-dim">
+                                    {{ $destination->name }}
+                                </span>
+                            </button>
+                        @endforeach
+                    @endforeach
+                    <div
+                        class="flex min-h-11 items-center border-t border-neutral-200 px-4 text-[11px] text-neutral-500 dark:border-white/[0.08] dark:text-fg-faint">
+                        {{ $destinationCount }} {{ Str::plural('destination', $destinationCount) }}
+                    </div>
                 </div>
             </div>
         </section>
@@ -82,52 +83,52 @@
                 </div>
             </div>
             <div class="application-settings-section-body p-0!">
-                <div class="overflow-x-auto">
-                    <table class="w-full min-w-[680px] table-fixed text-left">
-                        <thead>
-                            <tr
-                                class="border-b border-neutral-200 bg-neutral-50 text-[11px] font-semibold tracking-wide text-neutral-500 uppercase dark:border-white/[0.06] dark:bg-white/[0.025] dark:text-fg-faint">
-                                <th class="w-[34%] px-4 py-2.5">Name</th>
-                                <th class="w-[18%] px-4 py-2.5">Type</th>
-                                <th class="px-4 py-2.5">Description</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-neutral-200 dark:divide-white/[0.06]">
-                            @foreach ($environment->applications->sortBy('name') as $application)
-                                <tr>
-                                    <td class="px-4 py-3 text-sm font-semibold text-black dark:text-fg">
-                                        {{ $application->name }}
-                                    </td>
-                                    <td class="px-4 py-3"><x-status-badge status="Application" type="neutral" /></td>
-                                    <td class="truncate px-4 py-3 text-sm text-neutral-600 dark:text-fg-dim">
-                                        {{ $application->description ?: '—' }}
-                                    </td>
-                                </tr>
-                            @endforeach
-                            @foreach ($environment->databases()->sortBy('name') as $database)
-                                <tr>
-                                    <td class="px-4 py-3 text-sm font-semibold text-black dark:text-fg">
-                                        {{ $database->name }}
-                                    </td>
-                                    <td class="px-4 py-3"><x-status-badge status="Database" type="neutral" /></td>
-                                    <td class="truncate px-4 py-3 text-sm text-neutral-600 dark:text-fg-dim">
-                                        {{ $database->description ?: '—' }}
-                                    </td>
-                                </tr>
-                            @endforeach
-                            @foreach ($environment->services->sortBy('name') as $service)
-                                <tr>
-                                    <td class="px-4 py-3 text-sm font-semibold text-black dark:text-fg">
-                                        {{ $service->name }}
-                                    </td>
-                                    <td class="px-4 py-3"><x-status-badge status="Service" type="neutral" /></td>
-                                    <td class="truncate px-4 py-3 text-sm text-neutral-600 dark:text-fg-dim">
-                                        {{ $service->description ?: '—' }}
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                <div class="data-table">
+                    <div class="data-table-header clone-resources-table-grid">
+                        <span>Name</span>
+                        <span>Type</span>
+                        <span>Description</span>
+                    </div>
+                    @foreach ($environment->applications->sortBy('name') as $application)
+                        <div
+                            class="data-table-row clone-resources-table-grid border-b border-neutral-200 last:border-b-0 dark:border-white/[0.06]">
+                            <div class="truncate text-[12px] font-semibold text-black dark:text-fg">
+                                {{ $application->name }}
+                            </div>
+                            <div><x-status-badge status="Application" type="neutral" /></div>
+                            <div class="truncate text-[11px] text-neutral-600 dark:text-fg-dim">
+                                {{ $application->description ?: '—' }}
+                            </div>
+                        </div>
+                    @endforeach
+                    @foreach ($environment->databases()->sortBy('name') as $database)
+                        <div
+                            class="data-table-row clone-resources-table-grid border-b border-neutral-200 last:border-b-0 dark:border-white/[0.06]">
+                            <div class="truncate text-[12px] font-semibold text-black dark:text-fg">
+                                {{ $database->name }}
+                            </div>
+                            <div><x-status-badge status="Database" type="neutral" /></div>
+                            <div class="truncate text-[11px] text-neutral-600 dark:text-fg-dim">
+                                {{ $database->description ?: '—' }}
+                            </div>
+                        </div>
+                    @endforeach
+                    @foreach ($environment->services->sortBy('name') as $service)
+                        <div
+                            class="data-table-row clone-resources-table-grid border-b border-neutral-200 last:border-b-0 dark:border-white/[0.06]">
+                            <div class="truncate text-[12px] font-semibold text-black dark:text-fg">
+                                {{ $service->name }}
+                            </div>
+                            <div><x-status-badge status="Service" type="neutral" /></div>
+                            <div class="truncate text-[11px] text-neutral-600 dark:text-fg-dim">
+                                {{ $service->description ?: '—' }}
+                            </div>
+                        </div>
+                    @endforeach
+                    <div
+                        class="flex min-h-11 items-center border-t border-neutral-200 px-4 text-[11px] text-neutral-500 dark:border-white/[0.08] dark:text-fg-faint">
+                        {{ $resourceCount }} {{ Str::plural('resource', $resourceCount) }}
+                    </div>
                 </div>
                 <div
                     class="flex flex-col gap-2 border-t border-neutral-200 p-4 sm:flex-row sm:justify-end dark:border-white/[0.06]">

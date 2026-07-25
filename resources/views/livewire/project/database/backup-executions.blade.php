@@ -25,140 +25,123 @@
 
             <div @if (! $skip) wire:poll.5000ms="refreshBackupExecutions" @endif
                 class="application-settings-section-body p-0!">
-                <div class="overflow-x-auto">
-                    <table class="w-full min-w-[920px] table-fixed text-left">
-                        <thead>
-                            <tr
-                                class="border-b border-neutral-200 bg-neutral-50 text-[11px] font-semibold tracking-wide text-neutral-500 uppercase dark:border-white/[0.06] dark:bg-white/[0.025] dark:text-fg-faint">
-                                <th class="w-[14%] px-4 py-2.5">Status</th>
-                                <th class="w-[18%] px-4 py-2.5">Database</th>
-                                <th class="w-[18%] px-4 py-2.5">Finished</th>
-                                <th class="w-[12%] px-4 py-2.5">Duration</th>
-                                <th class="w-[11%] px-4 py-2.5">Size</th>
-                                <th class="w-[15%] px-4 py-2.5">Availability</th>
-                                <th class="w-[12%] px-4 py-2.5 text-right"><span class="sr-only">Actions</span></th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-neutral-200 dark:divide-white/[0.06]">
-                            @forelse ($executions as $execution)
-                                @php
-                                    $executionStatus = data_get($execution, 'status');
-                                    [$executionStatusLabel, $executionStatusType] = match ($executionStatus) {
-                                        'success' => data_get($execution, 's3_uploaded') === false
-                                            ? ['S3 warning', 'warning']
-                                            : ['Success', 'success'],
-                                        'running' => ['In progress', 'warning'],
-                                        'failed' => ['Failed', 'error'],
-                                        default => [str($executionStatus)->headline(), 'neutral'],
-                                    };
-                                    $executionCheckboxes = [];
-                                    $deleteActions = [];
+                <div class="data-table">
+                    <div class="data-table-header backup-executions-table-grid">
+                        <span>Status</span>
+                        <span>Database</span>
+                        <span>Finished</span>
+                        <span>Duration</span>
+                        <span>Size</span>
+                        <span>Availability</span>
+                        <span class="text-right">Actions</span>
+                    </div>
+                    @forelse ($executions as $execution)
+                        @php
+                            $executionStatus = data_get($execution, 'status');
+                            [$executionStatusLabel, $executionStatusType] = match ($executionStatus) {
+                                'success' => data_get($execution, 's3_uploaded') === false
+                                    ? ['S3 warning', 'warning']
+                                    : ['Success', 'success'],
+                                'running' => ['In progress', 'warning'],
+                                'failed' => ['Failed', 'error'],
+                                default => [str($executionStatus)->headline(), 'neutral'],
+                            };
+                            $executionCheckboxes = [];
+                            $deleteActions = [];
 
-                                    if (! data_get($execution, 'local_storage_deleted', false)) {
-                                        $deleteActions[] = 'This backup will be permanently deleted from local storage.';
-                                    }
+                            if (! data_get($execution, 'local_storage_deleted', false)) {
+                                $deleteActions[] = 'This backup will be permanently deleted from local storage.';
+                            }
 
-                                    if (data_get($execution, 's3_uploaded') === true
-                                        && ! data_get($execution, 's3_storage_deleted', false)) {
-                                        $executionCheckboxes[] = [
-                                            'id' => 'delete_backup_s3',
-                                            'label' => 'Delete the selected backup permanently from S3 Storage',
-                                        ];
-                                    }
+                            if (data_get($execution, 's3_uploaded') === true
+                                && ! data_get($execution, 's3_storage_deleted', false)) {
+                                $executionCheckboxes[] = [
+                                    'id' => 'delete_backup_s3',
+                                    'label' => 'Delete the selected backup permanently from S3 Storage',
+                                ];
+                            }
 
-                                    if (empty($deleteActions)) {
-                                        $deleteActions[] = 'This backup execution record will be deleted.';
-                                    }
-                                @endphp
-                                <tr wire:key="{{ data_get($execution, 'id') }}"
-                                    class="transition-colors hover:bg-neutral-50 dark:hover:bg-white/[0.025]">
-                                    <td class="px-4 py-3">
-                                        <div class="flex items-center gap-2">
-                                            <x-status-badge :status="$executionStatusLabel"
-                                                :type="$executionStatusType" />
-                                            @if ($executionStatus === 'running')
-                                                <x-loading />
-                                            @endif
-                                        </div>
-                                    </td>
-                                    <td class="truncate px-4 py-3 text-sm font-medium text-black dark:text-fg">
-                                        {{ data_get($execution, 'database_name', 'N/A') }}
-                                    </td>
-                                    <td class="px-4 py-3 text-sm text-neutral-600 dark:text-fg-dim">
-                                        @if ($executionStatus === 'running')
-                                            Running now
-                                        @else
-                                            {{ \Carbon\Carbon::parse(data_get($execution, 'finished_at'))->diffForHumans() }}
-                                        @endif
-                                    </td>
-                                    <td class="px-4 py-3 text-sm text-neutral-600 dark:text-fg-dim">
-                                        {{ calculateDuration(
-                                            data_get($execution, 'created_at'),
-                                            $executionStatus === 'running' ? now() : data_get($execution, 'finished_at'),
-                                        ) }}
-                                    </td>
-                                    <td class="px-4 py-3 text-sm text-neutral-600 dark:text-fg-dim">
-                                        {{ data_get($execution, 'size') ? formatBytes(data_get($execution, 'size')) : '—' }}
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        <div class="flex flex-wrap items-center gap-1.5">
-                                            <x-status-badge label="Local"
-                                                :status="data_get($execution, 'local_storage_deleted', false) ? 'Deleted' : 'Available'"
-                                                :type="data_get($execution, 'local_storage_deleted', false) ? 'neutral' : 'success'" />
-                                            @if (data_get($execution, 's3_uploaded') !== null)
-                                                <x-status-badge label="S3"
-                                                    :status="data_get($execution, 's3_storage_deleted', false)
-                                                        ? 'Deleted'
-                                                        : (data_get($execution, 's3_uploaded') ? 'Available' : 'Failed')"
-                                                    :type="data_get($execution, 's3_storage_deleted', false)
-                                                        ? 'neutral'
-                                                        : (data_get($execution, 's3_uploaded') ? 'success' : 'error')" />
-                                            @endif
-                                        </div>
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        <div class="flex items-center justify-end gap-1">
-                                            @if ($executionStatus === 'success')
-                                                <button type="button" class="button"
-                                                    x-on:click="download_file('{{ data_get($execution, 'id') }}')">
-                                                    Download
-                                                </button>
-                                            @endif
-                                            <x-modal-confirmation title="Confirm Backup Deletion?" isErrorButton
-                                                submitAction="deleteBackup({{ data_get($execution, 'id') }})"
-                                                :checkboxes="$executionCheckboxes" :actions="$deleteActions"
-                                                confirmationText="{{ data_get($execution, 'filename') }}"
-                                                confirmationLabel="Enter the backup filename to confirm."
-                                                shortConfirmationLabel="Backup Filename">
-                                                <x-slot:trigger>
-                                                    <x-forms.button isError>Delete</x-forms.button>
-                                                </x-slot:trigger>
-                                            </x-modal-confirmation>
-                                        </div>
-                                    </td>
-                                </tr>
-                                @if (data_get($execution, 'message'))
-                                    <tr>
-                                        <td colspan="7" class="bg-neutral-50 px-4 py-3 dark:bg-white/[0.02]">
-                                            <pre
-                                                class="max-h-48 overflow-auto whitespace-pre-wrap rounded-lg bg-neutral-100 p-3 font-mono text-xs leading-5 text-neutral-700 dark:bg-black/20 dark:text-fg-dim">{{ data_get($execution, 'message') }}</pre>
-                                        </td>
-                                    </tr>
-                                @endif
-                            @empty
-                                <tr>
-                                    <td colspan="7">
-                                        <x-empty size="sm" title="No backup executions"
-                                            description="Execution history appears here after the schedule runs.">
-                                            <x-slot:icon>
-                                                <x-reicon name="terminal" class="size-5" />
-                                            </x-slot:icon>
-                                        </x-empty>
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                            if (empty($deleteActions)) {
+                                $deleteActions[] = 'This backup execution record will be deleted.';
+                            }
+                        @endphp
+                        <div wire:key="{{ data_get($execution, 'id') }}"
+                            class="border-b border-neutral-200 last:border-b-0 dark:border-white/[0.06]">
+                            <div class="data-table-row backup-executions-table-grid">
+                                <div class="flex items-center gap-2">
+                                    <x-status-badge :status="$executionStatusLabel"
+                                        :type="$executionStatusType" />
+                                    @if ($executionStatus === 'running')
+                                        <x-loading />
+                                    @endif
+                                </div>
+                                <div class="truncate text-[12px] font-medium text-black dark:text-fg">
+                                    {{ data_get($execution, 'database_name', 'N/A') }}
+                                </div>
+                                <div class="text-[11px] text-neutral-600 dark:text-fg-dim">
+                                    @if ($executionStatus === 'running')
+                                        Running now
+                                    @else
+                                        {{ \Carbon\Carbon::parse(data_get($execution, 'finished_at'))->diffForHumans() }}
+                                    @endif
+                                </div>
+                                <div class="text-[11px] text-neutral-600 dark:text-fg-dim">
+                                    {{ calculateDuration(
+                                        data_get($execution, 'created_at'),
+                                        $executionStatus === 'running' ? now() : data_get($execution, 'finished_at'),
+                                    ) }}
+                                </div>
+                                <div class="text-[11px] text-neutral-600 dark:text-fg-dim">
+                                    {{ data_get($execution, 'size') ? formatBytes(data_get($execution, 'size')) : '—' }}
+                                </div>
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <x-status-badge label="Local"
+                                        :status="data_get($execution, 'local_storage_deleted', false) ? 'Deleted' : 'Available'"
+                                        :type="data_get($execution, 'local_storage_deleted', false) ? 'neutral' : 'success'" />
+                                    @if (data_get($execution, 's3_uploaded') !== null)
+                                        <x-status-badge label="S3"
+                                            :status="data_get($execution, 's3_storage_deleted', false)
+                                                ? 'Deleted'
+                                                : (data_get($execution, 's3_uploaded') ? 'Available' : 'Failed')"
+                                            :type="data_get($execution, 's3_storage_deleted', false)
+                                                ? 'neutral'
+                                                : (data_get($execution, 's3_uploaded') ? 'success' : 'error')" />
+                                    @endif
+                                </div>
+                                <div class="flex items-center justify-end gap-1">
+                                    @if ($executionStatus === 'success')
+                                        <button type="button" class="button"
+                                            x-on:click="download_file('{{ data_get($execution, 'id') }}')">
+                                            Download
+                                        </button>
+                                    @endif
+                                    <x-modal-confirmation title="Confirm Backup Deletion?" isErrorButton
+                                        submitAction="deleteBackup({{ data_get($execution, 'id') }})"
+                                        :checkboxes="$executionCheckboxes" :actions="$deleteActions"
+                                        confirmationText="{{ data_get($execution, 'filename') }}"
+                                        confirmationLabel="Enter the backup filename to confirm."
+                                        shortConfirmationLabel="Backup Filename">
+                                        <x-slot:trigger>
+                                            <x-forms.button isError>Delete</x-forms.button>
+                                        </x-slot:trigger>
+                                    </x-modal-confirmation>
+                                </div>
+                            </div>
+                            @if (data_get($execution, 'message'))
+                                <div class="border-t border-neutral-200 bg-neutral-50 px-4 py-3 dark:border-white/[0.06] dark:bg-white/[0.02]">
+                                    <pre
+                                        class="max-h-48 overflow-auto whitespace-pre-wrap rounded-lg bg-neutral-100 p-3 font-mono text-xs leading-5 text-neutral-700 dark:bg-black/20 dark:text-fg-dim">{{ data_get($execution, 'message') }}</pre>
+                                </div>
+                            @endif
+                        </div>
+                    @empty
+                        <x-empty size="sm" title="No backup executions"
+                            description="Execution history appears here after the schedule runs.">
+                            <x-slot:icon>
+                                <x-reicon name="terminal" class="size-5" />
+                            </x-slot:icon>
+                        </x-empty>
+                    @endforelse
                 </div>
 
                 @if ($executions_count > 0)

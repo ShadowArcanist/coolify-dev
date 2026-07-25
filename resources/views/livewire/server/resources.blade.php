@@ -32,50 +32,47 @@
             @if ($activeTab === 'managed')
                 @php($managedResources = $server->definedResources()->sortBy('name', SORT_NATURAL))
                 @if ($managedResources->count() > 0)
-                    <div class="overflow-x-auto">
-                        <table class="w-full min-w-[780px] text-left">
-                            <thead>
-                                <tr
-                                    class="border-b border-neutral-200 bg-neutral-50/80 dark:border-white/[0.08] dark:bg-white/[0.025]">
-                                    @foreach (['Name', 'Project', 'Environment', 'Type', 'Status'] as $heading)
-                                        <th
-                                            class="px-4 py-2.5 text-xs font-medium text-neutral-500 dark:text-fg-dim">
-                                            {{ $heading }}
-                                        </th>
-                                    @endforeach
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($managedResources as $resource)
-                                    @php($resourceStatus = (string) data_get($resource, 'status', 'unknown'))
-                                    <tr
-                                        class="border-b border-neutral-200 last:border-b-0 hover:bg-neutral-50 dark:border-white/[0.08] dark:hover:bg-white/[0.025]">
-                                        <td class="px-4 py-3">
-                                            <a class="inline-flex items-center gap-1 text-sm font-medium text-neutral-950 hover:underline dark:text-fg"
-                                                {{ wireNavigate() }} href="{{ $resource->link() }}">
-                                                {{ $resource->name }}
-                                                <x-internal-link />
-                                            </a>
-                                        </td>
-                                        <td class="px-4 py-3 text-sm text-neutral-600 dark:text-fg-dim">
-                                            {{ data_get($resource->project(), 'name') }}
-                                        </td>
-                                        <td class="px-4 py-3 text-sm text-neutral-600 dark:text-fg-dim">
-                                            {{ data_get($resource, 'environment.name') }}
-                                        </td>
-                                        <td class="px-4 py-3 text-sm text-neutral-600 dark:text-fg-dim">
-                                            {{ str($resource->type())->headline() }}
-                                        </td>
-                                        <td class="px-4 py-3">
-                                            <x-status-badge :status="str($resourceStatus)->headline()"
-                                                :type="str($resourceStatus)->contains('running')
-                                                    ? 'success'
-                                                    : (str($resourceStatus)->contains(['failed', 'exited']) ? 'error' : 'neutral')" />
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                    <div class="data-table">
+                        <div class="data-table-header server-resources-managed-table-grid">
+                            <span>Name</span>
+                            <span>Project</span>
+                            <span>Environment</span>
+                            <span>Type</span>
+                            <span>Status</span>
+                        </div>
+                        @foreach ($managedResources as $resource)
+                            @php($resourceStatus = (string) data_get($resource, 'status', 'unknown'))
+                            <div
+                                class="data-table-row server-resources-managed-table-grid border-b border-neutral-200 last:border-b-0 dark:border-white/[0.08]">
+                                <div class="min-w-0">
+                                    <a class="inline-flex max-w-full items-center gap-1 truncate text-[12px] font-medium text-neutral-950 hover:underline dark:text-fg"
+                                        {{ wireNavigate() }} href="{{ $resource->link() }}">
+                                        <span class="truncate">{{ $resource->name }}</span>
+                                        <x-internal-link />
+                                    </a>
+                                </div>
+                                <div class="truncate text-[11px] text-neutral-600 dark:text-fg-dim">
+                                    {{ data_get($resource->project(), 'name') }}
+                                </div>
+                                <div class="truncate text-[11px] text-neutral-600 dark:text-fg-dim">
+                                    {{ data_get($resource, 'environment.name') }}
+                                </div>
+                                <div class="text-[11px] text-neutral-600 dark:text-fg-dim">
+                                    {{ str($resource->type())->headline() }}
+                                </div>
+                                <div>
+                                    <x-status-badge :status="str($resourceStatus)->headline()"
+                                        :type="str($resourceStatus)->contains('running')
+                                            ? 'success'
+                                            : (str($resourceStatus)->contains(['failed', 'exited']) ? 'error' : 'neutral')" />
+                                </div>
+                            </div>
+                        @endforeach
+                        <div
+                            class="flex min-h-11 items-center border-t border-neutral-200 px-4 text-[11px] text-neutral-500 dark:border-white/[0.08] dark:text-fg-faint">
+                            {{ $managedResources->count() }}
+                            {{ Str::plural('managed resource', $managedResources->count()) }}
+                        </div>
                     </div>
                 @else
                     <div class="p-6">
@@ -89,69 +86,63 @@
                 @endif
             @else
                 @if (count($unmanagedContainers) > 0)
-                    <div class="overflow-x-auto">
-                        <table class="w-full min-w-[680px] text-left">
-                            <thead>
-                                <tr
-                                    class="border-b border-neutral-200 bg-neutral-50/80 dark:border-white/[0.08] dark:bg-white/[0.025]">
-                                    @foreach (['Name', 'Image', 'Status', 'Actions'] as $heading)
-                                        <th
-                                            class="px-4 py-2.5 text-xs font-medium text-neutral-500 dark:text-fg-dim">
-                                            {{ $heading }}
-                                        </th>
-                                    @endforeach
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (collect($unmanagedContainers)->sortBy('name', SORT_NATURAL) as $resource)
-                                    @php($containerState = (string) data_get($resource, 'State', 'unknown'))
-                                    <tr
-                                        class="border-b border-neutral-200 last:border-b-0 hover:bg-neutral-50 dark:border-white/[0.08] dark:hover:bg-white/[0.025]">
-                                        <td class="px-4 py-3 font-mono text-sm text-neutral-950 dark:text-fg">
-                                            {{ data_get($resource, 'Names') }}
-                                        </td>
-                                        <td
-                                            class="max-w-sm truncate px-4 py-3 font-mono text-xs text-neutral-600 dark:text-fg-dim">
-                                            {{ data_get($resource, 'Image') }}
-                                        </td>
-                                        <td class="px-4 py-3">
-                                            <x-status-badge :status="str($containerState)->headline()"
-                                                :type="$containerState === 'running'
-                                                    ? 'success'
-                                                    : ($containerState === 'exited' ? 'error' : 'warning')" />
-                                        </td>
-                                        <td class="px-4 py-3">
-                                            <div class="flex items-center gap-2">
-                                                @if ($containerState === 'running')
-                                                    <x-forms.button canGate="update" :canResource="$server"
-                                                        wire:click="restartUnmanaged('{{ data_get($resource, 'ID') }}')"
-                                                        wire:key="restart-{{ data_get($resource, 'ID') }}">
-                                                        Restart
-                                                    </x-forms.button>
-                                                    <x-forms.button canGate="update" :canResource="$server" isError
-                                                        wire:click="stopUnmanaged('{{ data_get($resource, 'ID') }}')"
-                                                        wire:key="stop-{{ data_get($resource, 'ID') }}">
-                                                        Stop
-                                                    </x-forms.button>
-                                                @elseif ($containerState === 'exited')
-                                                    <x-forms.button canGate="update" :canResource="$server"
-                                                        wire:click="startUnmanaged('{{ data_get($resource, 'ID') }}')"
-                                                        wire:key="start-{{ data_get($resource, 'ID') }}">
-                                                        Start
-                                                    </x-forms.button>
-                                                @elseif ($containerState === 'restarting')
-                                                    <x-forms.button canGate="update" :canResource="$server"
-                                                        wire:click="stopUnmanaged('{{ data_get($resource, 'ID') }}')"
-                                                        wire:key="stop-restarting-{{ data_get($resource, 'ID') }}">
-                                                        Stop
-                                                    </x-forms.button>
-                                                @endif
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                    @php($sortedUnmanagedContainers = collect($unmanagedContainers)->sortBy('name', SORT_NATURAL))
+                    <div class="data-table">
+                        <div class="data-table-header server-resources-unmanaged-table-grid">
+                            <span>Name</span>
+                            <span>Image</span>
+                            <span>Status</span>
+                            <span>Actions</span>
+                        </div>
+                        @foreach ($sortedUnmanagedContainers as $resource)
+                            @php($containerState = (string) data_get($resource, 'State', 'unknown'))
+                            <div
+                                class="data-table-row server-resources-unmanaged-table-grid border-b border-neutral-200 last:border-b-0 dark:border-white/[0.08]">
+                                <div class="truncate font-mono text-[12px] text-neutral-950 dark:text-fg">
+                                    {{ data_get($resource, 'Names') }}
+                                </div>
+                                <div class="min-w-0 truncate font-mono text-[11px] text-neutral-600 dark:text-fg-dim">
+                                    {{ data_get($resource, 'Image') }}
+                                </div>
+                                <div>
+                                    <x-status-badge :status="str($containerState)->headline()"
+                                        :type="$containerState === 'running'
+                                            ? 'success'
+                                            : ($containerState === 'exited' ? 'error' : 'warning')" />
+                                </div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    @if ($containerState === 'running')
+                                        <x-forms.button canGate="update" :canResource="$server"
+                                            wire:click="restartUnmanaged('{{ data_get($resource, 'ID') }}')"
+                                            wire:key="restart-{{ data_get($resource, 'ID') }}">
+                                            Restart
+                                        </x-forms.button>
+                                        <x-forms.button canGate="update" :canResource="$server" isError
+                                            wire:click="stopUnmanaged('{{ data_get($resource, 'ID') }}')"
+                                            wire:key="stop-{{ data_get($resource, 'ID') }}">
+                                            Stop
+                                        </x-forms.button>
+                                    @elseif ($containerState === 'exited')
+                                        <x-forms.button canGate="update" :canResource="$server"
+                                            wire:click="startUnmanaged('{{ data_get($resource, 'ID') }}')"
+                                            wire:key="start-{{ data_get($resource, 'ID') }}">
+                                            Start
+                                        </x-forms.button>
+                                    @elseif ($containerState === 'restarting')
+                                        <x-forms.button canGate="update" :canResource="$server"
+                                            wire:click="stopUnmanaged('{{ data_get($resource, 'ID') }}')"
+                                            wire:key="stop-restarting-{{ data_get($resource, 'ID') }}">
+                                            Stop
+                                        </x-forms.button>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                        <div
+                            class="flex min-h-11 items-center border-t border-neutral-200 px-4 text-[11px] text-neutral-500 dark:border-white/[0.08] dark:text-fg-faint">
+                            {{ $sortedUnmanagedContainers->count() }}
+                            {{ Str::plural('unmanaged container', $sortedUnmanagedContainers->count()) }}
+                        </div>
                     </div>
                 @else
                     <div class="p-6">

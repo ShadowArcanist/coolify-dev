@@ -550,6 +550,7 @@ section {
 /* Layer card header: compact strip on the shell, subtle title color */
 .application-settings-section > header {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
@@ -888,6 +889,38 @@ section {
     grid-template-columns: 9rem 7rem minmax(10rem, 1fr) minmax(12rem, 1.4fr);
 }
 
+.server-resources-managed-table-grid {
+    grid-template-columns: minmax(10rem, 1.3fr) minmax(8rem, 1fr) minmax(8rem, 1fr) 8rem 9.5rem;
+}
+
+.server-resources-unmanaged-table-grid {
+    grid-template-columns: minmax(9rem, 1fr) minmax(12rem, 1.5fr) 7rem minmax(9rem, auto);
+}
+
+.package-updates-table-grid {
+    grid-template-columns: minmax(12rem, 1.4fr) minmax(10rem, 1fr) 6rem;
+}
+
+.scheduled-backups-table-grid {
+    grid-template-columns: minmax(10rem, 1.25fr) 8rem minmax(9rem, 1fr) 6rem 5rem;
+}
+
+.backup-executions-table-grid {
+    grid-template-columns: 7.5rem minmax(9rem, 1fr) 8rem 6rem 5rem minmax(9rem, 1fr) minmax(9rem, auto);
+}
+
+.clone-destinations-table-grid {
+    grid-template-columns: 2rem minmax(10rem, 1fr) minmax(10rem, 1fr);
+}
+
+.clone-resources-table-grid {
+    grid-template-columns: minmax(10rem, 1fr) 7rem minmax(12rem, 1.5fr);
+}
+
+.admin-search-table-grid {
+    grid-template-columns: minmax(10rem, 1fr) minmax(12rem, 1.2fr) 8rem 7rem;
+}
+
 @media (max-width: 900px) {
     .backup-table-grid {
         grid-template-columns: minmax(10rem, 1.5fr) 6rem 7.5rem minmax(8rem, 1fr) 1.5rem;
@@ -932,9 +965,30 @@ section {
     .scheduled-executions-table-grid > :nth-child(5) {
         display: none;
     }
+
+    .server-resources-managed-table-grid {
+        grid-template-columns: minmax(9rem, 1fr) minmax(8rem, 0.8fr) 8rem 9.5rem;
+    }
+
+    .server-resources-managed-table-grid > :nth-child(3) {
+        display: none;
+    }
+
+    .backup-executions-table-grid {
+        grid-template-columns: 7.5rem minmax(9rem, 1fr) 8rem 6rem minmax(9rem, auto);
+    }
+
+    .backup-executions-table-grid > :nth-child(5),
+    .backup-executions-table-grid > :nth-child(6) {
+        display: none;
+    }
 }
 
 @media (max-width: 640px) {
+    .application-settings-section > header > :nth-child(2) {
+        width: 100%;
+    }
+
     .backup-table-grid {
         grid-template-columns: minmax(0, 1fr) 7.5rem 1.5rem;
     }
@@ -1000,6 +1054,73 @@ section {
 
     .skipped-jobs-table-grid > :nth-child(2),
     .skipped-jobs-table-grid > :nth-child(4) {
+        display: none;
+    }
+
+    .server-resources-managed-table-grid {
+        grid-template-columns: minmax(0, 1fr) 8rem 9.5rem;
+    }
+
+    .server-resources-managed-table-grid > :nth-child(2) {
+        display: none;
+    }
+
+    .server-resources-unmanaged-table-grid {
+        grid-template-columns: minmax(0, 1fr) 7rem minmax(5rem, auto);
+    }
+
+    .server-resources-unmanaged-table-grid > :nth-child(2) {
+        display: none;
+    }
+
+    .package-updates-table-grid {
+        grid-template-columns: minmax(0, 1fr) 5rem;
+    }
+
+    .package-updates-table-grid > :nth-child(2) {
+        display: none;
+    }
+
+    .scheduled-backups-table-grid {
+        grid-template-columns: minmax(0, 1fr) 8rem 5rem;
+    }
+
+    .scheduled-backups-table-grid > :nth-child(3),
+    .scheduled-backups-table-grid > :nth-child(4) {
+        display: none;
+    }
+
+    .backup-executions-table-grid {
+        grid-template-columns: 7.5rem minmax(0, 1fr) minmax(7rem, auto);
+    }
+
+    .backup-executions-table-grid > :nth-child(3),
+    .backup-executions-table-grid > :nth-child(4) {
+        display: none;
+    }
+
+    .clone-destinations-table-grid {
+        grid-template-columns: 2rem minmax(0, 1fr);
+    }
+
+    .clone-destinations-table-grid > :nth-child(3) {
+        display: none;
+    }
+
+    .clone-resources-table-grid {
+        grid-template-columns: minmax(0, 1fr) 7rem;
+    }
+
+    .clone-resources-table-grid > :nth-child(3) {
+        display: none;
+    }
+
+    .admin-search-table-grid {
+        grid-template-columns: minmax(0, 1fr) 7rem;
+    }
+
+    .admin-search-table-grid > :nth-child(2),
+    .admin-search-table-grid > :nth-child(3) {
         display: none;
     }
 }
