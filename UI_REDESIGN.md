@@ -139,6 +139,13 @@ layer-2 bar on another. Active tabs are a light brand fill:
 Keep route-derived active state in Blade/Livewire. Do not rely only on Alpine
 state because it can disappear after polling or a Livewire morph.
 
+The global topbar owns the current resource identity and its compact status
+badges. Layer 2 owns route tabs, resource links, and contextual action buttons
+only. If a resource is missing from `x-top-breadcrumb`, extend the global
+topbar instead of repeating its name or status summary in layer 2. Mobile
+resource navigation may repeat this context because the desktop global topbar
+is hidden there.
+
 ### Settings workspace
 
 Application and server configuration pages use the same 210px grouped,
