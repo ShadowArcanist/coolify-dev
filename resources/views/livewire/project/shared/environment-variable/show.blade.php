@@ -9,7 +9,9 @@
     $showRuntime = !$is_redis_credential && !$isMagicVariable && !$isSharedVariable;
 @endphp
 <div class="env-table-item"
-    x-show="typeof envFilter === 'undefined' || envFilter === 'all' || envFilter === '{{ $rowScope }}'">
+    @if ($isSharedVariable) :style="`order: ${sharedSort === 'alphabetical' ? {{ $tableAlphabeticalOrder }} : {{ $tableCreationOrder }}}`" @endif
+    x-show="(typeof envFilter === 'undefined' || envFilter === 'all' || envFilter === '{{ $rowScope }}')
+        && (typeof sharedSearch === 'undefined' || @js(mb_strtolower($env->key . ' ' . ($comment ?? '') . ' ' . $rowScopeLabel)).includes(sharedSearch.trim().toLowerCase()))">
     <div class="data-table-row env-table-grid">
         <div class="flex min-w-0 items-center gap-2">
             @if ($isLocked)

@@ -5,6 +5,9 @@
 
     <x-dashboard.navbar section="shared-variables" />
 
+    <div class="w-full max-w-[930px]">
+        <h1 class="mb-5 text-[24px]! leading-7! font-semibold! tracking-tight!">Server variables</h1>
+
     @if ($servers->isEmpty())
         <div
             class="flex min-h-80 flex-col items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-neutral-50 px-6 text-center dark:border-white/[0.1] dark:bg-white/[0.02]">
@@ -47,4 +50,5 @@
             @endforeach
         </div>
     @endif
+    </div>
 </div>

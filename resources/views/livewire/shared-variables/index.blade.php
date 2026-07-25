@@ -5,6 +5,9 @@
 
     <x-dashboard.navbar section="shared-variables" />
 
+    <div class="w-full max-w-[930px]">
+        <h1 class="mb-5 text-[24px]! leading-7! font-semibold! tracking-tight!">Shared variables</h1>
+
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <a class="group flex min-h-32 flex-col rounded-xl border border-neutral-200 bg-white p-3 shadow-sm transition-all hover:-translate-y-px hover:border-neutral-300 hover:no-underline hover:shadow-md dark:border-white/[0.08] dark:bg-white/[0.025] dark:hover:border-white/[0.14]"
             href="{{ route('shared-variables.team.index') }}" {{ wireNavigate() }}>
@@ -61,5 +64,6 @@
                 </p>
             </div>
         </a>
+    </div>
     </div>
 </div>
