@@ -34,12 +34,15 @@
         $canCreateServer = auth()->user()->can('create', App\Models\Server::class);
     @endphp
 
-    <header class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <x-dashboard.navbar section="workspace">
+        <x-slot:actions>
+            <div id="dashboard-create-action"></div>
+        </x-slot:actions>
+    </x-dashboard.navbar>
+
+    <header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div class="min-w-0">
-            <h1 class="text-[24px]! leading-7! font-semibold! text-black dark:text-white">
-                Dashboard
-            </h1>
-            <p class="mt-1 text-[13px] text-neutral-500 dark:text-fg-dim">
+            <p class="text-[12px] text-neutral-500 dark:text-fg-dim">
                 {{ $totalResourceCount }} {{ str('resource')->plural($totalResourceCount) }}
                 across {{ $projects->count() }} {{ str('project')->plural($projects->count()) }}
                 <span class="px-1 text-neutral-300 dark:text-white/15">·</span>
@@ -49,20 +52,21 @@
         </div>
 
         @if ($canCreateProject || $canCreateServer)
-            <x-modal-input title="Create new">
-                <x-slot:content>
-                    <button type="button"
-                        class="button bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!">
-                        <x-reicon name="plus" class="size-3.5" />
-                        New
-                    </button>
-                </x-slot:content>
+            @teleport('#dashboard-create-action')
+                <x-modal-input title="Create new">
+                    <x-slot:content>
+                        <button type="button"
+                            class="button bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!">
+                            <x-reicon name="plus" class="size-3.5" />
+                            New
+                        </button>
+                    </x-slot:content>
 
-                <div x-data="{ createType: 'choose' }">
-                    <div x-show="createType === 'choose'">
-                        <p class="mb-4 text-[13px] text-neutral-500 dark:text-fg-dim">
-                            What would you like to create?
-                        </p>
+                    <div x-data="{ createType: 'choose' }">
+                        <div x-show="createType === 'choose'">
+                            <p class="mb-4 text-[13px] text-neutral-500 dark:text-fg-dim">
+                                What would you like to create?
+                            </p>
 
                         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             @if ($canCreateProject)
@@ -148,8 +152,9 @@
                             <livewire:security.private-key.create from="server" />
                         </div>
                     @endif
-                </div>
-            </x-modal-input>
+                    </div>
+                </x-modal-input>
+            @endteleport
         @endif
     </header>
 

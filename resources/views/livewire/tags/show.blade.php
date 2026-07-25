@@ -3,12 +3,7 @@
         Tags | Coolify
     </x-slot>
 
-    <header class="mb-8">
-        <h1 class="text-[24px]! leading-7! font-semibold!">Tags</h1>
-        <p class="mt-1 text-[13px] text-neutral-500 dark:text-fg-dim">
-            Group resources and run actions across them together.
-        </p>
-    </header>
+    <x-dashboard.navbar section="manage" />
 
     @if ($tags->isEmpty())
         <div

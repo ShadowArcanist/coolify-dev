@@ -4,28 +4,22 @@
     </x-slot>
 
     <div x-data="projectsIndex()" class="w-full">
-        <header class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div class="min-w-0">
-                <h1 class="text-[24px]! leading-7! font-semibold!">Projects</h1>
-                <p class="mt-1 text-[13px] text-neutral-500 dark:text-fg-dim">
-                    <span x-text="`${projects.length} ${projects.length === 1 ? 'project' : 'projects'}`"></span>
-                    in your team
-                </p>
-            </div>
-
-            @can('createAnyResource')
-                <x-modal-input title="New Project">
-                    <x-slot:content>
-                        <button type="button"
-                            class="button bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!">
-                            <x-reicon name="plus" class="size-3.5" />
-                            New project
-                        </button>
-                    </x-slot:content>
-                    <livewire:project.add-empty />
-                </x-modal-input>
-            @endcan
-        </header>
+        <x-dashboard.navbar section="workspace">
+            <x-slot:actions>
+                @can('createAnyResource')
+                    <x-modal-input title="New Project">
+                        <x-slot:content>
+                            <button type="button"
+                                class="button bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!">
+                                <x-reicon name="plus" class="size-3.5" />
+                                New project
+                            </button>
+                        </x-slot:content>
+                        <livewire:project.add-empty />
+                    </x-modal-input>
+                @endcan
+            </x-slot:actions>
+        </x-dashboard.navbar>
 
         @if ($projects->isEmpty())
             <div

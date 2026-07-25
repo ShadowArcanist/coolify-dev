@@ -10,12 +10,35 @@
     $currentApplication = $currentEnvironment && $applicationUuid
         ? $currentEnvironment->applications()->where('uuid', $applicationUuid)->first()
         : null;
+    $dashboardContext = match (true) {
+        request()->routeIs('dashboard') => 'Dashboard',
+        request()->routeIs('project.index') => 'Projects',
+        request()->routeIs('terminal') => 'Terminal',
+        request()->routeIs('server.*') => 'Servers',
+        request()->routeIs('source.*') => 'Sources',
+        request()->routeIs('destination.*') => 'Destinations',
+        request()->routeIs('storage.*') => 'S3 Storage',
+        request()->routeIs('shared-variables.*') => 'Shared Variables',
+        request()->routeIs('team.*') => 'Team',
+        request()->routeIs('notifications.*') => 'Notifications',
+        request()->routeIs('security.*') => 'Keys & Tokens',
+        request()->routeIs('tags.*') => 'Tags',
+        request()->routeIs('settings.*') => 'Settings',
+        default => null,
+    };
 @endphp
 <div class="flex items-center gap-0.5 min-w-0 text-[13px]">
     {{-- Team --}}
     <div class="shrink-0" x-data="{ collapsed: false }">
         <livewire:switch-team />
     </div>
+
+    @if (!$currentProject && $dashboardContext)
+        <span class="shrink-0 px-0.5 text-neutral-300 dark:text-fg-faint">/</span>
+        <span class="min-w-0 truncate px-2 font-semibold text-black dark:text-fg">
+            {{ $dashboardContext }}
+        </span>
+    @endif
 
     @if ($currentProject)
         <span class="shrink-0 text-neutral-300 dark:text-fg-faint px-0.5">/</span>

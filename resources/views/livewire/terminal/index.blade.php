@@ -3,16 +3,7 @@
         Terminal | Coolify
     </x-slot>
 
-    <header class="mb-8">
-        <div class="flex items-center gap-2">
-            <h1 class="text-[24px]! leading-7! font-semibold!">Terminal</h1>
-            <x-helper
-                helper="If you are having trouble connecting to your server, make sure that the terminal port is open.<br><br><a class='underline' href='https://coolify.io/docs/knowledge-base/server/firewall/#terminal' target='_blank'>Documentation</a>" />
-        </div>
-        <p class="mt-1 text-[13px] text-neutral-500 dark:text-fg-dim">
-            Open a browser shell on any accessible server or running container.
-        </p>
-    </header>
+    <x-dashboard.navbar section="workspace" />
 
     <div x-init="$wire.loadContainers()">
         @if ($isLoadingContainers)

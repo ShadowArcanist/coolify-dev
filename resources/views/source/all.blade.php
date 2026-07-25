@@ -3,27 +3,26 @@
         Sources | Coolify
     </x-slot>
 
-    <header class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div class="min-w-0">
-            <h1 class="text-[24px]! leading-7! font-semibold!">Sources</h1>
-            <p class="mt-1 text-[13px] text-neutral-500 dark:text-fg-dim">
-                {{ $sources->count() }} {{ Str::plural('Git source', $sources->count()) }} connected to your team
-            </p>
-        </div>
+    <x-dashboard.navbar section="infrastructure">
+        <x-slot:actions>
+            @can('createAnyResource')
+                <x-modal-input title="New GitHub App" :closeOutside="false">
+                    <x-slot:content>
+                        <button type="button"
+                            class="button bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!">
+                            <x-reicon name="plus" class="size-3.5" />
+                            New source
+                        </button>
+                    </x-slot:content>
+                    <livewire:source.github.create />
+                </x-modal-input>
+            @endcan
+        </x-slot:actions>
+    </x-dashboard.navbar>
 
-        @can('createAnyResource')
-            <x-modal-input title="New GitHub App" :closeOutside="false">
-                <x-slot:content>
-                    <button type="button"
-                        class="button bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!">
-                        <x-reicon name="plus" class="size-3.5" />
-                        New source
-                    </button>
-                </x-slot:content>
-                <livewire:source.github.create />
-            </x-modal-input>
-        @endcan
-    </header>
+    <div class="mb-4 text-[11px] text-neutral-500 dark:text-fg-faint">
+        {{ $sources->count() }} {{ Str::plural('Git source', $sources->count()) }} connected to your team
+    </div>
 
     @if ($sources->isEmpty())
         <div
