@@ -860,6 +860,10 @@ section {
     grid-template-columns: 7.5rem minmax(7rem, 0.8fr) minmax(12rem, 1.7fr) minmax(8rem, 0.9fr) 6.5rem minmax(7rem, 0.8fr) 1.5rem;
 }
 
+.dashboard-deployment-table-grid {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(6.25rem, 0.75fr) 10rem 8rem 1rem;
+}
+
 @media (max-width: 900px) {
     .backup-table-grid {
         grid-template-columns: minmax(10rem, 1.5fr) 6rem 7.5rem minmax(8rem, 1fr) 1.5rem;

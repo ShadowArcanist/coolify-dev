@@ -30,7 +30,7 @@
             </div>
         @else
             <div
-                class="hidden grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(100px,0.75fr)_auto_minmax(105px,auto)_16px] items-center gap-4 border-b border-neutral-200 bg-neutral-50 px-4 py-2.5 text-[11px] font-medium text-neutral-500 md:grid dark:border-white/[0.08] dark:bg-white/[0.025] dark:text-fg-faint">
+                class="dashboard-deployment-table-grid hidden items-center gap-4 border-b border-neutral-200 bg-neutral-50 px-4 py-2.5 text-[11px] font-medium text-neutral-500 md:grid dark:border-white/[0.08] dark:bg-white/[0.025] dark:text-fg-faint">
                 <span>Application</span>
                 <span>Environment</span>
                 <span>Server</span>
@@ -50,7 +50,7 @@
 
                 <a wire:key="dashboard-deployment-{{ $deployment->deployment_uuid }}"
                     href="{{ $deployment->deployment_url }}" {{ wireNavigate() }}
-                    class="group block border-b border-neutral-200 px-4 py-3 transition-colors last:border-b-0 hover:bg-neutral-50 md:grid md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(100px,0.75fr)_auto_minmax(105px,auto)_16px] md:items-center md:gap-4 dark:border-white/[0.08] dark:hover:bg-white/[0.025]">
+                    class="dashboard-deployment-table-grid group block border-b border-neutral-200 px-4 py-3 transition-colors last:border-b-0 hover:bg-neutral-50 md:grid md:items-center md:gap-4 dark:border-white/[0.08] dark:hover:bg-white/[0.025]">
                     <div class="min-w-0">
                         <p class="truncate text-[13px] font-semibold text-black dark:text-fg">
                             {{ $deployment->application_name }}
@@ -71,7 +71,7 @@
                     <span class="hidden md:block">
                         <x-status-badge :status="$deploymentStatus" :type="$deploymentStatusType" />
                     </span>
-                    <p class="hidden text-[12px] text-neutral-500 md:block dark:text-fg-dim">
+                    <p class="hidden truncate text-[12px] text-neutral-500 md:block dark:text-fg-dim">
                         {{ $deployment->created_at?->diffForHumans() ?? '—' }}
                     </p>
                     <x-reicon name="arrow-right"
