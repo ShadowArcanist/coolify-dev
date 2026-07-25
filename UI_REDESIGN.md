@@ -149,7 +149,9 @@ is hidden there.
 The dashboard is a compact overview, not a metrics wall. Use two full-width
 sections that follow the projects-page grid pattern: projects first, then
 servers. Keep one `New` action in the page header and let its modal choose the
-resource type. Communicate server health with the shared status badge.
+resource type. Place active deployments above the resource grids as a compact,
+live-updating table rather than a metric card. Communicate server health with
+the shared status badge.
 
 ### Settings workspace
 
