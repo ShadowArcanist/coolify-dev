@@ -366,6 +366,12 @@ Boolean checkboxes should normally become descriptive two-option listboxes.
 Use `.live` behavior only when the selection needs an immediate server
 rerender.
 
+Keep checkboxes for compact permission matrices and multi-select lists. Those
+controls must use the shared `x-forms.checkbox` anatomy: an 18px rounded custom
+box, purple checked fill in light mode, yellow checked fill in dark mode, and a
+high-contrast check mark. Never expose the browser or Tailwind Forms default
+checkbox on a redesigned page.
+
 The popup panel uses a 10px radius around 6px options with a 4px inset. Keep
 the option content left-aligned and size the panel to its content or trigger;
 do not create an unnecessarily wide menu.
