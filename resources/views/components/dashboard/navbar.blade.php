@@ -40,6 +40,15 @@
                 'visible' => isInstanceAdmin(),
             ],
         ],
+        'profile' => [
+            ['label' => 'General', 'route' => 'profile', 'active' => request()->routeIs('profile')],
+            ['label' => 'Appearance', 'route' => 'profile.appearance', 'active' => request()->routeIs('profile.appearance')],
+        ],
+        'admin' => [
+            ['label' => 'Overview', 'route' => 'admin.index', 'active' => request()->routeIs('admin.index'), 'icon' => 'admin'],
+            ['label' => 'Settings', 'route' => 'settings.index', 'active' => false, 'icon' => 'settings'],
+            ['label' => 'Teams', 'route' => 'team.admin-view', 'active' => false, 'icon' => 'teams'],
+        ],
         'notifications' => [
             ['label' => 'Email', 'route' => 'notifications.email', 'active' => request()->routeIs('notifications.email')],
             ['label' => 'Discord', 'route' => 'notifications.discord', 'active' => request()->routeIs('notifications.discord')],

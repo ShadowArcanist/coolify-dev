@@ -24,6 +24,8 @@
         request()->routeIs('security.*') => 'Keys & Tokens',
         request()->routeIs('tags.*') => 'Tags',
         request()->routeIs('settings.*') => 'Settings',
+        request()->routeIs('profile*') => 'Profile',
+        request()->routeIs('admin.*') => 'Admin',
         default => null,
     };
 @endphp
