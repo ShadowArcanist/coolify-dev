@@ -125,14 +125,54 @@
 
             <x-application.settings-section title="Issued tokens"
                 description="Active API credentials created for this team." flush>
-                <div x-data="{ search: '' }">
+                <div x-data="{
+                    search: '',
+                    page: 1,
+                    perPage: 10,
+                    tokens: @js($tokens->map(fn ($token) => [
+                        'id' => (string) $token->id,
+                        'search' => strtolower($token->name . ' ' . implode(' ', $token->abilities ?? [])),
+                    ])->values()),
+                    get filteredTokens() {
+                        const query = this.search.trim().toLowerCase();
+
+                        return query
+                            ? this.tokens.filter(token => token.search.includes(query))
+                            : this.tokens;
+                    },
+                    get lastPage() {
+                        return Math.max(1, Math.ceil(this.filteredTokens.length / this.perPage));
+                    },
+                    get firstVisibleRow() {
+                        return this.filteredTokens.length === 0 ? 0 : ((this.page - 1) * this.perPage) + 1;
+                    },
+                    get lastVisibleRow() {
+                        return Math.min(this.page * this.perPage, this.filteredTokens.length);
+                    },
+                    isVisible(id) {
+                        const start = (this.page - 1) * this.perPage;
+
+                        return this.filteredTokens
+                            .slice(start, start + this.perPage)
+                            .some(token => token.id === String(id));
+                    },
+                    goToPage(page) {
+                        this.page = Math.min(Math.max(page, 1), this.lastPage);
+                    }
+                }">
                     @if ($tokens->count() > 1)
                         <div class="border-b border-neutral-200 p-3 dark:border-white/[0.08]">
                             <div class="relative max-w-sm">
                                 <x-reicon name="search"
-                                    class="pointer-events-none absolute top-1/2 left-2.5 z-10 size-3.5 -translate-y-1/2 text-neutral-400" />
-                                <input x-model="search" placeholder="Search tokens"
-                                    class="w-full pl-8! text-[12px]">
+                                    class="pointer-events-none absolute top-1/2 left-2.5 z-10 size-3.5 -translate-y-1/2 text-neutral-400 dark:text-fg-faint" />
+                                <input x-model.debounce.150ms="search" x-on:input="page = 1" type="search"
+                                    placeholder="Search tokens" aria-label="Search tokens"
+                                    class="h-8! w-full rounded-lg! border-neutral-200! bg-white! py-0! pr-8! pl-8! text-[12px]! shadow-none! placeholder:text-neutral-400 focus:border-neutral-300! focus:ring-0! dark:border-white/[0.08]! dark:bg-white/[0.035]! dark:text-fg! dark:placeholder:text-fg-faint">
+                                <button x-cloak x-show="search" x-on:click="search = ''; page = 1" type="button"
+                                    class="absolute top-1/2 right-2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-black dark:text-fg-faint dark:hover:bg-white/[0.07] dark:hover:text-fg"
+                                    aria-label="Clear search">
+                                    <x-reicon name="x" class="size-3" />
+                                </button>
                             </div>
                         </div>
                     @endif
@@ -145,71 +185,116 @@
                             </x-slot:icon>
                         </x-empty>
                     @else
-                        <div class="overflow-x-auto">
-                            <table class="w-full min-w-[860px]">
-                                <thead>
-                                    <tr>
-                                        <th class="px-4 py-2.5 text-left">Description</th>
-                                        <th class="px-4 py-2.5 text-left">Permissions</th>
-                                        <th class="px-4 py-2.5 text-left">Last used</th>
-                                        <th class="px-4 py-2.5 text-left">Created</th>
-                                        <th class="px-4 py-2.5 text-left">Expires</th>
-                                        <th class="px-4 py-2.5 text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($tokens as $token)
-                                        <tr wire:key="api-token-{{ $token->id }}"
-                                            x-show="!search || @js(strtolower($token->name) . ' ' . strtolower(implode(' ', $token->abilities ?? []))).includes(search.toLowerCase())"
-                                            class="border-t border-neutral-200 dark:border-white/[0.07]">
-                                            <td class="px-4 py-3 text-[12px] font-medium text-black dark:text-fg">
-                                                {{ $token->name }}
-                                            </td>
-                                            <td class="px-4 py-3">
-                                                <div class="flex flex-wrap gap-1">
-                                                    @foreach ($token->abilities ?? [] as $ability)
-                                                        <span @class([
-                                                            'rounded-full px-2 py-0.5 text-[10px] font-medium',
-                                                            'bg-error/10 text-error' => $ability === 'root',
-                                                            'bg-warning/10 text-warning' => in_array($ability, ['write', 'write:sensitive']),
-                                                            'bg-coollabs/10 text-coollabs dark:bg-warning/10 dark:text-warning' => $ability === 'deploy',
-                                                            'bg-neutral-100 text-neutral-600 dark:bg-white/[0.06] dark:text-fg-dim' => in_array($ability, ['read', 'read:sensitive']),
-                                                        ])>{{ $ability }}</span>
-                                                    @endforeach
-                                                </div>
-                                            </td>
-                                            <td class="px-4 py-3 text-[11px] text-neutral-500 dark:text-fg-dim">
-                                                {{ $token->last_used_at?->diffForHumans() ?? 'Never' }}
-                                            </td>
-                                            <td class="px-4 py-3 text-[11px] text-neutral-500 dark:text-fg-dim">
-                                                {{ $token->created_at->format('Y-m-d') }}
-                                            </td>
-                                            <td class="px-4 py-3 text-[11px] text-neutral-500 dark:text-fg-dim">
-                                                @if (!$token->expires_at)
-                                                    Never
-                                                @elseif ($token->expires_at->isPast())
-                                                    <x-status-badge label="Expired" type="error" />
-                                                @else
-                                                    {{ $token->expires_at->format('Y-m-d') }}
-                                                @endif
-                                            </td>
-                                            <td class="px-4 py-3 text-right">
-                                                @if (auth()->id() === $token->tokenable_id)
-                                                    <x-modal-confirmation title="Confirm API Token Revocation?"
-                                                        isErrorButton buttonTitle="Revoke"
-                                                        submitAction="revoke({{ $token->id }})" :actions="[
-                                                            'This API token will be permanently revoked.',
-                                                        ]"
-                                                        confirmationText="{{ $token->name }}"
-                                                        confirmationLabel="Enter the token description to confirm"
-                                                        shortConfirmationLabel="Token description"
-                                                        :confirmWithPassword="false" step2ButtonText="Revoke token" />
-                                                @endif
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
+                        <div x-cloak x-show="filteredTokens.length > 0" class="data-table">
+                            <div class="data-table-header api-tokens-table-grid">
+                                <span>Description</span>
+                                <span>Permissions</span>
+                                <span>Last used</span>
+                                <span>Created</span>
+                                <span>Expires</span>
+                                <span class="text-right">Actions</span>
+                            </div>
+                            @foreach ($tokens as $token)
+                                <div wire:key="api-token-{{ $token->id }}"
+                                    x-show="isVisible(@js((string) $token->id))"
+                                    class="data-table-row api-tokens-table-grid border-b border-neutral-200 last:border-b-0 dark:border-white/[0.07]">
+                                    <div class="min-w-0 truncate text-[12px] font-medium text-black dark:text-fg">
+                                        {{ $token->name }}
+                                    </div>
+                                    <div class="flex min-w-0 flex-wrap gap-1">
+                                        @foreach ($token->abilities ?? [] as $ability)
+                                            <span @class([
+                                                'rounded-full px-2 py-0.5 text-[10px] font-medium',
+                                                'bg-error/10 text-error' => $ability === 'root',
+                                                'bg-warning/10 text-warning' => in_array($ability, ['write', 'write:sensitive']),
+                                                'bg-coollabs/10 text-coollabs dark:bg-warning/10 dark:text-warning' => $ability === 'deploy',
+                                                'bg-neutral-100 text-neutral-600 dark:bg-white/[0.06] dark:text-fg-dim' => in_array($ability, ['read', 'read:sensitive']),
+                                            ])>{{ $ability }}</span>
+                                        @endforeach
+                                    </div>
+                                    <div class="text-[11px] text-neutral-500 dark:text-fg-dim">
+                                        {{ $token->last_used_at?->diffForHumans() ?? 'Never' }}
+                                    </div>
+                                    <div class="text-[11px] text-neutral-500 dark:text-fg-dim">
+                                        {{ $token->created_at->format('Y-m-d') }}
+                                    </div>
+                                    <div class="text-[11px] text-neutral-500 dark:text-fg-dim">
+                                        @if (!$token->expires_at)
+                                            Never
+                                        @elseif ($token->expires_at->isPast())
+                                            <x-status-badge label="Expired" type="error" />
+                                        @else
+                                            {{ $token->expires_at->format('Y-m-d') }}
+                                        @endif
+                                    </div>
+                                    <div class="flex justify-end">
+                                        @if (auth()->id() === $token->tokenable_id)
+                                            <x-modal-confirmation title="Confirm API Token Revocation?"
+                                                isErrorButton buttonTitle="Revoke"
+                                                submitAction="revoke({{ $token->id }})" :actions="[
+                                                    'This API token will be permanently revoked.',
+                                                ]"
+                                                confirmationText="{{ $token->name }}"
+                                                confirmationLabel="Enter the token description to confirm"
+                                                shortConfirmationLabel="Token description"
+                                                :confirmWithPassword="false" step2ButtonText="Revoke token" />
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <div x-cloak x-show="filteredTokens.length === 0">
+                            <x-empty size="sm" title="No matching tokens"
+                                description="Try a different description or permission." />
+                        </div>
+
+                        <div x-cloak x-show="filteredTokens.length > 0"
+                            class="flex min-h-14 items-center justify-between gap-3 border-t border-neutral-200 px-4 py-3 dark:border-white/[0.08]">
+                            <p class="text-[13px] text-neutral-500 dark:text-fg-dim">
+                                Showing
+                                <span class="tabular-nums text-black dark:text-fg"
+                                    x-text="`${firstVisibleRow}–${lastVisibleRow}`"></span>
+                                of
+                                <span class="tabular-nums text-black dark:text-fg"
+                                    x-text="filteredTokens.length"></span>
+                            </p>
+                            <div
+                                class="inline-flex h-8 overflow-hidden rounded-lg border border-neutral-200 dark:border-white/[0.10]">
+                                <button type="button"
+                                    class="flex w-10 items-center justify-center border-r border-neutral-200 text-neutral-500 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-35 dark:border-white/[0.10] dark:text-fg-dim dark:hover:bg-white/[0.06]"
+                                    aria-label="First page" title="First page" x-on:click="goToPage(1)"
+                                    x-bind:disabled="page === 1">
+                                    <svg class="size-3.5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <path d="M18 6L12 12L18 18M11 6L5 12L11 18" stroke="currentColor"
+                                            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                </button>
+                                <button type="button"
+                                    class="flex w-10 items-center justify-center border-r border-neutral-200 text-neutral-500 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-35 dark:border-white/[0.10] dark:text-fg-dim dark:hover:bg-white/[0.06]"
+                                    aria-label="Previous page" title="Previous page"
+                                    x-on:click="goToPage(page - 1)" x-bind:disabled="page === 1">
+                                    <x-reicon name="arrow-right" class="size-3.5 rotate-180" />
+                                </button>
+                                <span
+                                    class="flex min-w-10 items-center justify-center border-r border-neutral-200 px-3 text-[12px] font-medium tabular-nums text-black dark:border-white/[0.10] dark:text-fg"
+                                    x-text="page"></span>
+                                <button type="button"
+                                    class="flex w-10 items-center justify-center border-r border-neutral-200 text-neutral-500 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-35 dark:border-white/[0.10] dark:text-fg-dim dark:hover:bg-white/[0.06]"
+                                    aria-label="Next page" title="Next page" x-on:click="goToPage(page + 1)"
+                                    x-bind:disabled="page === lastPage">
+                                    <x-reicon name="arrow-right" class="size-3.5" />
+                                </button>
+                                <button type="button"
+                                    class="flex w-10 items-center justify-center text-neutral-500 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-35 dark:text-fg-dim dark:hover:bg-white/[0.06]"
+                                    aria-label="Last page" title="Last page" x-on:click="goToPage(lastPage)"
+                                    x-bind:disabled="page === lastPage">
+                                    <svg class="size-3.5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <path d="M6 6L12 12L6 18M13 6L19 12L13 18" stroke="currentColor"
+                                            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     @endif
                 </div>

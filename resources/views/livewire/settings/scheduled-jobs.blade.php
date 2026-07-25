@@ -72,67 +72,92 @@
                         </x-slot:icon>
                     </x-empty>
                 @else
-                    <div class="overflow-x-auto">
-                        <table class="w-full min-w-[860px]">
-                            <thead>
-                                <tr>
-                                    <th class="px-4 py-2.5 text-left">Type</th>
-                                    <th class="px-4 py-2.5 text-left">Resource</th>
-                                    <th class="px-4 py-2.5 text-left">Server</th>
-                                    <th class="px-4 py-2.5 text-left">Started</th>
-                                    <th class="px-4 py-2.5 text-left">Duration</th>
-                                    <th class="px-4 py-2.5 text-left">Message</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($executions as $execution)
-                                    @php
-                                        $typeLabel = match ($execution['type']) {
-                                            'backup' => 'Backup',
-                                            'task' => 'Task',
-                                            'cleanup' => 'Cleanup',
-                                            default => ucfirst($execution['type']),
-                                        };
-                                    @endphp
-                                    <tr wire:key="exec-{{ $execution['type'] }}-{{ $execution['id'] }}"
-                                        class="border-t border-neutral-200 hover:bg-neutral-50 dark:border-white/[0.07] dark:hover:bg-white/[0.025]">
-                                        <td class="px-4 py-3">
-                                            <span
-                                                class="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium text-neutral-600 dark:bg-white/[0.06] dark:text-fg-dim">
-                                                {{ $typeLabel }}
+                    <div x-data="{
+                        page: 1,
+                        perPage: 10,
+                        total: {{ $executions->count() }},
+                        get lastPage() { return Math.max(1, Math.ceil(this.total / this.perPage)); },
+                        get firstVisibleRow() { return ((this.page - 1) * this.perPage) + 1; },
+                        get lastVisibleRow() { return Math.min(this.page * this.perPage, this.total); },
+                        goToPage(page) { this.page = Math.min(Math.max(page, 1), this.lastPage); }
+                    }">
+                        <div class="data-table">
+                            <div class="data-table-header scheduled-executions-table-grid">
+                                <span>Type</span>
+                                <span>Resource</span>
+                                <span>Server</span>
+                                <span>Started</span>
+                                <span>Duration</span>
+                                <span>Message</span>
+                            </div>
+                            @foreach ($executions as $execution)
+                                @php
+                                    $typeLabel = match ($execution['type']) {
+                                        'backup' => 'Backup',
+                                        'task' => 'Task',
+                                        'cleanup' => 'Cleanup',
+                                        default => ucfirst($execution['type']),
+                                    };
+                                @endphp
+                                <div wire:key="exec-{{ $execution['type'] }}-{{ $execution['id'] }}"
+                                    x-show="{{ $loop->index }} >= (page - 1) * perPage && {{ $loop->index }} < page * perPage"
+                                    class="data-table-row scheduled-executions-table-grid border-b border-neutral-200 last:border-b-0 dark:border-white/[0.07]">
+                                    <div>
+                                        <span
+                                            class="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium text-neutral-600 dark:bg-white/[0.06] dark:text-fg-dim">
+                                            {{ $typeLabel }}
+                                        </span>
+                                    </div>
+                                    <div class="min-w-0 truncate text-[12px] font-medium text-black dark:text-fg">
+                                        {{ $execution['resource_name'] }}
+                                        @if ($execution['resource_type'])
+                                            <span class="text-[10px] font-normal text-neutral-400">
+                                                {{ $execution['resource_type'] }}
                                             </span>
-                                        </td>
-                                        <td class="px-4 py-3 text-[12px] font-medium text-black dark:text-fg">
-                                            {{ $execution['resource_name'] }}
-                                            @if ($execution['resource_type'])
-                                                <span class="text-[10px] font-normal text-neutral-400">
-                                                    {{ $execution['resource_type'] }}
-                                                </span>
-                                            @endif
-                                        </td>
-                                        <td class="px-4 py-3 text-[11px] text-neutral-500 dark:text-fg-dim">
-                                            {{ $execution['server_name'] }}
-                                        </td>
-                                        <td class="px-4 py-3 text-[11px] text-neutral-500 dark:text-fg-dim">
-                                            {{ $execution['created_at']->format('Y-m-d H:i') }}
-                                        </td>
-                                        <td class="px-4 py-3 text-[11px] text-neutral-500 dark:text-fg-dim">
-                                            @if ($execution['finished_at'] && $execution['created_at'])
-                                                {{ \Carbon\Carbon::parse($execution['created_at'])->diffInSeconds(\Carbon\Carbon::parse($execution['finished_at'])) }}s
-                                            @elseif ($execution['status'] === 'running')
-                                                <x-loading class="size-3.5" />
-                                            @else
-                                                —
-                                            @endif
-                                        </td>
-                                        <td class="max-w-xs truncate px-4 py-3 text-[11px] text-neutral-500 dark:text-fg-dim"
-                                            title="{{ $execution['message'] }}">
-                                            {{ Str::limit($execution['message'], 80) }}
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                                        @endif
+                                    </div>
+                                    <div class="truncate text-[11px] text-neutral-500 dark:text-fg-dim">
+                                        {{ $execution['server_name'] }}
+                                    </div>
+                                    <div class="text-[11px] text-neutral-500 dark:text-fg-dim">
+                                        {{ $execution['created_at']->format('Y-m-d H:i') }}
+                                    </div>
+                                    <div class="text-[11px] text-neutral-500 dark:text-fg-dim">
+                                        @if ($execution['finished_at'] && $execution['created_at'])
+                                            {{ \Carbon\Carbon::parse($execution['created_at'])->diffInSeconds(\Carbon\Carbon::parse($execution['finished_at'])) }}s
+                                        @elseif ($execution['status'] === 'running')
+                                            <x-loading class="size-3.5" />
+                                        @else
+                                            —
+                                        @endif
+                                    </div>
+                                    <div class="min-w-0 truncate text-[11px] text-neutral-500 dark:text-fg-dim"
+                                        title="{{ $execution['message'] }}">
+                                        {{ Str::limit($execution['message'], 80) }}
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                        <div
+                            class="flex min-h-12 items-center justify-between gap-3 border-t border-neutral-200 px-4 dark:border-white/[0.08]">
+                            <span class="whitespace-nowrap text-[11px] text-neutral-500 dark:text-fg-faint">
+                                Showing <span x-text="`${firstVisibleRow}–${lastVisibleRow}`"></span> of
+                                {{ $executions->count() }}
+                            </span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] text-neutral-500 dark:text-fg-dim">
+                                    Page <span x-text="page"></span> of <span x-text="lastPage"></span>
+                                </span>
+                                <button type="button" class="button size-8! px-0!" x-on:click="goToPage(page - 1)"
+                                    x-bind:disabled="page === 1" aria-label="Previous page">
+                                    <x-reicon name="arrow-right" class="size-3.5 rotate-180" />
+                                </button>
+                                <button type="button" class="button size-8! px-0!" x-on:click="goToPage(page + 1)"
+                                    x-bind:disabled="page === lastPage" aria-label="Next page">
+                                    <x-reicon name="arrow-right" class="size-3.5" />
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 @endif
             </div>
@@ -146,38 +171,65 @@
                         </x-slot:icon>
                     </x-empty>
                 @else
-                    <div class="overflow-x-auto">
-                        <table class="w-full min-w-[680px]">
-                            <thead>
-                                <tr>
-                                    <th class="px-4 py-2.5 text-left">Time</th>
-                                    <th class="px-4 py-2.5 text-left">Event</th>
-                                    <th class="px-4 py-2.5 text-left">Duration</th>
-                                    <th class="px-4 py-2.5 text-left">Dispatched</th>
-                                    <th class="px-4 py-2.5 text-left">Skipped</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($managerRuns as $run)
-                                    <tr wire:key="run-{{ $loop->index }}"
-                                        class="border-t border-neutral-200 dark:border-white/[0.07]">
-                                        <td class="px-4 py-3 font-mono text-[11px] text-neutral-500 dark:text-fg-dim">
-                                            {{ $run['timestamp'] }}
-                                        </td>
-                                        <td class="px-4 py-3 text-[12px] text-black dark:text-fg">{{ $run['message'] }}</td>
-                                        <td class="px-4 py-3 text-[11px] text-neutral-500 dark:text-fg-dim">
-                                            {{ $run['duration_ms'] !== null ? $run['duration_ms'] . 'ms' : '—' }}
-                                        </td>
-                                        <td class="px-4 py-3 text-[11px] text-neutral-500 dark:text-fg-dim">
-                                            {{ $run['dispatched'] ?? '—' }}
-                                        </td>
-                                        <td class="px-4 py-3 text-[11px] text-neutral-500 dark:text-fg-dim">
-                                            {{ $run['skipped'] ?? '—' }}
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                    <div x-data="{
+                        page: 1,
+                        perPage: 10,
+                        total: {{ $managerRuns->count() }},
+                        get lastPage() { return Math.max(1, Math.ceil(this.total / this.perPage)); },
+                        get firstVisibleRow() { return ((this.page - 1) * this.perPage) + 1; },
+                        get lastVisibleRow() { return Math.min(this.page * this.perPage, this.total); },
+                        goToPage(page) { this.page = Math.min(Math.max(page, 1), this.lastPage); }
+                    }">
+                        <div class="data-table">
+                            <div class="data-table-header scheduler-runs-table-grid">
+                                <span>Time</span>
+                                <span>Event</span>
+                                <span>Duration</span>
+                                <span>Dispatched</span>
+                                <span>Skipped</span>
+                            </div>
+                            @foreach ($managerRuns as $run)
+                                <div wire:key="run-{{ $loop->index }}"
+                                    x-show="{{ $loop->index }} >= (page - 1) * perPage && {{ $loop->index }} < page * perPage"
+                                    class="data-table-row scheduler-runs-table-grid border-b border-neutral-200 last:border-b-0 dark:border-white/[0.07]">
+                                    <div class="font-mono text-[11px] text-neutral-500 dark:text-fg-dim">
+                                        {{ $run['timestamp'] }}
+                                    </div>
+                                    <div class="min-w-0 truncate text-[12px] text-black dark:text-fg">
+                                        {{ $run['message'] }}
+                                    </div>
+                                    <div class="text-[11px] text-neutral-500 dark:text-fg-dim">
+                                        {{ $run['duration_ms'] !== null ? $run['duration_ms'] . 'ms' : '—' }}
+                                    </div>
+                                    <div class="text-[11px] text-neutral-500 dark:text-fg-dim">
+                                        {{ $run['dispatched'] ?? '—' }}
+                                    </div>
+                                    <div class="text-[11px] text-neutral-500 dark:text-fg-dim">
+                                        {{ $run['skipped'] ?? '—' }}
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                        <div
+                            class="flex min-h-12 items-center justify-between gap-3 border-t border-neutral-200 px-4 dark:border-white/[0.08]">
+                            <span class="whitespace-nowrap text-[11px] text-neutral-500 dark:text-fg-faint">
+                                Showing <span x-text="`${firstVisibleRow}–${lastVisibleRow}`"></span> of
+                                {{ $managerRuns->count() }}
+                            </span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] text-neutral-500 dark:text-fg-dim">
+                                    Page <span x-text="page"></span> of <span x-text="lastPage"></span>
+                                </span>
+                                <button type="button" class="button size-8! px-0!" x-on:click="goToPage(page - 1)"
+                                    x-bind:disabled="page === 1" aria-label="Previous page">
+                                    <x-reicon name="arrow-right" class="size-3.5 rotate-180" />
+                                </button>
+                                <button type="button" class="button size-8! px-0!" x-on:click="goToPage(page + 1)"
+                                    x-bind:disabled="page === lastPage" aria-label="Next page">
+                                    <x-reicon name="arrow-right" class="size-3.5" />
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 @endif
             </div>
@@ -191,62 +243,56 @@
                         </x-slot:icon>
                     </x-empty>
                 @else
-                    <div class="overflow-x-auto">
-                        <table class="w-full min-w-[760px]">
-                            <thead>
-                                <tr>
-                                    <th class="px-4 py-2.5 text-left">Time</th>
-                                    <th class="px-4 py-2.5 text-left">Type</th>
-                                    <th class="px-4 py-2.5 text-left">Resource</th>
-                                    <th class="px-4 py-2.5 text-left">Reason</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($skipLogs as $skip)
-                                    @php
-                                        $reasonLabel = match ($skip['reason']) {
-                                            'server_not_functional' => 'Server not functional',
-                                            'subscription_unpaid' => 'Subscription unpaid',
-                                            'database_deleted' => 'Database deleted',
-                                            'server_deleted' => 'Server deleted',
-                                            'resource_deleted' => 'Resource deleted',
-                                            'application_not_running' => 'Application not running',
-                                            'service_not_running' => 'Service not running',
-                                            default => ucfirst(str_replace('_', ' ', $skip['reason'])),
-                                        };
-                                    @endphp
-                                    <tr wire:key="skip-{{ $loop->index }}"
-                                        class="border-t border-neutral-200 dark:border-white/[0.07]">
-                                        <td class="px-4 py-3 font-mono text-[11px] text-neutral-500 dark:text-fg-dim">
-                                            {{ $skip['timestamp'] }}
-                                        </td>
-                                        <td class="px-4 py-3">
-                                            <span
-                                                class="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium capitalize text-neutral-600 dark:bg-white/[0.06] dark:text-fg-dim">
-                                                {{ str_replace('_', ' ', $skip['type']) }}
-                                            </span>
-                                        </td>
-                                        <td class="px-4 py-3 text-[12px] text-black dark:text-fg">
-                                            @if ($skip['link'] ?? null)
-                                                <a href="{{ $skip['link'] }}"
-                                                    class="font-medium text-coollabs hover:underline dark:text-warning">
-                                                    {{ $skip['resource_name'] }}
-                                                </a>
-                                            @else
-                                                {{ $skip['resource_name'] ?? $skip['context']['task_name'] ?? $skip['context']['server_name'] ?? 'Deleted resource' }}
-                                            @endif
-                                        </td>
-                                        <td class="px-4 py-3 text-[11px] text-neutral-500 dark:text-fg-dim">
-                                            {{ $reasonLabel }}
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                    <div class="data-table">
+                        <div class="data-table-header skipped-jobs-table-grid">
+                            <span>Time</span>
+                            <span>Type</span>
+                            <span>Resource</span>
+                            <span>Reason</span>
+                        </div>
+                        @foreach ($skipLogs as $skip)
+                            @php
+                                $reasonLabel = match ($skip['reason']) {
+                                    'server_not_functional' => 'Server not functional',
+                                    'subscription_unpaid' => 'Subscription unpaid',
+                                    'database_deleted' => 'Database deleted',
+                                    'server_deleted' => 'Server deleted',
+                                    'resource_deleted' => 'Resource deleted',
+                                    'application_not_running' => 'Application not running',
+                                    'service_not_running' => 'Service not running',
+                                    default => ucfirst(str_replace('_', ' ', $skip['reason'])),
+                                };
+                            @endphp
+                            <div wire:key="skip-{{ $loop->index }}"
+                                class="data-table-row skipped-jobs-table-grid border-b border-neutral-200 last:border-b-0 dark:border-white/[0.07]">
+                                <div class="font-mono text-[11px] text-neutral-500 dark:text-fg-dim">
+                                    {{ $skip['timestamp'] }}
+                                </div>
+                                <div>
+                                    <span
+                                        class="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium capitalize text-neutral-600 dark:bg-white/[0.06] dark:text-fg-dim">
+                                        {{ str_replace('_', ' ', $skip['type']) }}
+                                    </span>
+                                </div>
+                                <div class="min-w-0 truncate text-[12px] text-black dark:text-fg">
+                                    @if ($skip['link'] ?? null)
+                                        <a href="{{ $skip['link'] }}"
+                                            class="font-medium text-coollabs hover:underline dark:text-warning">
+                                            {{ $skip['resource_name'] }}
+                                        </a>
+                                    @else
+                                        {{ $skip['resource_name'] ?? $skip['context']['task_name'] ?? $skip['context']['server_name'] ?? 'Deleted resource' }}
+                                    @endif
+                                </div>
+                                <div class="min-w-0 truncate text-[11px] text-neutral-500 dark:text-fg-dim">
+                                    {{ $reasonLabel }}
+                                </div>
+                            </div>
+                        @endforeach
                     </div>
                     <div
-                        class="flex min-h-12 items-center justify-between border-t border-neutral-200 px-4 dark:border-white/[0.08]">
-                        <span class="text-[11px] text-neutral-500 dark:text-fg-faint">
+                        class="flex min-h-12 items-center justify-between gap-3 border-t border-neutral-200 px-4 dark:border-white/[0.08]">
+                        <span class="whitespace-nowrap text-[11px] text-neutral-500 dark:text-fg-faint">
                             {{ $skipTotalCount }} {{ Str::plural('skipped job', $skipTotalCount) }}
                         </span>
                         @if ($skipTotalCount > $skipDefaultTake)
