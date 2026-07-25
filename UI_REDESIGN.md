@@ -153,6 +153,28 @@ resource type. Place active deployments above the resource grids as a compact,
 live-updating table rather than a metric card. Communicate server health with
 the shared status badge.
 
+### Top-level dashboard destinations
+
+Every page opened directly from the main sidebar uses the same compact shell:
+
+- 24px page title and a 13px muted summary;
+- the primary action at the top right using the restrained brand fill;
+- no legacy `coolbox`, `.navbar-main`, or oversized subtitle block;
+- four-column compact cards for small browsable collections;
+- a dense table instead of cards when the collection is expected to grow;
+- `x-empty` anatomy for empty states;
+- `x-status-badge` for state and `x-reicon` for all interface icons.
+
+Collection cards are `min-h-28` or `min-h-32`, use a 32px icon tile, and keep
+secondary metadata at 11px. They must not grow into dashboard-sized summary
+cards. Sources, destinations, S3 storage, private keys, and shared-variable
+scopes use this pattern.
+
+Top-level settings families such as Team, Notifications, Keys & Tokens, and
+instance Settings use a compact header followed by a small route-derived tab
+strip. The active tab uses the same purple-light/yellow-dark tint as resource
+tabs. Do not nest `<button>` elements inside tab links.
+
 ### Settings workspace
 
 Application and server configuration pages use the same 210px grouped,
@@ -451,12 +473,15 @@ Use these as implementation references:
 | Surface | Reference |
 |---|---|
 | Dashboard overview | `resources/views/livewire/dashboard.blade.php` |
+| Top-level collection cards | `resources/views/livewire/project/index.blade.php`, `resources/views/source/all.blade.php` |
+| Top-level family tabs | `resources/views/components/team/navbar.blade.php`, `resources/views/components/notification/navbar.blade.php` |
 | General settings and form anatomy | `resources/views/livewire/project/application/general.blade.php` |
 | Advanced settings | `resources/views/livewire/project/application/advanced.blade.php` |
 | Fixed layer-2 resource navigation | `resources/views/livewire/project/application/heading.blade.php`, `resources/views/livewire/server/navbar.blade.php` |
 | Grouped settings sidebar | `resources/views/livewire/project/application/configuration.blade.php`, `resources/views/components/server/sidebar.blade.php` |
 | Dense environment table and footer | `resources/views/livewire/project/shared/environment-variable/all.blade.php` |
 | Application metrics charts | `resources/views/livewire/project/shared/metrics.blade.php` |
+| Browser terminal workspace | `resources/views/livewire/terminal/index.blade.php` |
 | Layer card | `resources/views/components/application/settings-section.blade.php` |
 | Custom dropdown | `resources/views/components/forms/listbox.blade.php` |
 | Empty state | `resources/views/components/empty.blade.php` |
