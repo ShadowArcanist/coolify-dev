@@ -9,6 +9,7 @@
     'onChange' => null, // optional $wire method to call after a selection
     'wire' => true, // false = purely client-side value (no Livewire binding)
     'value' => null, // initial value when wire=false
+    'disabled' => false,
 ])
 
 <div class="w-full">
@@ -42,6 +43,7 @@
         {{ $attributes->whereStartsWith('x-effect') }}
         @click.outside="open = false" @keydown.escape="open = false">
         <button id="{{ $id }}-trigger" type="button" class="listbox-trigger" @click="open = !open"
+            @disabled($disabled)
             {{ $attributes->whereStartsWith('x-bind:disabled') }} aria-haspopup="listbox"
             :aria-expanded="open">
             <span class="truncate" x-text="current"></span>

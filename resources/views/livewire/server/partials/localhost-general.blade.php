@@ -105,7 +105,7 @@
                                 :options="collect($this->timezones)->map(fn ($timezone) => [
                                     'value' => $timezone,
                                     'label' => $timezone,
-                                ])->all()" x-bind:disabled="@js($isValidating || !auth()->user()->can('update', $server))" />
+                                ])->all()" :disabled="$isValidating || !auth()->user()->can('update', $server)" />
                             <x-forms.input canGate="update" :canResource="$server"
                                 placeholder="https://example.com" id="wildcardDomain" label="Wildcard domain"
                                 helper="New resources can receive generated subdomains from this domain."
