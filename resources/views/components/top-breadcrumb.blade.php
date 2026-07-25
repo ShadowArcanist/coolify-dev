@@ -28,6 +28,25 @@
         request()->routeIs('admin.*') => 'Admin',
         default => null,
     };
+    $pageDestinations = collect([
+        ['label' => 'Dashboard', 'href' => url('/')],
+        ['label' => 'Projects', 'href' => url('/projects')],
+        auth()->user()?->can('canAccessTerminal')
+            ? ['label' => 'Terminal', 'href' => route('terminal')]
+            : null,
+        ['label' => 'Servers', 'href' => url('/servers')],
+        ['label' => 'Sources', 'href' => route('source.all')],
+        ['label' => 'Destinations', 'href' => route('destination.index')],
+        ['label' => 'S3 Storage', 'href' => route('storage.index')],
+        ['label' => 'Shared Variables', 'href' => route('shared-variables.index')],
+        ['label' => 'Team', 'href' => route('team.index')],
+        ['label' => 'Notifications', 'href' => route('notifications.email')],
+        ['label' => 'Keys & Tokens', 'href' => route('security.private-key.index')],
+        ['label' => 'Tags', 'href' => route('tags.show')],
+        isInstanceAdmin()
+            ? ['label' => 'Settings', 'href' => route('settings.index')]
+            : null,
+    ])->filter();
 @endphp
 <div class="flex items-center gap-0.5 min-w-0 text-[13px]">
     {{-- Team --}}
@@ -37,9 +56,36 @@
 
     @if (!$currentProject && $dashboardContext)
         <span class="shrink-0 px-0.5 text-neutral-300 dark:text-fg-faint">/</span>
-        <span class="min-w-0 truncate px-2 font-semibold text-black dark:text-fg">
-            {{ $dashboardContext }}
-        </span>
+        <div class="relative min-w-0 shrink" x-data="{ open: false }" @keydown.escape.window="open = false">
+            <button type="button" @click="open = !open" @click.outside="open = false" title="Switch page"
+                class="flex h-8 min-w-0 items-center gap-1.5 rounded-md px-2 opacity-70 transition-[background-color,opacity] hover:bg-neutral-100 hover:opacity-100 dark:hover:bg-white/[0.05]">
+                <span class="min-w-0 truncate font-semibold text-black dark:text-fg">{{ $dashboardContext }}</span>
+                <svg class="size-4 shrink-0 text-neutral-400 dark:text-fg-faint" viewBox="0 0 24 24"
+                    fill="none">
+                    <path d="M8 9l4-4 4 4M8 15l4 4 4-4" stroke="currentColor" stroke-width="1.6"
+                        stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </button>
+            <div x-show="open" x-cloak x-transition.opacity.duration.120ms
+                class="absolute left-0 z-[90] mt-1 max-h-80 min-w-52 overflow-y-auto rounded-lg border border-neutral-200 bg-white py-1.5 shadow-modal scrollbar dark:border-white/[0.08] dark:bg-surface">
+                <div
+                    class="px-3 pt-0.5 pb-1 text-[10.5px] font-semibold tracking-wide text-neutral-400 uppercase dark:text-fg-faint">
+                    Pages
+                </div>
+                @foreach ($pageDestinations as $destination)
+                    <a href="{{ $destination['href'] }}" {{ wireNavigate() }} @click="open = false"
+                        class="flex h-8 items-center gap-2 px-3 text-[13px] transition-colors hover:bg-neutral-100 dark:hover:bg-white/[0.06] {{ $destination['label'] === $dashboardContext ? 'font-medium text-black dark:text-fg' : 'text-neutral-600 dark:text-fg-dim' }}">
+                        <span class="min-w-0 flex-1 truncate">{{ $destination['label'] }}</span>
+                        @if ($destination['label'] === $dashboardContext)
+                            <svg class="size-3.5 shrink-0 text-accent" viewBox="0 0 24 24" fill="none">
+                                <path d="M5 12l5 5 9-11" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        @endif
+                    </a>
+                @endforeach
+            </div>
+        </div>
     @endif
 
     @if ($currentProject)
