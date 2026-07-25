@@ -67,14 +67,10 @@
                 </svg>
             </button>
             <div x-show="open" x-cloak x-transition.opacity.duration.120ms
-                class="scrollbar absolute left-0 z-[90] mt-1 flex max-h-80 min-w-52 flex-col gap-px overflow-y-auto rounded-[10px] border border-neutral-200 bg-white p-1 shadow-modal dark:border-white/[0.08] dark:bg-surface">
-                <div
-                    class="px-2 pt-1 pb-1.5 text-[10.5px] font-semibold tracking-wide text-neutral-400 uppercase dark:text-fg-faint">
-                    Pages
-                </div>
+                class="listbox-panel scrollbar left-0! z-[90]! max-h-80! min-w-52">
                 @foreach ($pageDestinations as $destination)
                     <a href="{{ $destination['href'] }}" {{ wireNavigate() }} @click="open = false"
-                        class="flex h-8 items-center gap-2 rounded-md px-2 text-[13px] transition-colors {{ $destination['label'] === $dashboardContext ? 'bg-coollabs/10 font-medium text-coollabs ring-1 ring-coollabs/20 ring-inset dark:bg-warning/15 dark:text-warning dark:ring-warning/25' : 'text-neutral-600 hover:bg-neutral-100 dark:text-fg-dim dark:hover:bg-white/[0.06]' }}">
+                        class="listbox-option {{ $destination['label'] === $dashboardContext ? 'bg-neutral-100 font-medium text-black dark:bg-white/[0.07] dark:text-fg' : '' }}">
                         <span class="min-w-0 flex-1 truncate">{{ $destination['label'] }}</span>
                         @if ($destination['label'] === $dashboardContext)
                             <svg class="size-3.5 shrink-0 text-coollabs dark:text-warning" viewBox="0 0 24 24"
@@ -101,11 +97,10 @@
                 </svg>
             </button>
             <div x-show="open" x-cloak x-transition.opacity.duration.120ms
-                class="scrollbar absolute left-0 z-[90] mt-1 flex max-h-80 min-w-56 max-w-72 flex-col gap-px overflow-y-auto rounded-[10px] border border-neutral-200 bg-white p-1 shadow-modal dark:border-white/[0.08] dark:bg-surface">
-                <div class="px-2 pt-1 pb-1.5 text-[10.5px] font-semibold tracking-wide text-neutral-400 uppercase dark:text-fg-faint">Projects</div>
+                class="listbox-panel scrollbar left-0! z-[90]! max-h-80! min-w-56 max-w-72">
                 @foreach ($projects as $p)
                     <a href="{{ route('project.show', ['project_uuid' => $p->uuid]) }}" {{ wireNavigate() }} @click="open = false"
-                        class="flex h-8 items-center gap-2 rounded-md px-2 text-[13px] transition-colors {{ $p->uuid === $currentProject->uuid ? 'bg-coollabs/10 font-medium text-coollabs ring-1 ring-coollabs/20 ring-inset dark:bg-warning/15 dark:text-warning dark:ring-warning/25' : 'text-neutral-600 hover:bg-neutral-100 dark:text-fg-dim dark:hover:bg-white/[0.06]' }}">
+                        class="listbox-option {{ $p->uuid === $currentProject->uuid ? 'bg-neutral-100 font-medium text-black dark:bg-white/[0.07] dark:text-fg' : '' }}">
                         <span class="min-w-0 flex-1 truncate">{{ $p->name }}</span>
                         @if ($p->uuid === $currentProject->uuid)
                             <svg class="size-3.5 shrink-0 text-coollabs dark:text-warning" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5 9-11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
@@ -128,11 +123,10 @@
                 </svg>
             </button>
             <div x-show="open" x-cloak x-transition.opacity.duration.120ms
-                class="scrollbar absolute left-0 z-[90] mt-1 flex max-h-80 min-w-52 max-w-72 flex-col gap-px overflow-y-auto rounded-[10px] border border-neutral-200 bg-white p-1 shadow-modal dark:border-white/[0.08] dark:bg-surface">
-                <div class="px-2 pt-1 pb-1.5 text-[10.5px] font-semibold tracking-wide text-neutral-400 uppercase dark:text-fg-faint">Environments</div>
+                class="listbox-panel scrollbar left-0! z-[90]! max-h-80! min-w-52 max-w-72">
                 @foreach ($environments as $env)
                     <a href="{{ route('project.resource.index', ['project_uuid' => $currentProject->uuid, 'environment_uuid' => $env->uuid]) }}" {{ wireNavigate() }} @click="open = false"
-                        class="flex h-8 items-center gap-2 rounded-md px-2 text-[13px] transition-colors {{ $env->uuid === $currentEnvironment->uuid ? 'bg-coollabs/10 font-medium text-coollabs ring-1 ring-coollabs/20 ring-inset dark:bg-warning/15 dark:text-warning dark:ring-warning/25' : 'text-neutral-600 hover:bg-neutral-100 dark:text-fg-dim dark:hover:bg-white/[0.06]' }}">
+                        class="listbox-option {{ $env->uuid === $currentEnvironment->uuid ? 'bg-neutral-100 font-medium text-black dark:bg-white/[0.07] dark:text-fg' : '' }}">
                         <span class="min-w-0 flex-1 truncate">{{ $env->name }}</span>
                         @if ($env->uuid === $currentEnvironment->uuid)
                             <svg class="size-3.5 shrink-0 text-coollabs dark:text-warning" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5 9-11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
