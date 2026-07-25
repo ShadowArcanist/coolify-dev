@@ -357,10 +357,6 @@ tr td:first-child {
     @apply pr-3 pl-4 font-bold sm:pl-6;
 }
 
-section {
-    @apply mb-12;
-}
-
 /*
 * Utility classes
 */
@@ -548,7 +544,7 @@ section {
 }
 
 /* Layer card header: compact strip on the shell, subtle title color */
-.application-settings-section > header {
+.application-settings-section > :is(header, .application-settings-section-header) {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -561,12 +557,19 @@ section {
     color: var(--coollabs-subtle);
 }
 
-.application-settings-section > header h3 {
+.application-settings-section > :is(header, .application-settings-section-header) :is(h2, h3) {
     font-size: 0.875rem;
     font-weight: 500;
     line-height: 1.25rem;
     letter-spacing: 0;
     color: inherit;
+}
+
+.application-settings-section > .application-settings-section-header p {
+    margin-top: 0.125rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--coollabs-subtle);
 }
 
 /* Layer card body: nested rounded panel with base bg + fill ring */
@@ -985,7 +988,7 @@ section {
 }
 
 @media (max-width: 640px) {
-    .application-settings-section > header > :nth-child(2) {
+    .application-settings-section > :is(header, .application-settings-section-header) > :nth-child(2) {
         width: 100%;
     }
 

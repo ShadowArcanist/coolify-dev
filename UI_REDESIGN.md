@@ -50,7 +50,7 @@ PHP runs in the `coolify` container. The development app is normally available
 at `http://localhost:8000`, with Vite on port `5173`.
 
 `resources/css/app.css` still contains unlayered global element rules for
-headings, sections, labels, and tables. Tailwind utilities are layered, so the
+headings, labels, and tables. Tailwind utilities are layered, so the
 unlayered rules can win unexpectedly.
 
 The settings and dense-surface CSS therefore lives as plain unlayered CSS near
@@ -238,11 +238,19 @@ The current cross-page section gap is `gap-6`. Do not introduce extra top
 padding on an individual page unless its toolbar is intentionally separated
 from the first card.
 
+Use a flex or grid stack with `gap-6`; do not use `space-y-*` between layer
+cards. The layer-card root intentionally resets its own margin, so margin-based
+spacing utilities can silently collapse.
+
 ---
 
 ## 5. Layer cards
 
 Use `resources/views/components/application/settings-section.blade.php`.
+Older manual shells may use `.application-settings-section-header` and
+`.application-settings-section-body`; both must retain the same padded,
+action-aligned anatomy as the component. Prefer migrating new work to the
+component instead of creating another manual variant.
 
 ```blade
 <x-application.settings-section

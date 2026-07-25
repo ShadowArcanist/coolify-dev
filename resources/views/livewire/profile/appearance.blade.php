@@ -33,7 +33,7 @@
             localStorage.setItem('zoom', value);
             window.location.reload();
         },
-    }" class="mt-8 w-full max-w-[920px] space-y-8 lg:mt-3">
+    }" class="mt-8 flex w-full max-w-[1180px] flex-col gap-6 lg:mt-3">
         <section class="application-settings-section">
             <div class="application-settings-section-header">
                 <div>

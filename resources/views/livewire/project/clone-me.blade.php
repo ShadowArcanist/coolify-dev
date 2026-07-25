@@ -2,7 +2,7 @@
     <x-slot:title>{{ data_get_str($project, 'name')->limit(10) }} > Clone | Coolify</x-slot>
     <x-project.navbar :project="$project" :environment="$environment" />
 
-    <div class="mt-8 w-full max-w-[1180px] space-y-8 lg:mt-3">
+    <div class="mt-8 flex w-full max-w-[1180px] flex-col gap-6 lg:mt-3">
         <section class="application-settings-section">
             <div class="application-settings-section-header">
                 <div>
