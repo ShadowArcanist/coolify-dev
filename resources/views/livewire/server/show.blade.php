@@ -4,7 +4,8 @@
         {{ data_get_str($server, 'name')->limit(10) }} > General | Coolify
     </x-slot>
     <livewire:server.navbar :server="$server" />
-    <div class="flex flex-col h-full gap-4 md:gap-8 md:flex-row">
+    <div
+        class="server-settings-workspace application-settings-workspace mt-8 grid w-full max-w-[1180px] min-w-0 gap-8 xl:mt-0 xl:grid-cols-[210px_minmax(0,1fr)] xl:gap-10">
         <x-server.sidebar :server="$server" activeMenu="general" />
         <div class="w-full">
             @if ($server->isLocalhost())

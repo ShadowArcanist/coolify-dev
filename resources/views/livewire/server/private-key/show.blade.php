@@ -5,7 +5,8 @@
 
     <livewire:server.navbar :server="$server" />
 
-    <div class="flex h-full flex-col gap-4 md:flex-row md:gap-8">
+    <div
+        class="server-settings-workspace application-settings-workspace mt-8 grid w-full max-w-[1180px] min-w-0 gap-8 xl:mt-0 xl:grid-cols-[210px_minmax(0,1fr)] xl:gap-10">
         <x-server.sidebar :server="$server" activeMenu="private-key" />
 
         <div class="application-settings-form flex w-full flex-col gap-6">
