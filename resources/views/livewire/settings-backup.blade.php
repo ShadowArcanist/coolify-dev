@@ -5,14 +5,14 @@
 
     <x-settings.navbar />
 
-    <div class="application-settings-form flex flex-col gap-6">
+    <div class="application-settings-form flex max-w-[930px] flex-col gap-6">
+        <h1 class="text-[24px]! leading-7! font-semibold! tracking-tight!">Instance backup</h1>
         @if ($server->isFunctional())
             @if (isset($database) && isset($backup))
                 <form wire:submit="submit">
                     <x-unsaved-bar action="submit" />
 
-                    <x-application.settings-section title="Instance database"
-                        description="The PostgreSQL database that stores this Coolify instance configuration.">
+                    <x-application.settings-section title="Instance database">
                         <div class="grid gap-4 lg:grid-cols-2">
                             <x-forms.input label="Name" readonly id="name" />
                             <x-forms.input label="Description" id="description" />
@@ -30,8 +30,7 @@
 
                 <livewire:project.database.backup-executions :backup="$backup" />
             @else
-                <x-application.settings-section title="Instance backup"
-                    description="Create a managed database resource before scheduling automatic instance backups.">
+                <x-application.settings-section title="Instance backup">
                     <x-empty title="Backup is not configured"
                         description="Coolify needs an internal database resource to create automatic backups." size="sm">
                         <x-slot:icon>
@@ -46,8 +45,7 @@
                 </x-application.settings-section>
             @endif
         @else
-            <x-application.settings-section title="Instance backup"
-                description="Automatic backups require a validated and reachable localhost server.">
+            <x-application.settings-section title="Instance backup">
                 <x-callout type="danger" title="Localhost is not ready">
                     Validate the localhost connection before configuring instance backups.
                     <a href="{{ route('server.show', [$server->uuid]) }}" class="font-medium underline"

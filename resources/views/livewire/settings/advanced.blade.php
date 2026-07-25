@@ -6,18 +6,20 @@
     <x-settings.navbar />
 
     <div
-        class="application-settings-workspace grid w-full min-w-0 gap-8 xl:grid-cols-[210px_minmax(0,1fr)] xl:gap-10">
+        class="application-settings-workspace grid w-full max-w-[1180px] min-w-0 gap-8 xl:grid-cols-[210px_minmax(0,1fr)] xl:gap-10">
         <x-settings.sidebar activeMenu="advanced" />
 
         <form wire:submit="submit" class="application-settings-form flex min-w-0 flex-col gap-6">
             <x-unsaved-bar action="submit" />
 
-            <x-application.settings-section id="access-section" title="Access"
-                description="Control account registration and confirmation safeguards.">
+            <x-application.settings-section id="access-section" title="Access">
                 <div class="grid gap-4 lg:grid-cols-2">
                     @if ($is_registration_enabled)
-                        <x-forms.checkbox instantSave id="is_registration_enabled"
-                            helper="Allow users to create their own account." label="Registration allowed" />
+                        <x-forms.listbox id="is_registration_enabled" label="Registration"
+                            helper="Allow users to create their own account." onChange="instantSave" :options="[
+                                ['value' => true, 'label' => 'Anyone can register'],
+                                ['value' => false, 'label' => 'Registration disabled'],
+                            ]" />
                     @else
                         <div
                             class="flex min-h-12 items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-3 dark:border-white/[0.08] dark:bg-white/[0.025]">
@@ -38,9 +40,12 @@
                     @endif
 
                     @if ($disable_two_step_confirmation)
-                        <x-forms.checkbox instantSave id="disable_two_step_confirmation"
-                            label="Disable two-step confirmations"
-                            helper="Skip password and text confirmation for destructive actions." />
+                        <x-forms.listbox id="disable_two_step_confirmation" label="Destructive action confirmation"
+                            helper="Choose whether destructive actions require password and text confirmation."
+                            onChange="instantSave" :options="[
+                                ['value' => false, 'label' => 'Require two-step confirmation'],
+                                ['value' => true, 'label' => 'Skip two-step confirmation'],
+                            ]" />
                     @else
                         <div
                             class="flex min-h-12 items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-3 dark:border-white/[0.08] dark:bg-white/[0.025]">
@@ -63,24 +68,33 @@
                 </div>
             </x-application.settings-section>
 
-            <x-application.settings-section id="dns-section" title="DNS validation"
-                description="Choose how Coolify validates domains before deployments.">
+            <x-application.settings-section id="dns-section" title="DNS validation">
                 <div class="grid gap-4 lg:grid-cols-2">
-                    <x-forms.checkbox instantSave id="is_dns_validation_enabled"
-                        helper="Validate custom domains before deployment." label="DNS validation" />
+                    <x-forms.listbox id="is_dns_validation_enabled" label="DNS validation"
+                        helper="Validate custom domains before deployment." onChange="instantSave" :options="[
+                            ['value' => true, 'label' => 'Enabled'],
+                            ['value' => false, 'label' => 'Disabled'],
+                        ]" />
                     <x-forms.input id="custom_dns_servers" label="Custom DNS servers"
                         helper="Comma-separated resolvers. Leave empty to use system defaults."
                         placeholder="1.1.1.1, 8.8.8.8" />
                 </div>
             </x-application.settings-section>
 
-            <x-application.settings-section id="api-section" title="API and MCP"
-                description="Expose Coolify automation endpoints and restrict their network access.">
+            <x-application.settings-section id="api-section" title="API and MCP">
                 <div class="grid gap-4 lg:grid-cols-2">
-                    <x-forms.checkbox instantSave id="is_api_enabled" label="API access"
-                        helper="Allow authenticated requests to the Coolify REST API." />
-                    <x-forms.checkbox instantSave id="is_mcp_server_enabled" label="MCP server"
-                        helper="Expose the authenticated Streamable HTTP endpoint at /mcp." />
+                    <x-forms.listbox id="is_api_enabled" label="API access"
+                        helper="Allow authenticated requests to the Coolify REST API." onChange="instantSave"
+                        :options="[
+                            ['value' => true, 'label' => 'Enabled'],
+                            ['value' => false, 'label' => 'Disabled'],
+                        ]" />
+                    <x-forms.listbox id="is_mcp_server_enabled" label="MCP server"
+                        helper="Expose the authenticated Streamable HTTP endpoint at /mcp." onChange="instantSave"
+                        :options="[
+                            ['value' => true, 'label' => 'Enabled'],
+                            ['value' => false, 'label' => 'Disabled'],
+                        ]" />
                     <div class="lg:col-span-2">
                         <x-forms.input id="allowed_ips" label="Allowed API IPs"
                             helper="Comma-separated IPs or CIDR ranges. Empty or 0.0.0.0 allows all sources."
@@ -99,28 +113,39 @@
                 @endif
             </x-application.settings-section>
 
-            <x-application.settings-section id="endpoint-section" title="Outbound endpoints"
-                description="Allow trusted internal targets for webhooks and S3-compatible storage.">
+            <x-application.settings-section id="endpoint-section" title="Outbound endpoints">
                 <div class="flex flex-col gap-4">
                     <x-forms.textarea id="webhook_allowed_internal_hosts" rows="4"
                         label="Allowed internal targets"
                         helper="Hostnames, IPs, or CIDR ranges separated by commas or new lines."
                         placeholder="hooks.company.local, 10.50.0.0/16" />
-                    <x-forms.checkbox id="webhook_allow_localhost" label="Allow localhost targets"
-                        helper="Loopback targets must also be present in the allowlist." />
+                    <div class="max-w-md">
+                        <x-forms.listbox id="webhook_allow_localhost" label="Localhost targets"
+                            helper="Loopback targets must also be present in the allowlist." :options="[
+                                ['value' => true, 'label' => 'Allowed'],
+                                ['value' => false, 'label' => 'Blocked'],
+                            ]" />
+                    </div>
                 </div>
             </x-application.settings-section>
 
-            <x-application.settings-section id="interface-section" title="Interface and telemetry"
-                description="Set navigation behavior, usage reporting, and sponsorship reminders.">
+            <x-application.settings-section id="interface-section" title="Interface and telemetry">
                 <div class="grid gap-4 lg:grid-cols-2">
-                    <x-forms.checkbox instantSave id="is_wire_navigate_enabled" label="SPA navigation"
-                        helper="Prefetch pages and navigate without full reloads." />
-                    <x-forms.checkbox instantSave id="do_not_track" label="Do not track"
-                        helper="Disable anonymous installation counting and error reports." />
-                    <x-forms.checkbox instantSave id="is_sponsorship_popup_enabled"
-                        label="Sponsorship reminders"
-                        helper="Show the monthly project sponsorship reminder." />
+                    <x-forms.listbox id="is_wire_navigate_enabled" label="Navigation"
+                        helper="Prefetch pages and navigate without full reloads." onChange="instantSave" :options="[
+                            ['value' => true, 'label' => 'SPA navigation'],
+                            ['value' => false, 'label' => 'Full page navigation'],
+                        ]" />
+                    <x-forms.listbox id="do_not_track" label="Anonymous telemetry"
+                        helper="Control installation counting and error reports." onChange="instantSave" :options="[
+                            ['value' => false, 'label' => 'Enabled'],
+                            ['value' => true, 'label' => 'Disabled'],
+                        ]" />
+                    <x-forms.listbox id="is_sponsorship_popup_enabled" label="Sponsorship reminders"
+                        helper="Show the monthly project sponsorship reminder." onChange="instantSave" :options="[
+                            ['value' => true, 'label' => 'Enabled'],
+                            ['value' => false, 'label' => 'Disabled'],
+                        ]" />
                 </div>
             </x-application.settings-section>
         </form>

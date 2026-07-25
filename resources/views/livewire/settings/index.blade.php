@@ -6,13 +6,12 @@
     <x-settings.navbar />
 
     <div
-        class="application-settings-workspace grid w-full min-w-0 gap-8 xl:grid-cols-[210px_minmax(0,1fr)] xl:gap-10">
+        class="application-settings-workspace grid w-full max-w-[1180px] min-w-0 gap-8 xl:grid-cols-[210px_minmax(0,1fr)] xl:gap-10">
         <x-settings.sidebar activeMenu="general" />
 
         <form wire:submit="submit" class="application-settings-form w-full min-w-0">
             <x-unsaved-bar action="submit" />
-            <x-application.settings-section title="General"
-                description="Set the public identity, address, and timezone for this Coolify instance.">
+            <x-application.settings-section title="General">
                 <div class="grid gap-4 lg:grid-cols-2">
                     <div class="lg:col-span-2">
                         <x-forms.input canGate="update" :canResource="$settings" id="fqdn" label="URL"

@@ -1,9 +1,10 @@
-<div class="application-settings-form w-full max-w-[1180px]">
+<div class="application-settings-form w-full max-w-[930px]">
     <x-slot:title>
         Servers | Coolify
     </x-slot>
 
-    <div class="mb-4 flex justify-end">
+    <div class="mb-5 flex items-center justify-between gap-4">
+        <h1 class="text-[24px]! leading-7! font-semibold! tracking-tight!">Servers</h1>
         @can('createAnyResource')
             <a href="{{ route('server.create') }}" {{ wireNavigate() }}
                 class="button bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!">

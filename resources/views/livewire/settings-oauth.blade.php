@@ -5,18 +5,18 @@
 
     <x-settings.navbar />
 
-    <form wire:submit="submit" class="application-settings-form">
+    <form wire:submit="submit" class="application-settings-form max-w-[930px]">
         <x-unsaved-bar action="submit" />
 
         <div class="application-settings-workspace flex flex-col gap-6">
+            <h1 class="text-[24px]! leading-7! font-semibold! tracking-tight!">OAuth</h1>
             @foreach ($oauth_settings_map as $oauth_setting)
                 @php
                     $provider = $oauth_setting['provider'];
                     $providerLabel = str($provider)->headline();
                 @endphp
 
-                <x-application.settings-section title="{{ $providerLabel }}"
-                    description="Configure {{ $providerLabel }} as an authentication provider.">
+                <x-application.settings-section title="{{ $providerLabel }}">
                     <div class="grid gap-4 lg:grid-cols-2">
                         <x-forms.listbox id="oauth_settings_map.{{ $provider }}.enabled"
                             label="Provider status" :options="[

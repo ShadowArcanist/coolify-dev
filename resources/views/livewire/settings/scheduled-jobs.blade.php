@@ -12,54 +12,115 @@
         </x-slot:actions>
     </x-settings.navbar>
 
-    <div class="application-settings-form" x-data="{
+    <div class="application-settings-form w-full max-w-[930px]" x-data="{
         activeTab: ['executions', 'scheduler-runs', 'skipped-jobs'].includes(location.hash.slice(1))
             ? location.hash.slice(1)
             : 'executions',
+        filterOpen: false,
+        sortOpen: false,
         select(tab) {
             this.activeTab = tab;
             history.replaceState(null, '', `#${tab}`);
         }
     }">
-        <x-application.settings-section title="Scheduler activity"
-            description="Inspect failed executions, manager runs, and jobs skipped by their conditions." flush>
+        <h1 class="mb-5 text-[24px]! leading-7! font-semibold! tracking-tight!">Scheduled jobs</h1>
+
+        <x-application.settings-section title="Scheduler activity" flush>
             <div
-                class="flex flex-col gap-3 border-b border-neutral-200 p-3 sm:flex-row sm:items-center sm:justify-between dark:border-white/[0.08]">
+                class="flex flex-col gap-3 border-b border-neutral-200 p-3 dark:border-white/[0.08]">
                 <div
                     class="flex w-fit items-center gap-0.5 rounded-[10px] border border-neutral-200 bg-neutral-100 p-1 dark:border-white/[0.07] dark:bg-white/[0.035]">
                     <button type="button" class="app-tab"
                         :class="activeTab === 'executions' &&
                             'bg-coollabs/10 text-coollabs ring-1 ring-coollabs/25 dark:bg-warning/15 dark:text-warning dark:ring-warning/25'"
                         @click="select('executions')">
-                        Failures <span class="opacity-60">{{ $executions->count() }}</span>
+                        Failures <span class="ml-1 opacity-60">{{ $executions->count() }}</span>
                     </button>
                     <button type="button" class="app-tab"
                         :class="activeTab === 'scheduler-runs' &&
                             'bg-coollabs/10 text-coollabs ring-1 ring-coollabs/25 dark:bg-warning/15 dark:text-warning dark:ring-warning/25'"
                         @click="select('scheduler-runs')">
-                        Scheduler runs <span class="opacity-60">{{ $managerRuns->count() }}</span>
+                        Scheduler runs <span class="ml-1 opacity-60">{{ $managerRuns->count() }}</span>
                     </button>
                     <button type="button" class="app-tab"
                         :class="activeTab === 'skipped-jobs' &&
                             'bg-coollabs/10 text-coollabs ring-1 ring-coollabs/25 dark:bg-warning/15 dark:text-warning dark:ring-warning/25'"
                         @click="select('skipped-jobs')">
-                        Skipped <span class="opacity-60">{{ $skipTotalCount }}</span>
+                        Skipped <span class="ml-1 opacity-60">{{ $skipTotalCount }}</span>
                     </button>
                 </div>
 
-                <div x-show="activeTab === 'executions'" class="grid gap-2 sm:grid-cols-2">
-                    <x-forms.listbox id="filterType" live :options="[
-                        ['value' => 'all', 'label' => 'All types'],
-                        ['value' => 'backup', 'label' => 'Backups'],
-                        ['value' => 'task', 'label' => 'Tasks'],
-                        ['value' => 'cleanup', 'label' => 'Docker cleanup'],
-                    ]" />
-                    <x-forms.listbox id="filterDate" live :options="[
-                        ['value' => 'last_24h', 'label' => 'Last 24 hours'],
-                        ['value' => 'last_7d', 'label' => 'Last 7 days'],
-                        ['value' => 'last_30d', 'label' => 'Last 30 days'],
-                        ['value' => 'all', 'label' => 'All time'],
-                    ]" />
+                <div x-show="activeTab === 'executions'"
+                    class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="relative w-full sm:max-w-sm">
+                        <x-reicon name="search"
+                            class="pointer-events-none absolute top-1/2 left-2.5 z-10 size-3.5 -translate-y-1/2 text-neutral-400 dark:text-fg-faint" />
+                        <input wire:model.live.debounce.250ms="search" type="search"
+                            placeholder="Search scheduled jobs"
+                            class="h-8! w-full rounded-lg! border-neutral-200! bg-white! py-0! pr-3! pl-8! text-[12px]! shadow-none! placeholder:text-neutral-400 focus:border-neutral-300! focus:ring-0! dark:border-white/[0.08]! dark:bg-white/[0.035]! dark:text-fg! dark:placeholder:text-fg-faint">
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <div class="relative" @click.outside="filterOpen = false"
+                            @keydown.escape.window="filterOpen = false">
+                            <button type="button" class="button" @click="filterOpen = !filterOpen">
+                                <x-reicon name="filter" class="size-3.5" />
+                                Filter
+                            </button>
+                            <div x-show="filterOpen" x-cloak x-transition.opacity.duration.120ms
+                                class="listbox-panel right-0 left-auto! min-w-52">
+                                <div
+                                    class="px-2 py-1 text-[10px] font-semibold tracking-wide text-neutral-400 uppercase dark:text-fg-faint">
+                                    Type
+                                </div>
+                                @foreach (['all' => 'All types', 'backup' => 'Backups', 'task' => 'Tasks', 'cleanup' => 'Docker cleanup'] as $value => $label)
+                                    <button type="button" class="listbox-option"
+                                        wire:click="$set('filterType', '{{ $value }}')"
+                                        @click="filterOpen = false">
+                                        <span>{{ $label }}</span>
+                                        @if ($filterType === $value)
+                                            <span class="text-accent">✓</span>
+                                        @endif
+                                    </button>
+                                @endforeach
+                                <div
+                                    class="mt-1 border-t border-neutral-200 px-2 pt-2 pb-1 text-[10px] font-semibold tracking-wide text-neutral-400 uppercase dark:border-white/[0.08] dark:text-fg-faint">
+                                    Time range
+                                </div>
+                                @foreach (['last_24h' => 'Last 24 hours', 'last_7d' => 'Last 7 days', 'last_30d' => 'Last 30 days', 'all' => 'All time'] as $value => $label)
+                                    <button type="button" class="listbox-option"
+                                        wire:click="$set('filterDate', '{{ $value }}')"
+                                        @click="filterOpen = false">
+                                        <span>{{ $label }}</span>
+                                        @if ($filterDate === $value)
+                                            <span class="text-accent">✓</span>
+                                        @endif
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <div class="relative" @click.outside="sortOpen = false"
+                            @keydown.escape.window="sortOpen = false">
+                            <button type="button" class="button" @click="sortOpen = !sortOpen">
+                                <x-reicon name="sort-direction" class="size-3.5" />
+                                Sort
+                            </button>
+                            <div x-show="sortOpen" x-cloak x-transition.opacity.duration.120ms
+                                class="listbox-panel right-0 left-auto! min-w-44">
+                                @foreach (['newest' => 'Newest first', 'oldest' => 'Oldest first'] as $value => $label)
+                                    <button type="button" class="listbox-option"
+                                        wire:click="$set('sortOrder', '{{ $value }}')"
+                                        @click="sortOpen = false">
+                                        <span>{{ $label }}</span>
+                                        @if ($sortOrder === $value)
+                                            <span class="text-accent">✓</span>
+                                        @endif
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

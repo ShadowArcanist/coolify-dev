@@ -25,11 +25,12 @@
         </x-slot:actions>
     </x-settings.navbar>
 
-    <div class="application-settings-form flex flex-col gap-6">
+    <div class="application-settings-form flex max-w-[930px] flex-col gap-6">
+        <h1 class="text-[24px]! leading-7! font-semibold! tracking-tight!">Transactional email</h1>
+
         <form wire:submit="submit">
             <x-unsaved-bar action="submit" />
-            <x-application.settings-section title="Sender"
-                description="The identity used for password resets, invitations, and system messages.">
+            <x-application.settings-section title="Sender">
                 <div class="grid gap-4 lg:grid-cols-2">
                     <x-forms.input required id="smtpFromName" helper="Name shown in outgoing email."
                         label="From name" />
@@ -41,12 +42,16 @@
 
         <form wire:submit.prevent="submitSmtp">
             <x-unsaved-bar action="submitSmtp" />
-            <x-application.settings-section title="SMTP server"
-                description="Deliver transactional messages through a standard SMTP provider.">
+            <x-application.settings-section title="SMTP server">
                 <div class="grid gap-4 lg:grid-cols-3">
                     <div class="lg:col-span-3">
-                        <x-forms.checkbox instantSave='instantSave("SMTP")' id="smtpEnabled"
-                            label="Enabled" />
+                        <div class="max-w-sm">
+                            <x-forms.listbox id="smtpEnabled" label="SMTP delivery"
+                                onChange="instantSaveSmtp" :options="[
+                                    ['value' => true, 'label' => 'Enabled'],
+                                    ['value' => false, 'label' => 'Disabled'],
+                                ]" />
+                        </div>
                     </div>
                     <x-forms.input required id="smtpHost" placeholder="smtp.mailgun.org" label="Host" />
                     <x-forms.input required id="smtpPort" type="number" placeholder="587" label="Port" />
@@ -66,11 +71,13 @@
 
         <form wire:submit.prevent="submitResend">
             <x-unsaved-bar action="submitResend" />
-            <x-application.settings-section title="Resend"
-                description="Use Resend instead of SMTP for transactional delivery.">
+            <x-application.settings-section title="Resend">
                 <div class="grid gap-4 lg:grid-cols-2">
-                    <x-forms.checkbox instantSave='instantSave("Resend")' id="resendEnabled"
-                        label="Enabled" />
+                    <x-forms.listbox id="resendEnabled" label="Resend delivery"
+                        onChange="instantSaveResend" :options="[
+                            ['value' => true, 'label' => 'Enabled'],
+                            ['value' => false, 'label' => 'Disabled'],
+                        ]" />
                     <x-forms.input type="password" id="resendApiKey" placeholder="API key" required
                         label="API key" autocomplete="new-password" />
                 </div>
