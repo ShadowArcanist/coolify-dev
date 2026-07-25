@@ -2,56 +2,89 @@
     <x-slot:title>
         Proxy Dynamic Configuration | Coolify
     </x-slot>
+
     <livewire:server.navbar :server="$server" />
-    <div class="flex flex-col h-full gap-4 md:gap-8 md:flex-row">
+
+    <div class="flex h-full flex-col gap-4 md:flex-row md:gap-8">
         <x-server.sidebar-proxy :server="$server" :parameters="$parameters" />
-        @if ($server->isFunctional())
-            <div class="w-full">
-                <div class="flex gap-2">
-                    <div>
-                        <div class="flex gap-2">
-                            <h2>Dynamic Configurations</h2>
-                            <x-forms.button wire:click="loadDynamicConfigurations">Reload</x-forms.button>
+
+        <div class="application-settings-form w-full">
+            @if ($server->isFunctional())
+                <x-application.settings-section id="proxy-dynamic-configurations-section"
+                    title="Dynamic configurations"
+                    helper="Manage additional proxy routes, middleware, and services loaded at runtime." flush>
+                    <x-slot:actions>
+                        <div class="flex items-center gap-2">
+                            <x-forms.button wire:click="loadDynamicConfigurations">
+                                <x-reicon name="refresh" class="size-3.5" />
+                                Reload
+                            </x-forms.button>
                             @can('update', $server)
                                 <x-modal-input buttonTitle="+ Add" title="New Dynamic Configuration">
                                     <livewire:server.proxy.new-dynamic-configuration :server_id="$server->id" />
                                 </x-modal-input>
                             @endcan
                         </div>
-                        <div class='pb-4'>You can add dynamic proxy configurations here.</div>
+                    </x-slot:actions>
+
+                    <div wire:loading wire:target="initLoadDynamicConfigurations" class="p-6">
+                        <x-loading text="Loading dynamic configurations…" />
                     </div>
-                </div>
-                <div wire:loading wire:target="initLoadDynamicConfigurations">
-                    <x-loading text="Loading dynamic configurations..." />
-                </div>
-                <div x-init="$wire.initLoadDynamicConfigurations" class="flex flex-col gap-4">
-                    @if ($contents?->isNotEmpty())
-                        @foreach ($contents as $fileName => $value)
-                            <div class="flex flex-col gap-2 py-2">
-                                @if (str_replace('|', '.', $fileName) === 'coolify.yaml' ||
-                                        str_replace('|', '.', $fileName) === 'Caddyfile' ||
-                                        str_replace('|', '.', $fileName) === 'coolify.caddy' ||
-                                        str_replace('|', '.', $fileName) === 'default_redirect_503.yaml' ||
-                                        str_replace('|', '.', $fileName) === 'default_redirect_503.caddy')
-                                    <div>
-                                        <h3 class="dark:text-white">File: {{ str_replace('|', '.', $fileName) }}</h3>
+
+                    <div x-init="$wire.initLoadDynamicConfigurations">
+                        @if ($contents?->isNotEmpty())
+                            @foreach ($contents as $fileName => $value)
+                                <div
+                                    class="border-b border-neutral-200 px-4 py-4 last:border-b-0 dark:border-white/[0.08]">
+                                    @php($displayName = str_replace('|', '.', $fileName))
+                                    @if (in_array($displayName, [
+                                        'coolify.yaml',
+                                        'Caddyfile',
+                                        'coolify.caddy',
+                                        'default_redirect_503.yaml',
+                                        'default_redirect_503.caddy',
+                                    ]))
+                                        <div class="mb-3 flex items-center gap-2">
+                                            <p class="font-mono text-sm font-medium text-neutral-950 dark:text-fg">
+                                                {{ $displayName }}
+                                            </p>
+                                            <x-status-badge status="Managed" type="neutral" />
+                                        </div>
+                                    @else
+                                        <livewire:server.proxy.dynamic-configuration-navbar
+                                            :server_id="$server->id" :server="$server" :fileName="$fileName"
+                                            :value="$value ?? ''" :newFile="false"
+                                            wire:key="{{ $fileName }}-{{ $loop->index }}" />
+                                    @endif
+                                    <div class="mt-3">
+                                        <x-forms.textarea disabled wire:model="contents.{{ $fileName }}"
+                                            rows="8" />
                                     </div>
-                                    <x-forms.textarea disabled name="proxy_settings"
-                                        wire:model="contents.{{ $fileName }}" rows="5" />
-                                @else
-                                    <livewire:server.proxy.dynamic-configuration-navbar :server_id="$server->id"
-                                        :server="$server" :fileName="$fileName" :value="$value ?? ''" :newFile="false"
-                                        wire:key="{{ $fileName }}-{{ $loop->index }}" />
-                                    <x-forms.textarea disabled wire:model="contents.{{ $fileName }}"
-                                        rows="10" />
-                                @endif
+                                </div>
+                            @endforeach
+                        @else
+                            <div wire:loading.remove>
+                                <x-empty size="sm" title="No dynamic configurations"
+                                    description="Add a configuration file to extend the proxy at runtime.">
+                                    <x-slot:icon>
+                                        <x-reicon name="file-content" class="size-8" />
+                                    </x-slot:icon>
+                                </x-empty>
                             </div>
-                        @endforeach
-                    @else
-                        <div wire:loading.remove> No dynamic configurations found.</div>
-                    @endif
-                </div>
-            </div>
-        @endif
+                        @endif
+                    </div>
+                </x-application.settings-section>
+            @else
+                <x-application.settings-section title="Dynamic configurations"
+                    helper="Manage additional runtime proxy configuration.">
+                    <x-empty size="sm" title="Server validation required"
+                        description="Validate this server before loading proxy configuration.">
+                        <x-slot:icon>
+                            <x-reicon name="file-content" class="size-8" />
+                        </x-slot:icon>
+                    </x-empty>
+                </x-application.settings-section>
+            @endif
+        </div>
     </div>
 </div>
