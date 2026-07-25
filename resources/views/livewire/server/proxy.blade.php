@@ -69,15 +69,13 @@
                                 ['value' => false, 'label' => 'Return the default 503 response'],
                                 ['value' => true, 'label' => 'Use custom request handling'],
                             ]" />
-                    </div>
-                    @if ($redirectEnabled)
-                        <div class="mt-4 max-w-xl">
+                        @if ($redirectEnabled)
                             <x-forms.input canGate="update" :canResource="$server"
                                 placeholder="https://app.coolify.io" id="redirectUrl"
                                 label="Redirect URL"
                                 helper="Leave empty to keep a custom 503 response without redirecting." />
-                        </div>
-                    @endif
+                        @endif
+                    </div>
                 </x-application.settings-section>
 
                 @php

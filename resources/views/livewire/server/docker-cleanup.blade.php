@@ -5,7 +5,8 @@
 
     <livewire:server.navbar :server="$server" />
 
-    <div class="flex h-full flex-col gap-4 md:flex-row md:gap-8">
+    <div
+        class="server-settings-workspace application-settings-workspace mt-8 grid w-full max-w-[1180px] min-w-0 gap-8 xl:mt-0 xl:grid-cols-[210px_minmax(0,1fr)] xl:gap-10">
         <x-server.sidebar :server="$server" activeMenu="docker-cleanup" />
 
         <div class="application-settings-form flex w-full flex-col gap-6">
@@ -57,7 +58,7 @@
                 <x-application.settings-section id="docker-cleanup-configuration-section"
                     title="Cleanup configuration"
                     helper="Choose when cleanup runs and whether it should wait for a disk threshold.">
-                    <div class="grid gap-4 lg:grid-cols-3">
+                    <div class="grid gap-4 lg:grid-cols-2">
                         <x-forms.input canGate="update" :canResource="$server" placeholder="0 0 * * *"
                             id="dockerCleanupFrequency" label="Cleanup frequency" required
                             helper="Cron expression or preset such as hourly, daily, weekly, monthly, or yearly." />
