@@ -157,6 +157,8 @@ the shared status badge.
 
 Every page opened directly from the main sidebar uses the same compact shell:
 
+- a fixed layer-2 route bar below the global topbar, even when the family only
+  has one primary collection route;
 - 24px page title and a 13px muted summary;
 - the primary action at the top right using the restrained brand fill;
 - no legacy `coolbox`, `.navbar-main`, or oversized subtitle block;
@@ -174,6 +176,29 @@ Top-level settings families such as Team, Notifications, Keys & Tokens, and
 instance Settings use a compact header followed by a small route-derived tab
 strip. The active tab uses the same purple-light/yellow-dark tint as resource
 tabs. Do not nest `<button>` elements inside tab links.
+
+### Route-family completion gate
+
+A redesign is not complete when only its index or most visible route has been
+updated. Treat every route family as one deliverable:
+
+- index, create, detail, settings, logs, metrics, backup, execution, and danger
+  routes must share the same navigation hierarchy and surface language;
+- every main-sidebar destination must have the fixed global topbar plus the
+  fixed layer-2 route bar;
+- resource detail families use resource identity and status in the global
+  topbar, route tabs and actions in layer 2, and the grouped settings sidebar
+  only for the third level;
+- create and edit routes stay inside the same layer-2 family instead of
+  falling back to an isolated legacy page;
+- reusable partials, empty states, confirmation flows, and row editors must be
+  migrated with the page that exposes them;
+- audit the whole family for native selects, legacy heading blocks, old Save
+  buttons, old status chips, and `coolbox`/`navbar-main`/`sub-menu-wrapper`
+  before marking the family complete.
+
+Do not report a family as redesigned while a sibling route still uses the old
+tabs, a large in-flow title, a browser select, or a different modal anatomy.
 
 ### Settings workspace
 
@@ -307,7 +332,8 @@ between the label and control. Password visibility uses the filled Reicon
 
 ### Dropdowns
 
-Do not use native `<select>` for redesigned desktop forms. Use:
+Do not use native `<select>` on any redesigned route, including mobile
+fallbacks. Use:
 
 ```blade
 <x-forms.listbox id="property" label="Setting" :options="[
@@ -500,21 +526,23 @@ Operations, Metrics, Tags, and Danger Zone.
 
 ## 11. Restyling checklist
 
-1. Read the current Blade and Livewire class before changing presentation.
-2. Preserve every existing action, authorization check, loading state, and
+1. Inventory every route and reusable partial in the family before editing.
+2. Read the current Blade and Livewire class before changing presentation.
+3. Preserve every existing action, authorization check, loading state, and
    confirmation.
-3. Add the correct scoped workspace/form class.
-4. Convert meaningful groups to layer cards and use `gap-6`.
-5. Make the responsive column count match the controls visible in every state.
-6. Replace native selects and checkbox-style configuration with listboxes.
-7. Use one save model per component: instant-save or one floating dirty bar.
-8. Check nested radii using `outer = inner + inset`.
-9. Keep modal descriptions purposeful and footer actions compact/right-aligned.
-10. Use tables for dense collections and cards for forms or summaries.
-11. Use `x-status-badge`, `x-empty`, and `x-reicon`.
-12. Confirm light and dark accent behavior.
-13. Check fixed-nav anchor offsets and responsive stacking.
-14. Run `git diff --check`.
-15. Compile Blade views in the `coolify` container.
-16. Build assets in `coolify-vite`.
-17. Hard-refresh and inspect the actual route in both themes.
+4. Add the correct dual navigation and scoped workspace/form class.
+5. Convert meaningful groups to layer cards and use `gap-6`.
+6. Make the responsive column count match the controls visible in every state.
+7. Replace native selects and checkbox-style configuration with listboxes.
+8. Use one save model per component: instant-save or one floating dirty bar.
+9. Check nested radii using `outer = inner + inset`.
+10. Keep modal descriptions purposeful and footer actions compact/right-aligned.
+11. Use tables for dense collections and cards for forms or summaries.
+12. Use `x-status-badge`, `x-empty`, and `x-reicon`.
+13. Confirm light and dark accent behavior.
+14. Check fixed-nav anchor offsets and responsive stacking.
+15. Sweep every sibling route for legacy controls and shells.
+16. Run `git diff --check`.
+17. Compile Blade views in the `coolify` container.
+18. Build assets in `coolify-vite`.
+19. Hard-refresh and inspect the family routes in both themes.
