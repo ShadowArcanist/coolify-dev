@@ -3,9 +3,13 @@
         {{ data_get_str($resource, 'name')->limit(10) }} > Console | Coolify
     </x-slot>
 
-    @if ($type === 'application')
-        <livewire:project.shared.configuration-checker :resource="$resource" />
-        <livewire:project.application.heading :application="$resource" />
+    @if ($type === 'application' || $type === 'server')
+        @if ($type === 'application')
+            <livewire:project.shared.configuration-checker :resource="$resource" />
+            <livewire:project.application.heading :application="$resource" />
+        @else
+            <livewire:server.navbar :server="$servers->first()" />
+        @endif
 
         @php
             $consoleThemes = [
@@ -46,7 +50,31 @@
                 :data-console-theme="consoleTheme">
                 <header
                     class="application-console-header flex h-[30px] shrink-0 items-center border-b border-white/[0.12] px-2.5 text-[11px] text-white select-none">
-                    @if (count($containers) > 0)
+                    @if ($type === 'server')
+                        <div class="flex min-w-0 flex-1 items-center gap-2"
+                            x-data="{ autoConnected: false }"
+                            @if ($servers->first()->isTerminalEnabled() && $servers->first()->isFunctional())
+                            x-on:terminal-websocket-ready.window="if (!autoConnected) {
+                                autoConnected = true;
+                                $nextTick(() => $wire.dispatchSelf('connectToServer'));
+                            }"
+                            @endif>
+                            <x-reicon name="browser-terminal" class="size-3.5 shrink-0 text-white/55" />
+                            <span class="min-w-0 truncate text-[11px] font-semibold text-white/80">
+                                {{ $servers->first()->name }}
+                            </span>
+                            <div class="hidden items-center gap-1.5 text-[10px] font-medium text-white/40"
+                                wire:loading.flex wire:target="connectToServer">
+                                <svg class="size-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                                    <circle class="opacity-25" cx="12" cy="12" r="9"
+                                        stroke="currentColor" stroke-width="3" />
+                                    <path class="opacity-75" d="M21 12a9 9 0 0 0-9-9"
+                                        stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+                                </svg>
+                                Connecting
+                            </div>
+                        </div>
+                    @elseif (count($containers) > 0)
                         <div class="flex min-w-0 flex-1 items-center gap-2" x-data="{ autoConnected: false }"
                             x-on:terminal-websocket-ready.window="if ({{ count($containers) }} === 1 && !autoConnected) {
                                 autoConnected = true;
@@ -133,15 +161,24 @@
                 </header>
 
                 <div class="application-console-block min-h-0 flex-1">
-                    @if (count($containers) === 0)
-                    <div class="flex h-full items-center justify-center bg-[#141414]">
-                        <x-empty size="lg" title="Console unavailable"
-                            description="No containers are running, or terminal access is disabled on the destination server.">
-                            <x-slot:icon>
-                                <x-reicon name="terminal" class="size-9" />
-                            </x-slot:icon>
-                        </x-empty>
-                    </div>
+                    @if ($type === 'server' && (!$servers->first()->isTerminalEnabled() || !$servers->first()->isFunctional()))
+                        <div class="flex h-full items-center justify-center bg-[#141414]">
+                            <x-empty size="lg" title="Console unavailable"
+                                description="This server is not functional or terminal access is disabled.">
+                                <x-slot:icon>
+                                    <x-reicon name="terminal" class="size-9" />
+                                </x-slot:icon>
+                            </x-empty>
+                        </div>
+                    @elseif ($type === 'application' && count($containers) === 0)
+                        <div class="flex h-full items-center justify-center bg-[#141414]">
+                            <x-empty size="lg" title="Console unavailable"
+                                description="No containers are running, or terminal access is disabled on the destination server.">
+                                <x-slot:icon>
+                                    <x-reicon name="terminal" class="size-9" />
+                                </x-slot:icon>
+                            </x-empty>
+                        </div>
                     @else
                         <livewire:project.shared.terminal variant="application" />
                     @endif
@@ -188,21 +225,4 @@
         @endif
     @endif
 
-    @if ($type === 'server')
-        <livewire:server.navbar :server="$servers->first()" />
-        @if ($servers->first()->isTerminalEnabled() && $servers->first()->isFunctional())
-            <form class="w-full flex gap-2 items-start" wire:submit="$dispatchSelf('connectToServer')"
-                x-data="{ autoConnected: false }"
-                x-on:terminal-websocket-ready.window="if (!autoConnected) { autoConnected = true; $wire.dispatchSelf('connectToServer'); }">
-                <h2 class="pb-4">Terminal</h2>
-                <x-forms.button :disabled="$isConnecting"
-                    type="submit">{{ $isConnecting ? 'Connecting...' : 'Connect' }}</x-forms.button>
-            </form>
-            <div class="mx-auto w-full">
-                <livewire:project.shared.terminal />
-            </div>
-        @else
-            <div>Server is not functional or terminal access is disabled.</div>
-        @endif
-    @endif
 </div>
