@@ -1,62 +1,88 @@
 <div>
     <livewire:project.service.heading :service="$service" :parameters="$parameters" :query="$query" />
-    <div class="flex flex-col h-full gap-2 md:gap-8 md:flex-row">
+    <section class="application-settings-workspace mt-8 w-full max-w-[1180px] xl:mt-0">
+        <div class="grid min-w-0 gap-8 xl:grid-cols-[210px_minmax(0,1fr)] xl:gap-10">
         @if ($resourceType === 'database')
             <x-service-database.sidebar :parameters="$parameters" :serviceDatabase="$serviceDatabase" :isImportSupported="$isImportSupported" />
         @else
-            <div class="sub-menu-wrapper hidden md:flex">
-                <a class="sub-menu-item"
-                    class="{{ request()->routeIs('project.service.configuration') ? 'menu-item-active' : '' }}"
-                    {{ wireNavigate() }}
+            <aside class="application-settings-navigation min-w-0 xl:sticky xl:top-26 xl:self-start">
+                <nav aria-label="Compose resource settings"
+                    class="grid grid-cols-2 gap-0.5 border-y border-neutral-200 py-4 sm:grid-cols-3 xl:grid-cols-1 xl:border-y-0 xl:py-0 dark:border-white/[0.06]">
+                    <div class="nav-section hidden xl:block">Compose resource</div>
+                <a class="menu-item" {{ wireNavigate() }}
                     href="{{ route('project.service.configuration', [...$parameters, 'stack_service_uuid' => null]) }}">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="sub-menu-item-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                    </svg>
-                    <span class="menu-item-label">Back</span>
+                    <x-reicon name="logout" class="menu-item-icon rotate-180" />
+                    <span class="menu-item-label">Back to service</span>
                 </a>
-                <a class="sub-menu-item" wire:current.exact="menu-item-active" {{ wireNavigate() }}
-                    href="{{ route('project.service.index', $parameters) }}"><span class="menu-item-label">General</span></a>
-                <a class="sub-menu-item" wire:current.exact="menu-item-active" {{ wireNavigate() }}
-                    href="{{ route('project.service.index.advanced', $parameters) }}"><span class="menu-item-label">Advanced</span></a>
-            </div>
+                <a @class(['menu-item', 'menu-item-active' => request()->routeIs('project.service.index')])
+                    {{ wireNavigate() }} href="{{ route('project.service.index', $parameters) }}">
+                    <x-reicon name="settings" class="menu-item-icon" />
+                    <span class="menu-item-label">General</span>
+                </a>
+                <a @class(['menu-item', 'menu-item-active' => request()->routeIs('project.service.index.advanced')])
+                    {{ wireNavigate() }} href="{{ route('project.service.index.advanced', $parameters) }}">
+                    <x-reicon name="grid" class="menu-item-icon" />
+                    <span class="menu-item-label">Advanced</span>
+                </a>
+                </nav>
+            </aside>
         @endif
-        <div class="w-full">
+        <div class="min-w-0 xl:mt-3">
             @if ($resourceType === 'application')
                 <x-slot:title>
                     {{ data_get_str($service, 'name')->limit(10) }} >
                     {{ data_get_str($serviceApplication, 'name')->limit(10) }} | Coolify
                 </x-slot>
                 @if ($currentRoute === 'project.service.index.advanced')
-                    <h2>Advanced</h2>
-                    <div class="w-full sm:w-96 flex flex-col gap-1 pt-4">
+                    <section class="application-settings-section">
+                        <div class="application-settings-section-header">
+                            <div>
+                                <h2>Advanced</h2>
+                                <p>Control proxy, status, and logging behavior for this compose resource.</p>
+                            </div>
+                        </div>
+                        <div class="application-settings-section-body grid gap-4 sm:grid-cols-2">
                         @if (str($serviceApplication->image)->contains('pocketbase'))
-                            <x-forms.checkbox canGate="update" :canResource="$serviceApplication" instantSave="instantSaveApplicationSettings" id="isGzipEnabled"
-                                label="Enable Gzip Compression"
-                                helper="Pocketbase does not need gzip compression, otherwise SSE will not work." disabled />
+                            <x-forms.listbox id="isGzipEnabled" label="Gzip compression"
+                                helper="PocketBase keeps compression disabled so server-sent events continue to work."
+                                :disabled="true" :options="[
+                                    ['value' => true, 'label' => 'Enabled'],
+                                    ['value' => false, 'label' => 'Disabled'],
+                                ]" />
                         @else
-                            <x-forms.checkbox canGate="update" :canResource="$serviceApplication" instantSave="instantSaveApplicationSettings" id="isGzipEnabled"
-                                label="Enable Gzip Compression"
-                                helper="You can disable gzip compression if you want. Some services are compressing data by default. In this case, you do not need this." />
+                            <x-forms.listbox id="isGzipEnabled" label="Gzip compression"
+                                onChange="instantSaveApplicationSettings" :options="[
+                                    ['value' => true, 'label' => 'Enabled'],
+                                    ['value' => false, 'label' => 'Disabled'],
+                                ]" />
                         @endif
-                        <x-forms.checkbox canGate="update" :canResource="$serviceApplication" instantSave="instantSaveApplicationSettings" id="isStripprefixEnabled"
-                            label="Strip Prefixes"
-                            helper="Strip Prefix is used to remove prefixes from paths. Like /api/ to /api." />
-                        <x-forms.checkbox canGate="update" :canResource="$serviceApplication" instantSave="instantSaveApplicationSettings" label="Exclude from service status"
-                            helper="If you do not need to monitor this resource, enable. Useful if this service is optional."
-                            id="excludeFromStatus"></x-forms.checkbox>
-                        <x-forms.checkbox canGate="update" :canResource="$serviceApplication"
-                            helper="Drain logs to your configured log drain endpoint in your Server settings."
-                            instantSave="instantSaveApplicationAdvanced" id="isLogDrainEnabled" label="Drain Logs" />
-                    </div>
+                        <x-forms.listbox id="isStripprefixEnabled" label="Path prefixes"
+                            onChange="instantSaveApplicationSettings" :options="[
+                                ['value' => true, 'label' => 'Strip prefixes'],
+                                ['value' => false, 'label' => 'Keep prefixes'],
+                            ]" />
+                        <x-forms.listbox id="excludeFromStatus" label="Service status"
+                            onChange="instantSaveApplicationSettings" :options="[
+                                ['value' => false, 'label' => 'Include in status'],
+                                ['value' => true, 'label' => 'Exclude from status'],
+                            ]" />
+                        <x-forms.listbox id="isLogDrainEnabled" label="Log drain"
+                            onChange="instantSaveApplicationAdvanced" :options="[
+                                ['value' => true, 'label' => 'Send logs to drain'],
+                                ['value' => false, 'label' => 'Do not drain logs'],
+                            ]" />
+                        </div>
+                    </section>
                 @else
-                    <form wire:submit='submitApplication'>
-                        <div class="flex items-center gap-2 pb-4">
-                            @if ($serviceApplication->human_name)
-                                <h2>{{ Str::headline($serviceApplication->human_name) }}</h2>
-                            @else
-                                <h2>{{ Str::headline($serviceApplication->name) }}</h2>
-                            @endif
-                            <x-forms.button canGate="update" :canResource="$serviceApplication" type="submit">Save</x-forms.button>
+                    <form wire:submit="submitApplication" class="space-y-6">
+                        <x-unsaved-bar action="submitApplication" />
+                        <section class="application-settings-section">
+                            <div class="application-settings-section-header">
+                                <div>
+                                    <h2>{{ Str::headline($serviceApplication->human_name ?: $serviceApplication->name) }}</h2>
+                                    <p>Identity, image, and public access for this compose application.</p>
+                                </div>
+                                <div class="flex items-center gap-2">
                             @can('update', $serviceApplication)
                                 <x-modal-confirmation wire:click="convertToDatabase" title="Convert to Database"
                                     buttonTitle="Convert to Database" submitAction="convertToDatabase" :actions="['The selected resource will be converted to a service database.']"
@@ -71,8 +97,9 @@
                                     confirmationLabel="Please confirm the execution of the actions by entering the Service Application Name below"
                                     shortConfirmationLabel="Service Application Name" />
                             @endcan
-                        </div>
-                        <div class="flex flex-col gap-2">
+                                </div>
+                            </div>
+                            <div class="application-settings-section-body space-y-4">
                             @if ($requiredPort && !$serviceApplication->serviceType()?->contains(str($serviceApplication->image)->before(':')))
                                 <x-callout type="info" title="Required Port: {{ $requiredPort }}" class="mb-2">
                                     This service requires port <strong>{{ $requiredPort }}</strong> to function correctly. All domains must include this port number (or any other port if you know what you're doing).
@@ -81,13 +108,13 @@
                                 </x-callout>
                             @endif
 
-                            <div class="flex gap-2">
+                            <div class="grid gap-4 sm:grid-cols-2">
                                 <x-forms.input canGate="update" :canResource="$serviceApplication" label="Name" id="humanName"
                                     placeholder="Human readable name"></x-forms.input>
                                 <x-forms.input canGate="update" :canResource="$serviceApplication" label="Description"
                                     id="description"></x-forms.input>
                             </div>
-                            <div class="flex gap-2">
+                            <div class="grid gap-4 sm:grid-cols-2">
                                 @if (!$serviceApplication->serviceType()?->contains(str($serviceApplication->image)->before(':')))
                                     @if ($serviceApplication->required_fqdn)
                                         <x-forms.input canGate="update" :canResource="$serviceApplication" required placeholder="https://app.coolify.io"
@@ -103,7 +130,8 @@
                                     helper="You can change the image you would like to deploy.<br><br><span class='dark:text-warning'>WARNING. You could corrupt your data. Only do it if you know what you are doing.</span>"
                                     label="Image" id="image"></x-forms.input>
                             </div>
-                        </div>
+                            </div>
+                        </section>
                     </form>
 
                     <x-domain-conflict-modal
@@ -185,25 +213,36 @@
                 @if ($currentRoute === 'project.service.database.import')
                     <livewire:project.database.import :resource="$serviceDatabase" :key="'import-' . $serviceDatabase->uuid" />
                 @elseif ($currentRoute === 'project.service.index.advanced')
-                    <h2>Advanced</h2>
-                    <div class="w-full sm:w-96 flex flex-col gap-1 pt-4">
-                        <x-forms.checkbox canGate="update" :canResource="$serviceDatabase" instantSave="instantSaveExclude"
-                            label="Exclude from service status"
-                            helper="If you do not need to monitor this resource, enable. Useful if this service is optional."
-                            id="excludeFromStatus"></x-forms.checkbox>
-                        <x-forms.checkbox canGate="update" :canResource="$serviceDatabase"
-                            helper="Drain logs to your configured log drain endpoint in your Server settings."
-                            instantSave="instantSaveLogDrain" id="isLogDrainEnabled" label="Drain Logs" />
-                    </div>
+                    <section class="application-settings-section">
+                        <div class="application-settings-section-header">
+                            <div>
+                                <h2>Advanced</h2>
+                                <p>Control status aggregation and external log delivery.</p>
+                            </div>
+                        </div>
+                        <div class="application-settings-section-body grid gap-4 sm:grid-cols-2">
+                            <x-forms.listbox id="excludeFromStatus" label="Service status"
+                                onChange="instantSaveExclude" :options="[
+                                    ['value' => false, 'label' => 'Include in status'],
+                                    ['value' => true, 'label' => 'Exclude from status'],
+                                ]" />
+                            <x-forms.listbox id="isLogDrainEnabled" label="Log drain"
+                                onChange="instantSaveLogDrain" :options="[
+                                    ['value' => true, 'label' => 'Send logs to drain'],
+                                    ['value' => false, 'label' => 'Do not drain logs'],
+                                ]" />
+                        </div>
+                    </section>
                 @else
-                    <form wire:submit='submitDatabase'>
-                        <div class="flex items-center gap-2 pb-4">
-                            @if ($serviceDatabase->human_name)
-                                <h2>{{ Str::headline($serviceDatabase->human_name) }}</h2>
-                            @else
-                                <h2>{{ Str::headline($serviceDatabase->name) }}</h2>
-                            @endif
-                            <x-forms.button canGate="update" :canResource="$serviceDatabase" type="submit">Save</x-forms.button>
+                    <form wire:submit="submitDatabase" class="space-y-6">
+                        <x-unsaved-bar action="submitDatabase" />
+                        <section class="application-settings-section">
+                            <div class="application-settings-section-header">
+                                <div>
+                                    <h2>{{ Str::headline($serviceDatabase->human_name ?: $serviceDatabase->name) }}</h2>
+                                    <p>Identity, image, and public access for this compose database.</p>
+                                </div>
+                                <div class="flex items-center gap-2">
                             @can('update', $serviceDatabase)
                                 <x-modal-confirmation wire:click="convertToApplication" title="Convert to Application"
                                     buttonTitle="Convert to Application" submitAction="convertToApplication" :actions="['The selected resource will be converted to an application.']"
@@ -220,20 +259,21 @@
                                     confirmationLabel="Please confirm the execution of the actions by entering the Service Database Name below"
                                     shortConfirmationLabel="Service Database Name" />
                             @endcan
-                        </div>
-                        <div class="flex flex-col gap-2">
-                            <div class="flex gap-2">
+                                </div>
+                            </div>
+                            <div class="application-settings-section-body space-y-5">
+                            <div class="grid gap-4 sm:grid-cols-2">
                                 <x-forms.input canGate="update" :canResource="$serviceDatabase" label="Name" id="humanName"
                                     placeholder="Name"></x-forms.input>
                                 <x-forms.input canGate="update" :canResource="$serviceDatabase" label="Description"
                                     id="description"></x-forms.input>
-                                <x-forms.input canGate="update" :canResource="$serviceDatabase" required
+                                <x-forms.input class="sm:col-span-2" canGate="update" :canResource="$serviceDatabase" required
                                     helper="You can change the image you would like to deploy.<br><br><span class='dark:text-warning'>WARNING. You could corrupt your data. Only do it if you know what you are doing.</span>"
                                     label="Image" id="image"></x-forms.input>
                             </div>
-                            <div class="flex flex-col gap-2">
-                                <div class="flex items-center gap-2 py-2">
-                                    <h3>Proxy</h3>
+                            <div class="border-t border-neutral-200 pt-5 dark:border-white/[0.06]">
+                                <div class="mb-4 flex items-center justify-between gap-2">
+                                    <h3 class="text-sm font-semibold text-black dark:text-fg">Public access</h3>
                                     <x-loading wire:loading wire:target="instantSave" />
                                     @if ($serviceDatabase->is_public)
                                         <x-slide-over fullScreen>
@@ -246,22 +286,24 @@
                                         </x-slide-over>
                                     @endif
                                 </div>
-                                <div class="flex flex-col gap-2 w-64">
+                                <div class="grid gap-4 sm:grid-cols-2">
                                     <x-forms.checkbox canGate="update" :canResource="$serviceDatabase" instantSave id="isPublic"
                                         label="Make it publicly available" />
-                                </div>
-                                <x-forms.input type="number" canGate="update" :canResource="$serviceDatabase" placeholder="5432"
-                                    disabled="{{ $serviceDatabase->is_public }}" id="publicPort" label="Public Port" />
+                                    <x-forms.input type="number" canGate="update" :canResource="$serviceDatabase" placeholder="5432"
+                                        disabled="{{ $serviceDatabase->is_public }}" id="publicPort" label="Public Port" />
                                 @if ($db_url_public)
-                                    <x-forms.input label="Database IP:PORT (public)"
+                                    <x-forms.input class="sm:col-span-2" label="Database IP:PORT (public)"
                                         helper="Your credentials are available in your environment variables." type="password"
                                         readonly wire:model="db_url_public" />
                                 @endif
+                                </div>
                             </div>
-                        </div>
+                            </div>
+                        </section>
                     </form>
                 @endif
             @endif
         </div>
-    </div>
+        </div>
+    </section>
 </div>
