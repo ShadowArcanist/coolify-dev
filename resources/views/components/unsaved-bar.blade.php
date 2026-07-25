@@ -7,7 +7,7 @@
      Livewire's wire:dirty whenever the surrounding component has un-saved
      model changes. --}}
 <div wire:dirty.class.remove="opacity-0 translate-y-6 pointer-events-none"
-    class="pointer-events-none fixed bottom-6 left-1/2 z-[80] flex -translate-x-1/2 translate-y-6 items-center gap-4 rounded-xl border border-white/10 bg-surface py-2 pr-2 pl-5 opacity-0 shadow-modal transition-all duration-200 ease-out sm:gap-8">
+    class="pointer-events-none fixed bottom-6 left-1/2 z-[80] flex -translate-x-1/2 translate-y-6 items-center gap-4 rounded-2xl border border-white/10 bg-surface py-2 pr-2 pl-5 opacity-0 shadow-modal transition-all duration-200 ease-out sm:gap-8">
     <span class="whitespace-nowrap text-[13px] font-semibold text-fg">{{ $label }}</span>
     <div class="flex items-center gap-2">
         <button type="button" onclick="window.location.reload()"

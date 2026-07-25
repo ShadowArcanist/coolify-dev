@@ -5,7 +5,7 @@
 
     <livewire:server.navbar :server="$server" />
 
-    <div class="application-settings-form flex w-full flex-col gap-6">
+    <div class="application-settings-form flex w-full max-w-[1180px] flex-col gap-6">
         <x-application.settings-section id="server-resources-overview-section" title="Resources"
             helper="Review Coolify-managed resources and other Docker containers running on this server.">
             <x-slot:actions>
@@ -15,7 +15,7 @@
                 </x-forms.button>
             </x-slot:actions>
 
-            <div class="inline-flex w-fit rounded-lg bg-neutral-100 p-1 dark:bg-white/[0.05]">
+            <div class="inline-flex w-fit rounded-[10px] bg-neutral-100 p-1 dark:bg-white/[0.05]">
                 <button type="button" wire:click="loadManagedContainers"
                     class="rounded-md px-4 py-1.5 text-xs font-medium transition-colors {{ $activeTab === 'managed' ? 'bg-white text-neutral-950 shadow-sm dark:bg-warning/15 dark:text-warning' : 'text-neutral-500 hover:text-neutral-900 dark:text-fg-dim dark:hover:text-fg' }}">
                     Managed

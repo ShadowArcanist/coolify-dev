@@ -414,7 +414,7 @@
         <div class="hidden w-full items-center justify-between gap-4 md:flex lg:fixed lg:top-12 lg:right-0 lg:z-30 lg:h-12 lg:w-auto lg:border-b lg:border-neutral-200 lg:bg-white/95 lg:pl-2 lg:pr-4 lg:backdrop-blur lg:transition-[left] lg:duration-200 lg:dark:border-white/[0.06] lg:dark:bg-panel/95"
             :class="[typeof collapsed !== 'undefined' && collapsed ? 'lg:left-16' : 'lg:left-56']">
             <div class="flex min-w-0 items-center gap-2">
-                <div class="application-primary-tabs flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-[7px] border border-neutral-200 bg-neutral-100 p-1 dark:border-white/[0.07] dark:bg-white/[0.035]">
+                <div class="application-primary-tabs flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-[10px] border border-neutral-200 bg-neutral-100 p-1 dark:border-white/[0.07] dark:bg-white/[0.035]">
                 @foreach ($applicationMenuItems as $menuItem)
                     @php
                         $isApplicationMenuItemActive = $menuItem['active']
@@ -435,14 +435,14 @@
                     </a>
                 @endforeach
                 </div>
-                <div class="application-heading-actions flex shrink-0 items-center rounded-[7px] border border-neutral-200 bg-neutral-100 p-1 dark:border-white/[0.07] dark:bg-white/[0.035]">
+                <div class="application-heading-actions flex shrink-0 items-center rounded-[10px] border border-neutral-200 bg-neutral-100 p-1 dark:border-white/[0.07] dark:bg-white/[0.035]">
                     <x-applications.links :application="$application" />
                 </div>
             </div>
             <div class="flex shrink-0 items-center gap-3">
                 {{-- Status badge temporarily hidden — will be redesigned later:
                      <x-status.index :resource="$application" :title="$lastDeploymentInfo" :lastDeploymentLink="$lastDeploymentLink" /> --}}
-                <div class="application-heading-actions flex items-center gap-0.5 rounded-[7px] border border-neutral-200 bg-neutral-100 p-1 dark:border-white/[0.07] dark:bg-white/[0.035]">
+                <div class="application-heading-actions flex items-center gap-0.5 rounded-[10px] border border-neutral-200 bg-neutral-100 p-1 dark:border-white/[0.07] dark:bg-white/[0.035]">
                     @if ($application->build_pack === 'dockercompose' && is_null($application->docker_compose_raw))
                         <span class="px-2 text-[13px] text-neutral-500 dark:text-fg-dim">Load a Compose file to deploy.</span>
                     @else
