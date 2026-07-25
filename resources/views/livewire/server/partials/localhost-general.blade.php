@@ -1,4 +1,5 @@
                 <form wire:submit.prevent="submit" class="application-settings-form flex flex-col gap-6">
+                    <x-unsaved-bar action="submit" />
                     <x-application.settings-section id="server-overview-section" title="Server overview"
                         helper="Operating system and hardware details for the server running this Coolify instance.">
                         <x-slot:actions>

@@ -223,58 +223,19 @@
                 @endcan
             @endif
 
-            <label id="server-mobile-section-label" for="server-mobile-section"
-                class="mb-1 block text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                Section
-            </label>
-            <select id="server-mobile-section" class="select w-full" aria-label="Server menu"
-                data-current-value="{{ $activeServerMenuValue }}"
-                x-data="{
-                    selected: $el.dataset.currentValue,
-                    current: $el.dataset.currentValue,
-                    init() {
-                        this.syncFromLocation();
-                        window.Livewire?.hook?.('morphed', ({ el }) => {
-                            if (el.contains(this.$el)) {
-                                queueMicrotask(() => this.syncFromLocation());
-                            }
-                        });
-                    },
-                    syncFromLocation() {
-                        const currentUrl = new URL(window.location.href);
-                        const selectedOption = Array.from(this.$el.options).find((option) => {
-                            const optionUrl = new URL(option.value.split('|').slice(1).join('|'), window.location.origin);
-
-                            return optionUrl.pathname === currentUrl.pathname
-                                || (option.dataset.routeGroup && currentUrl.pathname.startsWith(option.dataset.routeGroup));
-                        });
-
-                        if (selectedOption) {
-                            this.current = selectedOption.value;
-                            this.selected = selectedOption.value;
-                        }
-                    },
-                }"
-                x-on:livewire:navigated.window="syncFromLocation()"
-                x-model="selected"
-                x-on:change="
-                    const value = $event.target.value;
-                    const url = value.split('|').slice(1).join('|');
-
-                    if (value.startsWith('navigate|')) {
-                        window.Livewire?.navigate ? window.Livewire.navigate(url) : window.location.href = url;
-                        return;
-                    }
-
-                    window.location.href = url;
-                ">
+            <div
+                class="flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-[10px] border border-neutral-200 bg-neutral-100 p-1 dark:border-white/[0.07] dark:bg-white/[0.035]">
                 @foreach ($serverMenuItems as $menuItem)
-                    <option value="{{ ($menuItem['navigate'] ?? true) ? 'navigate' : 'location' }}|{{ route($menuItem['route'], $serverRouteParameters) }}"
-                        @selected($menuItem['active'])>
+                    <a @class([
+                        'app-tab shrink-0',
+                        'bg-coollabs/10 text-coollabs ring-1 ring-coollabs/25 dark:bg-warning/15 dark:text-warning dark:ring-warning/25' => $menuItem['active'],
+                    ])
+                        @if ($menuItem['navigate'] ?? true) {{ wireNavigate() }} @endif
+                        href="{{ route($menuItem['route'], $serverRouteParameters) }}">
                         {{ $menuItem['label'] }}
-                    </option>
+                    </a>
                 @endforeach
-            </select>
+            </div>
         </div>
 
         <div class="hidden w-full items-center justify-between gap-4 md:flex lg:fixed lg:top-12 lg:right-0 lg:z-30 lg:h-12 lg:w-auto lg:border-b lg:border-neutral-200 lg:bg-white/95 lg:pr-4 lg:pl-2 lg:backdrop-blur lg:transition-[left] lg:duration-200 lg:dark:border-white/[0.06] lg:dark:bg-panel/95"
