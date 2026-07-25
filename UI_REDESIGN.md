@@ -418,6 +418,12 @@ Collections with many rows should use the Cloudflare-inspired table pattern:
 - compact action at the far right;
 - no separate layer card for each item.
 
+Do not add a summary card above a table when it only repeats the row count,
+current page, or refresh interval. Keep counts and pagination in the footer and
+show live-update state as a compact toolbar badge. Filters only render when
+there are real filter values; use the shared listbox instead of a number input
+or browser-native control.
+
 The footer is always inside the table shell:
 
 - `Showing X–Y of Z` on the left;

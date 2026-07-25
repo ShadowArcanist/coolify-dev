@@ -9,53 +9,17 @@
         $lastVisibleRow = min($skip + $deployments->count(), $deployments_count);
     @endphp
 
-    <div class="application-settings-form flex flex-col gap-6"
+    <div class="application-settings-form flex flex-col gap-3"
         @if (!$skip) wire:poll.5000ms="reloadDeployments" @endif>
-        <x-application.settings-section title="Deployment history"
-            helper="Review application deployments, their source, status, timing, and build logs.">
-            <x-slot:actions>
-                <x-status-badge :status="$skip === 0 ? 'Live updates' : 'Historical page'"
-                    :type="$skip === 0 ? 'success' : 'neutral'" />
-            </x-slot:actions>
-
-            <div class="grid gap-4 sm:grid-cols-3">
-                <div>
-                    <p class="text-xs font-medium text-neutral-500 dark:text-fg-dim">Deployments</p>
-                    <p class="mt-1 text-xl font-semibold tabular-nums text-neutral-950 dark:text-fg">
-                        {{ $deployments_count }}
-                    </p>
+        <div class="flex min-h-8 flex-wrap items-center justify-end gap-2">
+            @if (count($pullRequestOptions) > 1)
+                <div class="w-52">
+                    <x-forms.listbox id="pull_request_id" :options="$pullRequestOptions"
+                        placeholder="All deployments" live />
                 </div>
-                <div>
-                    <p class="text-xs font-medium text-neutral-500 dark:text-fg-dim">Current page</p>
-                    <p class="mt-1 text-xl font-semibold tabular-nums text-neutral-950 dark:text-fg">
-                        {{ $currentPage }} <span class="text-sm font-medium text-neutral-400 dark:text-fg-faint">of
-                            {{ $lastPage }}</span>
-                    </p>
-                </div>
-                <div>
-                    <p class="text-xs font-medium text-neutral-500 dark:text-fg-dim">Refresh</p>
-                    <p class="mt-1 text-sm font-medium text-neutral-950 dark:text-fg">
-                        {{ $skip === 0 ? 'Every 5 seconds' : 'Paused on older pages' }}
-                    </p>
-                </div>
-            </div>
-        </x-application.settings-section>
-
-        <div class="flex flex-wrap items-end gap-2">
-            <div class="w-full max-w-xs">
-                <label for="deployment-pull-request-filter">Pull request</label>
-                <div class="relative">
-                    <input id="deployment-pull-request-filter" type="number" min="1"
-                        wire:model.live.debounce.300ms="pull_request_id"
-                        placeholder="Filter by pull request ID" class="input w-full pr-8!" />
-                    @if ($pull_request_id)
-                        <button type="button" wire:click="clearFilter" aria-label="Clear pull request filter"
-                            class="absolute inset-y-0 right-0 flex w-8 items-center justify-center text-neutral-400 transition-colors hover:text-neutral-700 dark:text-fg-faint dark:hover:text-fg">
-                            <x-reicon name="x" class="size-3" />
-                        </button>
-                    @endif
-                </div>
-            </div>
+            @endif
+            <x-status-badge :status="$skip === 0 ? 'Live updates' : 'Historical page'"
+                :type="$skip === 0 ? 'success' : 'neutral'" />
         </div>
 
         <div class="application-settings-section-body is-flush w-full">
@@ -87,10 +51,11 @@
                                 'failed' => 'error',
                                 default => 'neutral',
                             };
+                            $pullRequestId = (int) data_get($deployment, 'pull_request_id', 0);
                             $sourceLabel = match (true) {
-                                (bool) data_get($deployment, 'is_webhook') && filled(data_get($deployment, 'pull_request_id')) => 'Webhook · PR #' . data_get($deployment, 'pull_request_id'),
+                                (bool) data_get($deployment, 'is_webhook') && $pullRequestId > 0 => 'Webhook · PR #' . $pullRequestId,
                                 (bool) data_get($deployment, 'is_webhook') => 'Webhook',
-                                filled(data_get($deployment, 'pull_request_id')) => 'Pull request #' . data_get($deployment, 'pull_request_id'),
+                                $pullRequestId > 0 => 'Pull request #' . $pullRequestId,
                                 (bool) data_get($deployment, 'rollback') => 'Rollback',
                                 (bool) data_get($deployment, 'is_api') => 'API',
                                 default => 'Manual',

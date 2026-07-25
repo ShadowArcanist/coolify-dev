@@ -3,6 +3,7 @@
 namespace App\Livewire\Project\Application\Deployment;
 
 use App\Models\Application;
+use App\Models\ApplicationDeploymentQueue;
 use Illuminate\Support\Collection;
 use Livewire\Component;
 
@@ -27,6 +28,8 @@ class Index extends Component
     public int $currentPage = 1;
 
     public ?string $pull_request_id = null;
+
+    public array $pullRequestOptions = [];
 
     protected $queryString = ['pull_request_id'];
 
@@ -64,8 +67,9 @@ class Index extends Component
             }
         }
 
-        ['deployments' => $deployments, 'count' => $count] = $application->deployments(0, $this->defaultTake, $this->pull_request_id);
         $this->application = $application;
+        $this->loadPullRequestOptions();
+        ['deployments' => $deployments, 'count' => $count] = $application->deployments(0, $this->defaultTake, $this->pull_request_id);
         $this->deployments = $deployments;
         $this->deployments_count = $count;
         $this->current_url = url()->current();
@@ -168,6 +172,31 @@ class Index extends Component
     private function updateCurrentPage()
     {
         $this->currentPage = intval($this->skip / $this->defaultTake) + 1;
+    }
+
+    private function loadPullRequestOptions(): void
+    {
+        $pullRequestIds = ApplicationDeploymentQueue::query()
+            ->where('application_id', $this->application->id)
+            ->where('pull_request_id', '>', 0)
+            ->distinct()
+            ->orderByDesc('pull_request_id')
+            ->pluck('pull_request_id')
+            ->map(fn ($pullRequestId) => (string) $pullRequestId)
+            ->values();
+
+        if ($this->pull_request_id && ! $pullRequestIds->contains($this->pull_request_id)) {
+            $this->pull_request_id = null;
+        }
+
+        $this->pullRequestOptions = collect([
+            ['value' => '', 'label' => 'All deployments'],
+        ])
+            ->concat($pullRequestIds->map(fn ($pullRequestId) => [
+                'value' => $pullRequestId,
+                'label' => "Pull request #{$pullRequestId}",
+            ]))
+            ->all();
     }
 
     public function render()
