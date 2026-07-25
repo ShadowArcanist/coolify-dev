@@ -146,6 +146,10 @@ topbar instead of repeating its name or status summary in layer 2. Mobile
 resource navigation may repeat this context because the desktop global topbar
 is hidden there.
 
+The dashboard is a compact overview, not a metrics wall. Use side-by-side
+layer-card lists for projects and servers, keep creation actions in each card
+header, and communicate server health with the shared status badge.
+
 ### Settings workspace
 
 Application and server configuration pages use the same 210px grouped,
@@ -443,6 +447,7 @@ Use these as implementation references:
 
 | Surface | Reference |
 |---|---|
+| Dashboard overview | `resources/views/livewire/dashboard.blade.php` |
 | General settings and form anatomy | `resources/views/livewire/project/application/general.blade.php` |
 | Advanced settings | `resources/views/livewire/project/application/advanced.blade.php` |
 | Fixed layer-2 resource navigation | `resources/views/livewire/project/application/heading.blade.php`, `resources/views/livewire/server/navbar.blade.php` |
