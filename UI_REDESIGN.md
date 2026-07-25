@@ -213,6 +213,16 @@ Anatomy:
 - optional `flush` mode for full-bleed tables;
 - card-level actions belong in the header slot.
 
+Header actions use an 8px top/right inset while the title keeps its 16px left
+inset. Do not leave a larger empty strip between the final action and the
+card's top-right corner.
+
+Do not split one collection into a summary card followed by a table or log
+card. Keep its status/action in the header, its view switcher or toolbar at the
+top of a flush body, and its data in that same layer card. Repeated file
+editors are the opposite case: each file gets its own titled layer card so its
+content and actions remain clearly associated.
+
 ### Nested radii
 
 Concentric boxes must follow:
@@ -388,14 +398,16 @@ Do not bring back the old oversized dark rectangle.
 
 ### Terminals
 
-Browser terminals use the browser-oriented application shell, theme picker,
-compact header controls, and the filled `browser-terminal` Reicon. Hide a
-container switcher when only one container exists.
+Application and server browser terminals use the same browser-oriented console
+shell, theme picker, compact header controls, and filled `browser-terminal`
+Reicon. Hide a container switcher when only one container exists.
 
 ### Logs
 
 Runtime and deployment logs should feel like a clean terminal surface:
 
+- keep a single log stream inside one layer card instead of adding an
+  introductory card above it;
 - one compact toolbar;
 - a recessed monospace log viewport;
 - search and line-count controls aligned with icon actions;
