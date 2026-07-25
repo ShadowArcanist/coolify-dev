@@ -272,123 +272,37 @@
                     </div>
                 </div>
             @endif
-            <label id="application-mobile-section-label" for="application-mobile-section" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Section</label>
-            <select id="application-mobile-section" class="select w-full" aria-label="Application menu"
-                data-current-value="{{ $activeMobileMenuValue }}"
-                x-data="{
-                    init() {
-                        this.syncFromLocation();
-                        window.Livewire?.hook?.('morphed', ({ el }) => {
-                            if (el.contains(this.$el)) {
-                                queueMicrotask(() => this.syncFromLocation());
-                            }
-                        });
-                    },
-                    selected: $el.dataset.currentValue,
-                    current: $el.dataset.currentValue,
-                    syncFromLocation() {
-                        const currentUrl = new URL(window.location.href);
-                        const matchingOptions = Array.from(this.$el.options).filter((option) => {
-                            if (!option.value.startsWith('navigate|') && !option.value.startsWith('location|')) {
-                                return false;
-                            }
-
-                            const optionUrl = new URL(option.value.split('|').slice(2).join('|'), window.location.origin);
-
-                            return optionUrl.pathname === currentUrl.pathname;
-                        });
-                        const selectedOption = matchingOptions.find((option) => {
-                            return option.value.startsWith('navigate|configuration|') || option.value.startsWith('navigate|resource|');
-                        }) || matchingOptions[0];
-
-                        if (selectedOption) {
-                            this.current = selectedOption.value;
-                            this.selected = selectedOption.value;
-                        }
-                    },
-                    resetToCurrent() {
-                        this.selected = this.current;
-                    },
-                }"
-                x-on:livewire:navigated.window="syncFromLocation()"
-                x-model="selected"
-                x-on:change="{{ $mobileSectionChangeHandler }}">
-                <optgroup label="Application">
-                    @foreach ($applicationMenuItems as $menuItem)
-                        <option value="{{ ($menuItem['navigate'] ?? true) ? 'navigate' : 'location' }}|application|{{ route($menuItem['route'], $parameters) }}">
-                            {{ $menuItem['label'] }}
-                        </option>
-                    @endforeach
-                </optgroup>
-                <optgroup label="Configuration">
+            <div
+                class="flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-[10px] border border-neutral-200 bg-neutral-100 p-1 dark:border-white/[0.07] dark:bg-white/[0.035]">
+                @foreach ($applicationMenuItems as $menuItem)
+                    @php
+                        $isMobileApplicationItemActive = $menuItem['active']
+                            || ($menuItem['label'] === 'Settings' && $activeConfigurationMenuItem);
+                    @endphp
+                    <a @class([
+                        'app-tab shrink-0',
+                        'bg-coollabs/10 text-coollabs ring-1 ring-coollabs/25 dark:bg-warning/15 dark:text-warning dark:ring-warning/25' => $isMobileApplicationItemActive,
+                    ])
+                        @if ($menuItem['navigate'] ?? true) {{ wireNavigate() }} @endif
+                        href="{{ route($menuItem['route'], $parameters) }}">
+                        {{ $menuItem['label'] }}
+                    </a>
+                @endforeach
+            </div>
+            @if ($activeConfigurationMenuItem)
+                <div
+                    class="mt-2 flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-[10px] border border-neutral-200 bg-neutral-100 p-1 dark:border-white/[0.07] dark:bg-white/[0.035]">
                     @foreach ($configurationMenuItems as $menuItem)
-                        <option value="navigate|configuration|{{ route($menuItem['route'], $parameters) }}">
+                        <a @class([
+                            'app-tab shrink-0',
+                            'bg-coollabs/10 text-coollabs ring-1 ring-coollabs/25 dark:bg-warning/15 dark:text-warning dark:ring-warning/25' => $menuItem['active'],
+                        ])
+                            {{ wireNavigate() }} href="{{ route($menuItem['route'], $parameters) }}">
                             {{ $menuItem['label'] }}
-                        </option>
+                        </a>
                     @endforeach
-                </optgroup>
-                <optgroup label="Links">
-                    @if (
-                        (data_get($application, 'fqdn') ||
-                            collect(json_decode($application->docker_compose_domains))->contains(fn($fqdn) => !empty(data_get($fqdn, 'domain'))) ||
-                            data_get($application, 'previews', collect([]))->count() > 0 ||
-                            data_get($application, 'ports_mappings_array')) &&
-                            data_get($application, 'settings.is_raw_compose_deployment_enabled') !== true)
-                        @if (data_get($application, 'gitBrancLocation'))
-                            <option value="external:{{ $application->gitBranchLocation }}">Git Repository</option>
-                        @endif
-                        @if (data_get($application, 'build_pack') === 'dockercompose')
-                            @foreach (collect(json_decode($application->docker_compose_domains)) as $fqdn)
-                                @if (data_get($fqdn, 'domain'))
-                                    @foreach (explode(',', data_get($fqdn, 'domain')) as $domain)
-                                        <option value="external:{{ getFqdnWithoutPort($domain) }}">{{ getFqdnWithoutPort($domain) }}</option>
-                                    @endforeach
-                                @endif
-                            @endforeach
-                        @endif
-                        @if (data_get($application, 'fqdn'))
-                            @foreach (str(data_get($application, 'fqdn'))->explode(',') as $fqdn)
-                                <option value="external:{{ getFqdnWithoutPort($fqdn) }}">{{ getFqdnWithoutPort($fqdn) }}</option>
-                            @endforeach
-                        @endif
-                        @if (data_get($application, 'previews', collect())->count() > 0)
-                            @if (data_get($application, 'build_pack') === 'dockercompose')
-                                @foreach ($application->previews as $preview)
-                                    @foreach (collect(json_decode($preview->docker_compose_domains)) as $fqdn)
-                                        @if (data_get($fqdn, 'domain'))
-                                            @foreach (explode(',', data_get($fqdn, 'domain')) as $domain)
-                                                <option value="external:{{ getFqdnWithoutPort($domain) }}">PR{{ data_get($preview, 'pull_request_id') }} | {{ getFqdnWithoutPort($domain) }}</option>
-                                            @endforeach
-                                        @endif
-                                    @endforeach
-                                @endforeach
-                            @else
-                                @foreach (data_get($application, 'previews') as $preview)
-                                    @if (data_get($preview, 'fqdn'))
-                                        <option value="external:{{ getFqdnWithoutPort(data_get($preview, 'fqdn')) }}">PR{{ data_get($preview, 'pull_request_id') }} | {{ data_get($preview, 'fqdn') }}</option>
-                                    @endif
-                                @endforeach
-                            @endif
-                        @endif
-                        @if (data_get($application, 'ports_mappings_array'))
-                            @foreach ($application->ports_mappings_array as $port)
-                                @if ($application->destination->server->id === 0)
-                                    <option value="external:http://localhost:{{ explode(':', $port)[0] }}">Port {{ $port }}</option>
-                                @else
-                                    <option value="external:http://{{ $application->destination->server->ip }}:{{ explode(':', $port)[0] }}">{{ $application->destination->server->ip }}:{{ explode(':', $port)[0] }}</option>
-                                    @if (count($application->additional_servers) > 0)
-                                        @foreach ($application->additional_servers as $server)
-                                            <option value="external:http://{{ $server->ip }}:{{ explode(':', $port)[0] }}">{{ $server->ip }}:{{ explode(':', $port)[0] }}</option>
-                                        @endforeach
-                                    @endif
-                                @endif
-                            @endforeach
-                        @endif
-                    @else
-                        <option disabled>No links available</option>
-                    @endif
-                </optgroup>
-            </select>
+                </div>
+            @endif
             <x-modal-confirmation title="Confirm Application Stopping?" buttonTitle="Stop"
                 submitAction="stop" :checkboxes="$checkboxes" :actions="[
                     'This application will be stopped.',
