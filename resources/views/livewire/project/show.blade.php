@@ -2,6 +2,7 @@
     <x-slot:title>
         {{ data_get_str($project, 'name')->limit(10) }} > Environments | Coolify
     </x-slot>
+    <x-project.navbar :project="$project" />
 
     <div x-data="projectEnvironments()" class="w-full">
         <header class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

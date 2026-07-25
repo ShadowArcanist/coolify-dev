@@ -1,90 +1,94 @@
-<div x-data x-init="$wire.loadServers">
+<div class="application-settings-form" x-data x-init="$wire.loadServers">
     <div x-data="searchResources()">
         @if ($current_step === 'type')
-            <div x-init="window.addEventListener('scroll', () => isSticky = window.pageYOffset > 100)"
-                class="sticky z-10 top-0  backdrop-blur-sm border-b border-neutral-200 dark:border-coolgray-400">
-                <div class="flex flex-col gap-4 lg:flex-row">
-                    <h1>New Resource</h1>
-                    <div class="w-full lg:w-96">
-                        <x-forms.select wire:model.live="selectedEnvironment">
-                            @foreach ($environments as $environment)
-                                <option value="{{ $environment->name }}">Environment: {{ $environment->name }}</option>
-                            @endforeach
-                        </x-forms.select>
+            @php
+                $environmentOptions = $environments
+                    ->map(fn ($environment) => [
+                        'value' => $environment->name,
+                        'label' => $environment->name,
+                    ])
+                    ->values()
+                    ->all();
+            @endphp
+
+            <x-application.settings-section title="Choose a resource"
+                description="Deploy an application, database, or service into this environment." flush>
+                <div
+                    class="flex flex-col gap-3 border-b border-neutral-200 p-4 dark:border-white/[0.08] lg:flex-row lg:items-end">
+                    <div class="relative min-w-0 flex-1">
+                        <x-reicon name="search"
+                            class="pointer-events-none absolute top-1/2 left-2.5 z-10 size-3.5 -translate-y-1/2 text-neutral-400 dark:text-fg-faint" />
+                        <input autocomplete="off" x-ref="searchInput" x-model="search" type="search"
+                            placeholder="Search resources"
+                            class="h-8! w-full rounded-lg! border-neutral-200! bg-white! py-0! pr-8! pl-8! text-[12px]! shadow-none! placeholder:text-neutral-400 focus:border-neutral-300! focus:ring-0! dark:border-white/[0.08]! dark:bg-white/[0.035]! dark:text-fg! dark:placeholder:text-fg-faint"
+                            @keydown.window.slash.prevent="$refs.searchInput.focus()">
                     </div>
-                </div>
-                <div class="mb-4">Deploy resources, like Applications, Databases, Services...</div>
-                <div class="flex gap-2 items-start">
-                    <input autocomplete="off" x-ref="searchInput" class="input-sticky flex-1"
-                        :class="{ 'input-sticky-active': isSticky }" x-model="search" placeholder="Type / to search..."
-                        @keydown.window.slash.prevent="$refs.searchInput.focus()">
-                    <!-- Category Filter Dropdown -->
-                    <div class="relative" x-data="{ openCategoryDropdown: false, categorySearch: '' }" @click.outside="openCategoryDropdown = false">
-                        <!-- Loading/Disabled State -->
-                        <div x-show="loading || categories.length === 0"
-                            class="flex items-center justify-between gap-2 py-1.5 px-3 w-64 text-sm rounded-sm border-0 ring-2 ring-inset ring-neutral-200 dark:ring-coolgray-300 bg-neutral-100 dark:bg-coolgray-200 cursor-not-allowed whitespace-nowrap opacity-50">
-                            <span class="text-sm text-neutral-400 dark:text-neutral-600">Filter by category</span>
-                            <svg class="w-4 h-4 text-neutral-400 shrink-0" fill="none" stroke="currentColor"
+
+                    <div class="w-full lg:w-52">
+                        <x-forms.listbox id="selectedEnvironment" :options="$environmentOptions"
+                            placeholder="Environment" live />
+                    </div>
+
+                    <div class="relative w-full lg:w-52"
+                        x-data="{ openCategoryDropdown: false, categorySearch: '' }"
+                        @click.outside="openCategoryDropdown = false" @keydown.escape="openCategoryDropdown = false">
+                        <button type="button" class="listbox-trigger"
+                            :disabled="loading || categories.length === 0"
+                            @click="openCategoryDropdown = !openCategoryDropdown; $nextTick(() => openCategoryDropdown && $refs.categorySearchInput.focus())">
+                            <span class="truncate capitalize"
+                                x-text="selectedCategory === '' ? 'All categories' : selectedCategory"></span>
+                            <svg class="size-3.5 shrink-0 opacity-60" fill="none" stroke="currentColor"
                                 viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M19 9l-7 7-7-7" />
+                                    d="m8 9 4-4 4 4m0 6-4 4-4-4" />
                             </svg>
-                        </div>
-                        <!-- Active State -->
-                        <div x-show="!loading && categories.length > 0"
-                            @click="openCategoryDropdown = !openCategoryDropdown; $nextTick(() => { if (openCategoryDropdown) $refs.categorySearchInput.focus() })"
-                            class="flex items-center justify-between gap-2 py-1.5 px-3 w-64 text-sm rounded-sm border-0 ring-2 ring-inset ring-neutral-200 dark:ring-coolgray-300 bg-white dark:bg-coolgray-100 cursor-pointer hover:ring-coolgray-400 transition-all whitespace-nowrap">
-                            <span class="text-sm truncate"
-                                x-text="selectedCategory === '' ? 'Filter by category' : selectedCategory"
-                                :class="selectedCategory === '' ? 'text-neutral-400 dark:text-neutral-600' :
-                                    'capitalize text-black dark:text-white'"></span>
-                            <svg class="w-4 h-4 transition-transform text-neutral-400 shrink-0"
-                                :class="{ 'rotate-180': openCategoryDropdown }" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </div>
-                        <!-- Dropdown Menu -->
-                        <div x-show="openCategoryDropdown" x-transition
-                            class="absolute z-50 w-full mt-1 bg-white dark:bg-coolgray-100 border border-neutral-300 dark:border-coolgray-400 rounded shadow-lg overflow-hidden">
-                            <div
-                                class="sticky top-0 p-2 bg-white dark:bg-coolgray-100 border-b border-neutral-300 dark:border-coolgray-400">
-                                <input type="text" x-ref="categorySearchInput" x-model="categorySearch"
-                                    placeholder="Search categories..."
-                                    class="w-full px-2 py-1 text-sm rounded border border-neutral-300 dark:border-coolgray-400 bg-white dark:bg-coolgray-200 focus:outline-none focus:ring-2 focus:ring-coolgray-400"
+                        </button>
+                        <div x-cloak x-show="openCategoryDropdown" x-transition class="listbox-panel">
+                            <div class="border-b border-neutral-200 p-2 dark:border-white/[0.08]">
+                                <input type="search" x-ref="categorySearchInput" x-model="categorySearch"
+                                    placeholder="Search categories"
+                                    class="h-8! w-full rounded-md! border-neutral-200! bg-neutral-50! px-2.5! py-0! text-[12px]! shadow-none! focus:ring-0! dark:border-white/[0.08]! dark:bg-white/[0.04]! dark:text-fg!"
                                     @click.stop>
                             </div>
-                            <div class="max-h-60 overflow-auto scrollbar">
-                                <div @click="selectedCategory = ''; categorySearch = ''; openCategoryDropdown = false"
-                                    class="px-3 py-2 cursor-pointer hover:bg-neutral-100 dark:hover:bg-coolgray-200"
-                                    :class="{ 'bg-neutral-50 dark:bg-coolgray-300': selectedCategory === '' }">
-                                    <span class="text-sm">All Categories</span>
-                                </div>
+                            <div class="max-h-60 overflow-auto p-1">
+                                <button type="button" class="listbox-option"
+                                    @click="selectedCategory = ''; categorySearch = ''; openCategoryDropdown = false"
+                                    :aria-selected="selectedCategory === ''">
+                                    <span>All categories</span>
+                                    <x-reicon name="check-circle" class="size-3.5"
+                                        x-show="selectedCategory === ''" />
+                                </button>
                                 <template
                                     x-for="category in categories.filter(cat => categorySearch === '' || cat.toLowerCase().includes(categorySearch.toLowerCase()))"
                                     :key="category">
-                                    <div @click="selectedCategory = category; categorySearch = ''; openCategoryDropdown = false"
-                                        class="px-3 py-2 cursor-pointer hover:bg-neutral-100 dark:hover:bg-coolgray-200 capitalize"
-                                        :class="{ 'bg-neutral-50 dark:bg-coolgray-300': selectedCategory === category }">
-                                        <span class="text-sm" x-text="category"></span>
-                                    </div>
+                                    <button type="button" class="listbox-option capitalize"
+                                        @click="selectedCategory = category; categorySearch = ''; openCategoryDropdown = false"
+                                        :aria-selected="selectedCategory === category">
+                                        <span class="truncate" x-text="category"></span>
+                                        <x-reicon name="check-circle" class="size-3.5"
+                                            x-show="selectedCategory === category" />
+                                    </button>
                                 </template>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </x-application.settings-section>
+
             <div x-show="loading" class="flex items-center justify-center py-8">
                 <x-loading text="Loading resources..." />
             </div>
-            <div x-show="!loading" class="flex flex-col gap-4 py-4">
-                <h2 x-show="filteredGitBasedApplications.length > 0">Applications</h2>
+            <div x-show="!loading" class="mt-6 flex flex-col gap-6">
+                <div x-show="filteredGitBasedApplications.length > 0 || filteredDockerBasedApplications.length > 0">
+                    <div class="mb-3 flex items-center gap-2">
+                        <x-reicon name="globe" class="size-4 text-neutral-400 dark:text-fg-faint" />
+                        <h2 class="text-[14px]! font-semibold!">Applications</h2>
+                    </div>
                 <div x-show="filteredGitBasedApplications.length > 0 || filteredDockerBasedApplications.length > 0"
-                    class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div x-show="filteredGitBasedApplications.length > 0" class="space-y-4">
-                        <h4>Git Based</h4>
-                        <div class="grid justify-start grid-cols-1 gap-4 text-left">
+                        class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <div x-show="filteredGitBasedApplications.length > 0" class="space-y-2">
+                            <p class="text-[11px] font-medium text-neutral-500 dark:text-fg-faint">Git based</p>
+                        <div class="grid justify-start grid-cols-1 gap-2 text-left">
                             <template x-for="application in filteredGitBasedApplications" :key="application.name">
                                 <div x-on:click='setType(application.id)'
                                     :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }">
@@ -102,9 +106,9 @@
                             </template>
                         </div>
                     </div>
-                    <div x-show="filteredDockerBasedApplications.length > 0" class="space-y-4">
-                        <h4>Docker Based</h4>
-                        <div class="grid justify-start grid-cols-1 gap-4 text-left">
+                    <div x-show="filteredDockerBasedApplications.length > 0" class="space-y-2">
+                            <p class="text-[11px] font-medium text-neutral-500 dark:text-fg-faint">Docker based</p>
+                        <div class="grid justify-start grid-cols-1 gap-2 text-left">
                             <template x-for="application in filteredDockerBasedApplications" :key="application.name">
                                 <div x-on:click="setType(application.id)"
                                     :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }">
@@ -120,9 +124,13 @@
                         </div>
                     </div>
                 </div>
-                <div x-show="filteredDatabases.length > 0" class="mt-8">
-                    <h2 class="mb-4">Databases</h2>
-                    <div class="grid justify-start grid-cols-1 gap-4 text-left xl:grid-cols-3">
+                </div>
+                <div x-show="filteredDatabases.length > 0">
+                    <div class="mb-3 flex items-center gap-2">
+                        <x-reicon name="database" class="size-4 text-neutral-400 dark:text-fg-faint" />
+                        <h2 class="text-[14px]! font-semibold!">Databases</h2>
+                    </div>
+                    <div class="grid justify-start grid-cols-1 gap-2 text-left md:grid-cols-2 xl:grid-cols-3">
                         <template x-for="database in filteredDatabases" :key="database.id">
                             <div x-on:click="setType(database.id)"
                                 :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }">
@@ -139,22 +147,26 @@
                         </template>
                     </div>
                 </div>
-                <div x-show="filteredServices.length > 0" class="mt-8">
-                    <div class="flex flex-wrap items-center gap-4" x-init="loadResources">
-                        <h2>Services</h2>
-                        <x-forms.button x-on:click="loadResources">Reload List</x-forms.button>
+                <div x-show="filteredServices.length > 0">
+                    <div class="mb-3 flex flex-wrap items-center gap-3" x-init="loadResources">
+                        <x-reicon name="layers" class="size-4 text-neutral-400 dark:text-fg-faint" />
+                        <h2 class="text-[14px]! font-semibold!">Services</h2>
+                        <button type="button" class="button" x-on:click="loadResources">
+                            <x-reicon name="refresh" class="size-3.5" />
+                            Reload
+                        </button>
                         <div x-show="serviceTemplatesLastUpdated"
-                            class="text-xs text-neutral-500 dark:text-neutral-400">
-                            Last Updated on Service Templates:
+                                class="text-[11px] text-neutral-500 dark:text-fg-faint">
+                            Updated
                             <span x-text="serviceTemplatesLastUpdated"></span>
                         </div>
                     </div>
-                    <x-callout type="info" title="Trademarks Policy" class="mt-4 mb-6">
+                    <x-callout type="info" title="Trademarks policy" class="mb-4">
                         The respective trademarks mentioned here are owned by the respective companies, and use of them
                         does not imply any affiliation or endorsement.
                     </x-callout>
 
-                    <div class="grid justify-start grid-cols-1 gap-4 text-left xl:grid-cols-3">
+                    <div class="grid justify-start grid-cols-1 gap-2 text-left md:grid-cols-2 xl:grid-cols-3">
                         <template x-for="service in filteredServices" :key="service.name">
                             <div class="relative" x-on:click="setType('one-click-service-' + service.id)"
                                 :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }">
@@ -425,102 +437,140 @@
         @endif
     </div>
     @if ($current_step === 'servers')
-        <h2>Select a server</h2>
-        <div class="pb-5"></div>
-        <div class="flex flex-col justify-center gap-4 text-left xl:flex-row xl:flex-wrap">
+        <x-application.settings-section title="Select a server"
+            description="Choose the machine that will host this resource." flush>
             @if ($onlyBuildServerAvailable)
-                <div> Only build servers are available, you need at least one server that is not set as build
-                    server. <a class="underline dark:text-white" href="/servers" {{ wireNavigate() }}>
-                        Go to servers page
-                    </a> </div>
+                <x-callout type="warning" title="No deployment server" class="m-4">
+                    Only build servers are available. Add or reconfigure a server before continuing.
+                    <a class="font-medium underline" href="{{ route('server.index') }}" {{ wireNavigate() }}>Open
+                        servers</a>
+                </x-callout>
             @endif
-            @forelse($servers as $server)
-                <div class="w-full coolbox group" wire:click="setServer({{ $server }})">
-                    <div class="flex flex-col mx-6">
-                        <div class="box-title">
-                            {{ $server->name }}
-                        </div>
-                        <div class="box-description">
-                            {{ $server->description }}
-                        </div>
+            <div class="divide-y divide-neutral-200 dark:divide-white/[0.07]">
+                @forelse($servers as $server)
+                    <button type="button" wire:click="setServer({{ $server }})"
+                        class="group flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-neutral-50 dark:hover:bg-white/[0.025]">
+                        <span
+                            class="flex size-8 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50 text-neutral-500 dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-fg-dim">
+                            <x-reicon name="servers" class="size-4" />
+                        </span>
+                        <span class="min-w-0 flex-1">
+                            <span class="block truncate text-[13px] font-semibold text-black dark:text-fg">
+                                {{ $server->name }}
+                            </span>
+                            <span class="block truncate text-[11px] text-neutral-500 dark:text-fg-faint">
+                                {{ $server->description ?: $server->ip }}
+                            </span>
+                        </span>
+                        <x-status-badge status="running" text="Ready" />
+                        <x-reicon name="arrow-right"
+                            class="size-3.5 text-neutral-300 transition-transform group-hover:translate-x-0.5 dark:text-fg-faint" />
+                    </button>
+                @empty
+                    @if ($buildServers?->isEmpty() && ! $onlyBuildServerAvailable)
+                        <x-empty title="No available servers"
+                            description="Validate a reachable server before creating this resource." size="sm">
+                            <x-slot:icon>
+                                <x-reicon name="servers" class="size-6" />
+                            </x-slot:icon>
+                            <x-slot:actions>
+                                <a class="button" href="{{ route('server.index') }}" {{ wireNavigate() }}>Open
+                                    servers</a>
+                            </x-slot:actions>
+                        </x-empty>
+                    @endif
+                @endforelse
+
+                @foreach($buildServers ?? [] as $buildServer)
+                    <div class="flex min-h-14 items-center gap-3 px-4 py-3 opacity-55">
+                        <span
+                            class="flex size-8 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50 text-neutral-500 dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-fg-dim">
+                            <x-reicon name="servers" class="size-4" />
+                        </span>
+                        <span class="min-w-0 flex-1">
+                            <span
+                                class="block truncate text-[13px] font-semibold text-black dark:text-fg">{{ $buildServer->name }}</span>
+                            <span class="block text-[11px] text-neutral-500 dark:text-fg-faint">Build-only servers
+                                cannot host resources.</span>
+                        </span>
+                        <x-status-badge status="exited" text="Build only" />
+                        <a href="{{ route('server.show', ['server_uuid' => $buildServer->uuid]) }}"
+                            {{ wireNavigate() }} class="button">Settings</a>
                     </div>
-                </div>
-            @empty
-                @if ($buildServers?->isEmpty() && ! $onlyBuildServerAvailable)
-                    <div>
-                        <div>No validated & reachable servers found. <a class="underline dark:text-white"
-                                href="/servers" {{ wireNavigate() }}>
-                                Go to servers page
-                            </a></div>
-                    </div>
-                @endif
-            @endforelse
-            @foreach($buildServers ?? [] as $buildServer)
-                <div class="w-full coolbox opacity-60 cursor-not-allowed">
-                    <div class="flex flex-col mx-6">
-                        <div class="box-title">{{ $buildServer->name }}</div>
-                        <div class="box-description">
-                            This server is configured as a build server and cannot host resources.
-                            <a class="underline dark:text-white" href="{{ route('server.show', ['server_uuid' => $buildServer->uuid]) }}"
-                                {{ wireNavigate() }}>Change server settings</a>
-                        </div>
-                    </div>
-                </div>
-            @endforeach
-        </div>
+                @endforeach
+            </div>
+        </x-application.settings-section>
     @endif
     @if ($current_step === 'destinations')
-        <h2>Select a destination</h2>
-        <div class="pb-4">Destinations are used to segregate resources by network. If you are unsure, select the
-            default
-            Standalone Docker (coolify).</div>
-        <div class="flex flex-col justify-center gap-4 text-left xl:flex-row xl:flex-wrap">
-            @if ($server->isSwarm())
-                @foreach ($swarmDockers as $swarmDocker)
-                    <div class="w-full coolbox group" wire:click="setDestination('{{ $swarmDocker->uuid }}')">
-                        <div class="flex flex-col mx-6">
-                            <div class="font-bold dark:group-hover:text-white">
-                                Swarm Docker <span class="text-xs">({{ $swarmDocker->name }})</span>
-                                <x-deprecated-badge />
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-            @else
-                @foreach ($standaloneDockers as $standaloneDocker)
-                    <div class="w-full coolbox group" wire:click="setDestination('{{ $standaloneDocker->uuid }}')">
-                        <div class="flex flex-col mx-6">
-                            <div class="box-title">
-                                Standalone Docker <span class="text-xs">({{ $standaloneDocker->name }})</span>
-                            </div>
-                            <div class="box-description">
-                                Network: {{ $standaloneDocker->network }}</div>
-                        </div>
-                    </div>
-                @endforeach
-            @endif
-        </div>
+        <x-application.settings-section title="Select a destination"
+            description="Destinations separate resources by Docker network. Use the default destination when unsure."
+            flush>
+            <div class="divide-y divide-neutral-200 dark:divide-white/[0.07]">
+                @if ($server->isSwarm())
+                    @foreach ($swarmDockers as $swarmDocker)
+                        <button type="button" wire:click="setDestination('{{ $swarmDocker->uuid }}')"
+                            class="group flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-neutral-50 dark:hover:bg-white/[0.025]">
+                            <span
+                                class="flex size-8 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50 text-neutral-500 dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-fg-dim">
+                                <x-reicon name="destinations" class="size-4" />
+                            </span>
+                            <span class="min-w-0 flex-1">
+                                <span
+                                    class="block truncate text-[13px] font-semibold text-black dark:text-fg">{{ $swarmDocker->name }}</span>
+                                <span class="block text-[11px] text-neutral-500 dark:text-fg-faint">Docker Swarm
+                                    destination</span>
+                            </span>
+                            <x-deprecated-badge />
+                            <x-reicon name="arrow-right"
+                                class="size-3.5 text-neutral-300 transition-transform group-hover:translate-x-0.5 dark:text-fg-faint" />
+                        </button>
+                    @endforeach
+                @else
+                    @foreach ($standaloneDockers as $standaloneDocker)
+                        <button type="button" wire:click="setDestination('{{ $standaloneDocker->uuid }}')"
+                            class="group flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-neutral-50 dark:hover:bg-white/[0.025]">
+                            <span
+                                class="flex size-8 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50 text-neutral-500 dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-fg-dim">
+                                <x-reicon name="destinations" class="size-4" />
+                            </span>
+                            <span class="min-w-0 flex-1">
+                                <span
+                                    class="block truncate text-[13px] font-semibold text-black dark:text-fg">{{ $standaloneDocker->name }}</span>
+                                <span class="block truncate text-[11px] text-neutral-500 dark:text-fg-faint">Network:
+                                    {{ $standaloneDocker->network }}</span>
+                            </span>
+                            <x-status-badge status="running" text="Standalone Docker" />
+                            <x-reicon name="arrow-right"
+                                class="size-3.5 text-neutral-300 transition-transform group-hover:translate-x-0.5 dark:text-fg-faint" />
+                        </button>
+                    @endforeach
+                @endif
+            </div>
+        </x-application.settings-section>
     @endif
     @if ($current_step === 'select-postgresql-type')
         <div x-data="{ selecting: false }">
-            <h2>Select a Postgresql type</h2>
-            <div>If you need extra extensions, you can select Supabase PostgreSQL (or others), otherwise select
-                PostgreSQL
-                18 (default).</div>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-8">
-                <div class="gap-2 coolbox group flex relative"
+            <div class="mb-4">
+                <h2 class="text-[15px]! font-semibold!">Select a PostgreSQL image</h2>
+                <p class="mt-1 text-[12px] text-neutral-500 dark:text-fg-dim">Use PostgreSQL 18 unless the workload
+                    needs bundled extensions.</p>
+            </div>
+            <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                <div class="group relative flex min-h-24 items-center gap-3 rounded-[10px] border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300 hover:bg-neutral-50 dark:border-white/[0.07] dark:bg-surface dark:hover:border-white/[0.12] dark:hover:bg-white/[0.035]"
                     :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
                     x-on:click="!selecting && (selecting = true, $wire.setPostgresqlType('postgres:18-alpine'))"
                     :disabled="selecting">
                     <div class="flex flex-col">
-                        <div class="box-title">PostgreSQL 18 (default)</div>
-                        <div class="box-description">
+                        <div class="text-[13px] font-semibold text-black dark:text-fg">PostgreSQL 18 <span
+                                class="ml-1 rounded-full bg-coollabs/10 px-2 py-0.5 text-[10px] font-medium text-coollabs dark:bg-warning/15 dark:text-warning">Default</span>
+                        </div>
+                        <div class="mt-1 pr-8 text-[11px] leading-4 text-neutral-500 dark:text-fg-faint">
                             PostgreSQL is a powerful, open-source object-relational database system (no extensions).
                         </div>
                     </div>
                     <a href="https://hub.docker.com/_/postgres/" target="_blank"
                         @click.stop
-                        class="absolute top-2 right-2 p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-coolgray-300 transition-colors"
+                        class="absolute top-2 right-2 flex size-7 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-black dark:text-fg-faint dark:hover:bg-white/[0.06] dark:hover:text-fg"
                         title="View documentation">
                         <svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none"
                             stroke="currentColor" viewBox="0 0 24 24">
@@ -529,19 +579,19 @@
                         </svg>
                     </a>
                 </div>
-                <div class="gap-2 coolbox group flex relative"
+                <div class="group relative flex min-h-24 items-center gap-3 rounded-[10px] border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300 hover:bg-neutral-50 dark:border-white/[0.07] dark:bg-surface dark:hover:border-white/[0.12] dark:hover:bg-white/[0.035]"
                     :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
                     x-on:click="!selecting && (selecting = true, $wire.setPostgresqlType('postgres:17-alpine'))"
                     :disabled="selecting">
                     <div class="flex flex-col">
-                        <div class="box-title">PostgreSQL 17</div>
-                        <div class="box-description">
+                        <div class="text-[13px] font-semibold text-black dark:text-fg">PostgreSQL 17</div>
+                        <div class="mt-1 pr-8 text-[11px] leading-4 text-neutral-500 dark:text-fg-faint">
                             PostgreSQL is a powerful, open-source object-relational database system (no extensions).
                         </div>
                     </div>
                     <a href="https://hub.docker.com/_/postgres/" target="_blank"
                         @click.stop
-                        class="absolute top-2 right-2 p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-coolgray-300 transition-colors"
+                        class="absolute top-2 right-2 flex size-7 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-black dark:text-fg-faint dark:hover:bg-white/[0.06] dark:hover:text-fg"
                         title="View documentation">
                         <svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none"
                             stroke="currentColor" viewBox="0 0 24 24">
@@ -550,19 +600,19 @@
                         </svg>
                     </a>
                 </div>
-                <div class="gap-2 coolbox group flex relative"
+                <div class="group relative flex min-h-24 items-center gap-3 rounded-[10px] border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300 hover:bg-neutral-50 dark:border-white/[0.07] dark:bg-surface dark:hover:border-white/[0.12] dark:hover:bg-white/[0.035]"
                     :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
                     x-on:click="!selecting && (selecting = true, $wire.setPostgresqlType('postgres:16-alpine'))"
                     :disabled="selecting">
                     <div class="flex flex-col">
-                        <div class="box-title">PostgreSQL 16</div>
-                        <div class="box-description">
+                        <div class="text-[13px] font-semibold text-black dark:text-fg">PostgreSQL 16</div>
+                        <div class="mt-1 pr-8 text-[11px] leading-4 text-neutral-500 dark:text-fg-faint">
                             PostgreSQL is a powerful, open-source object-relational database system (no extensions).
                         </div>
                     </div>
                     <a href="https://hub.docker.com/_/postgres/" target="_blank"
                         @click.stop
-                        class="absolute top-2 right-2 p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-coolgray-300 transition-colors"
+                        class="absolute top-2 right-2 flex size-7 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-black dark:text-fg-faint dark:hover:bg-white/[0.06] dark:hover:text-fg"
                         title="View documentation">
                         <svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none"
                             stroke="currentColor" viewBox="0 0 24 24">
@@ -571,19 +621,19 @@
                         </svg>
                     </a>
                 </div>
-                <div class="gap-2 coolbox group flex relative"
+                <div class="group relative flex min-h-24 items-center gap-3 rounded-[10px] border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300 hover:bg-neutral-50 dark:border-white/[0.07] dark:bg-surface dark:hover:border-white/[0.12] dark:hover:bg-white/[0.035]"
                     :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
                     x-on:click="!selecting && (selecting = true, $wire.setPostgresqlType('supabase/postgres:17.4.1.032'))"
                     :disabled="selecting">
                     <div class="flex flex-col">
-                        <div class="box-title">Supabase PostgreSQL (with extensions)</div>
-                        <div class="box-description">
+                        <div class="text-[13px] font-semibold text-black dark:text-fg">Supabase PostgreSQL</div>
+                        <div class="mt-1 pr-8 text-[11px] leading-4 text-neutral-500 dark:text-fg-faint">
                             Supabase is a modern, open-source alternative to PostgreSQL with lots of extensions.
                         </div>
                     </div>
                     <a href="https://github.com/supabase/postgres" target="_blank"
                         @click.stop
-                        class="absolute top-2 right-2 p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-coolgray-300 transition-colors"
+                        class="absolute top-2 right-2 flex size-7 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-black dark:text-fg-faint dark:hover:bg-white/[0.06] dark:hover:text-fg"
                         title="View documentation">
                         <svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none"
                             stroke="currentColor" viewBox="0 0 24 24">
@@ -592,19 +642,21 @@
                         </svg>
                     </a>
                 </div>
-                <div class="gap-2 coolbox group flex relative"
+                <div class="group relative flex min-h-24 items-center gap-3 rounded-[10px] border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300 hover:bg-neutral-50 dark:border-white/[0.07] dark:bg-surface dark:hover:border-white/[0.12] dark:hover:bg-white/[0.035]"
                     :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
                     x-on:click="!selecting && (selecting = true, $wire.setPostgresqlType('postgis/postgis:17-3.5-alpine'))"
                     :disabled="selecting">
                     <div class="flex flex-col">
-                        <div class="box-title">PostGIS (AMD only)</div>
-                        <div class="box-description">
+                        <div class="text-[13px] font-semibold text-black dark:text-fg">PostGIS <span
+                                class="ml-1 text-[10px] font-medium text-amber-600 dark:text-amber-300">AMD only</span>
+                        </div>
+                        <div class="mt-1 pr-8 text-[11px] leading-4 text-neutral-500 dark:text-fg-faint">
                             PostGIS is a PostgreSQL extension for geographic objects.
                         </div>
                     </div>
                     <a href="https://github.com/postgis/docker-postgis" target="_blank"
                         @click.stop
-                        class="absolute top-2 right-2 p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-coolgray-300 transition-colors"
+                        class="absolute top-2 right-2 flex size-7 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-black dark:text-fg-faint dark:hover:bg-white/[0.06] dark:hover:text-fg"
                         title="View documentation">
                         <svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none"
                             stroke="currentColor" viewBox="0 0 24 24">
@@ -613,19 +665,19 @@
                         </svg>
                     </a>
                 </div>
-                <div class="gap-2 coolbox group flex relative"
+                <div class="group relative flex min-h-24 items-center gap-3 rounded-[10px] border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300 hover:bg-neutral-50 dark:border-white/[0.07] dark:bg-surface dark:hover:border-white/[0.12] dark:hover:bg-white/[0.035]"
                     :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
                     x-on:click="!selecting && (selecting = true, $wire.setPostgresqlType('pgvector/pgvector:pg18'))"
                     :disabled="selecting">
                     <div class="flex flex-col">
-                        <div class="box-title">PGVector (18)</div>
-                        <div class="box-description">
+                        <div class="text-[13px] font-semibold text-black dark:text-fg">PGVector 18</div>
+                        <div class="mt-1 pr-8 text-[11px] leading-4 text-neutral-500 dark:text-fg-faint">
                             PGVector is a PostgreSQL extension for vector data types.
                         </div>
                     </div>
                     <a href="https://github.com/pgvector/pgvector" target="_blank"
                         @click.stop
-                        class="absolute top-2 right-2 p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-coolgray-300 transition-colors"
+                        class="absolute top-2 right-2 flex size-7 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-black dark:text-fg-faint dark:hover:bg-white/[0.06] dark:hover:text-fg"
                         title="View documentation">
                         <svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none"
                             stroke="currentColor" viewBox="0 0 24 24">
@@ -634,19 +686,19 @@
                         </svg>
                     </a>
                 </div>
-                <div class="gap-2 coolbox group flex relative"
+                <div class="group relative flex min-h-24 items-center gap-3 rounded-[10px] border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300 hover:bg-neutral-50 dark:border-white/[0.07] dark:bg-surface dark:hover:border-white/[0.12] dark:hover:bg-white/[0.035]"
                     :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }"
                     x-on:click="!selecting && (selecting = true, $wire.setPostgresqlType('pgvector/pgvector:pg17'))"
                     :disabled="selecting">
                     <div class="flex flex-col">
-                        <div class="box-title">PGVector (17)</div>
-                        <div class="box-description">
+                        <div class="text-[13px] font-semibold text-black dark:text-fg">PGVector 17</div>
+                        <div class="mt-1 pr-8 text-[11px] leading-4 text-neutral-500 dark:text-fg-faint">
                             PGVector is a PostgreSQL extension for vector data types.
                         </div>
                     </div>
                     <a href="https://github.com/pgvector/pgvector" target="_blank"
                         @click.stop
-                        class="absolute top-2 right-2 p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-coolgray-300 transition-colors"
+                        class="absolute top-2 right-2 flex size-7 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-black dark:text-fg-faint dark:hover:bg-white/[0.06] dark:hover:text-fg"
                         title="View documentation">
                         <svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none"
                             stroke="currentColor" viewBox="0 0 24 24">
@@ -659,10 +711,15 @@
         </div>
     @endif
     @if ($current_step === 'existing-postgresql')
-        <form wire:submit='addExistingPostgresql' class="flex items-end gap-4">
-            <x-forms.input placeholder="postgres://username:password@database:5432" label="Database URL"
-                id="existingPostgresqlUrl" />
-            <x-forms.button type="submit">Add Database</x-forms.button>
-        </form>
+        <x-application.settings-section title="Connect an existing PostgreSQL database"
+            description="Provide the connection URL for the database Coolify should use.">
+            <form wire:submit="addExistingPostgresql" class="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div class="min-w-0 flex-1">
+                    <x-forms.input placeholder="postgres://username:password@database:5432" label="Database URL"
+                        id="existingPostgresqlUrl" />
+                </div>
+                <x-forms.button type="submit">Add database</x-forms.button>
+            </form>
+        </x-application.settings-section>
     @endif
 </div>
