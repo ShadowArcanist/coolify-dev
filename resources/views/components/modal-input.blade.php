@@ -56,10 +56,7 @@
                         <h3>{{ $title }}</h3>
                         <button @click="modalOpen=false"
                             class="cursor-pointer flex items-center justify-center w-7 h-7 rounded-md text-neutral-500 dark:text-fg-faint hover:bg-neutral-100 dark:hover:bg-white/[0.06] hover:text-black dark:hover:text-fg outline-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
-                            <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
+                            <x-reicon name="x" class="size-4" />
                         </button>
                     </header>
                     <div class="application-settings-section-body min-h-0 flex-1 overflow-y-auto"
