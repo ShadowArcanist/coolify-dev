@@ -2,59 +2,39 @@
     <x-slot:title>
         Team Members | Coolify
     </x-slot>
+
     <x-team.navbar />
-    <h2>Members</h2>
-    <div class="subtitle">
-        Manage or invite members of this team.
-    </div>
-    <div class="flex flex-col">
-        <div class="flex flex-col">
+
+    <div class="application-settings-form flex flex-col gap-6">
+        <x-application.settings-section title="Members"
+            description="People who can access this team and their current role." flush>
             <div class="overflow-x-auto">
-                <div class="inline-block min-w-full">
-                    <div class="overflow-hidden">
-                        <table class="min-w-full">
-                            <thead>
-                                <tr>
-                                    <th class="px-5 py-3 text-xs font-medium text-left uppercase">Name
-                                    </th>
-                                    <th class="px-5 py-3 text-xs font-medium text-left uppercase">Email</th>
-                                    <th class="px-5 py-3 text-xs font-medium text-left uppercase">Role</th>
-                                    <th class="px-5 py-3 text-xs font-medium text-left uppercase">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (currentTeam()->members as $member)
-                                    <livewire:team.member :member="$member" :wire:key="$member->id" />
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <table class="w-full min-w-[720px]">
+                    <thead>
+                        <tr>
+                            <th class="w-[26%] px-4 py-2.5 text-left">Name</th>
+                            <th class="w-[34%] px-4 py-2.5 text-left">Email</th>
+                            <th class="w-[14%] px-4 py-2.5 text-left">Role</th>
+                            <th class="px-4 py-2.5 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (currentTeam()->members as $member)
+                            <livewire:team.member :member="$member" :wire:key="$member->id" />
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
-        </div>
-    </div>
-    @can('manageInvitations', currentTeam())
-        <div class="py-4">
-            @if (is_transactional_emails_enabled())
-                <h2 class="pb-4">Invite New Member</h2>
-            @else
-                <h2>Invite New Member</h2>
-                @if (isInstanceAdmin())
-                    <div class="pb-4 text-xs dark:text-warning">You need to configure (as root team) <a
-                            {{ wireNavigate() }}
-                            href="/settings/email" class="underline dark:text-warning">Transactional
-                            Emails</a>
-                        before
-                        you can invite a
-                        new
-                        member
-                        via
-                        email.
-                    </div>
-                @endif
-            @endif
+            <div
+                class="flex min-h-11 items-center border-t border-neutral-200 px-4 text-[11px] text-neutral-500 dark:border-white/[0.08] dark:text-fg-faint">
+                {{ currentTeam()->members->count() }}
+                {{ Str::plural('member', currentTeam()->members->count()) }}
+            </div>
+        </x-application.settings-section>
+
+        @can('manageInvitations', currentTeam())
             <livewire:team.invite-link />
-        </div>
-        <livewire:team.invitations :invitations="$invitations" />
-    @endcan
+            <livewire:team.invitations :invitations="$invitations" />
+        @endcan
+    </div>
 </div>
