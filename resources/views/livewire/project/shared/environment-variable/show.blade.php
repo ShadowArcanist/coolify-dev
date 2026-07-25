@@ -1,5 +1,6 @@
 @php
-    $rowScope = data_get($env, 'is_preview') ? 'preview' : 'production';
+    $rowScope = $isSharedVariable ? 'shared' : (data_get($env, 'is_preview') ? 'preview' : 'production');
+    $rowScopeLabel = $isSharedVariable ? str($type)->headline() : ($rowScope === 'preview' ? 'Preview' : 'Production');
     $canUpdate = auth()->user()?->can('update', $this->env) ?? false;
     $canEditValue = $canUpdate && !$isLocked && !$isDisabled && !$isValueHidden;
     $showValueType = !$is_redis_credential && !$isMagicVariable;
@@ -31,7 +32,7 @@
             @endif
         </div>
         <div class="text-[13px] text-neutral-500 dark:text-fg-dim">
-            {{ $rowScope === 'preview' ? 'Preview' : 'Production' }}
+            {{ $rowScopeLabel }}
         </div>
         <div class="min-w-0 truncate text-[13px] text-neutral-500 dark:text-fg-dim"
             @if ($comment) title="{{ $comment }}" @endif>

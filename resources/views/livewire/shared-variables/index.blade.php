@@ -3,12 +3,7 @@
         Shared Variables | Coolify
     </x-slot>
 
-    <header class="mb-8">
-        <h1 class="text-[24px]! leading-7! font-semibold!">Shared Variables</h1>
-        <p class="mt-1 text-[13px] text-neutral-500 dark:text-fg-dim">
-            Reuse environment variables across your team and infrastructure.
-        </p>
-    </header>
+    <x-dashboard.navbar section="shared-variables" />
 
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <a class="group flex min-h-32 flex-col rounded-xl border border-neutral-200 bg-white p-3 shadow-sm transition-all hover:-translate-y-px hover:border-neutral-300 hover:no-underline hover:shadow-md dark:border-white/[0.08] dark:bg-white/[0.025] dark:hover:border-white/[0.14]"
