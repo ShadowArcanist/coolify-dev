@@ -1,254 +1,210 @@
 <div>
     <x-slot:title>
-        Scheduled Job Issues | Coolify
+        Scheduled Jobs | Coolify
     </x-slot>
-    <x-settings.navbar />
-    <div x-data="{ activeTab: window.location.hash ? window.location.hash.substring(1) : 'executions' }"
-        class="flex flex-col gap-8">
-        <div>
-            <div class="flex items-center gap-2">
-                <h2>Scheduled Job Issues</h2>
-                <x-forms.button wire:click="refresh">Refresh</x-forms.button>
-            </div>
-            <div class="pb-4">Shows failed executions, skipped jobs, and scheduler health.</div>
-        </div>
 
-        {{-- Tab Buttons --}}
-        <div class="flex flex-row gap-4">
-            <div @class([
-                    'box-without-bg cursor-pointer dark:bg-coolgray-100 dark:text-white w-full text-center items-center justify-center',
-                ])
-                :class="activeTab === 'executions' && 'dark:bg-coollabs bg-coollabs text-white'"
-                @click="activeTab = 'executions'; window.location.hash = 'executions'">
-                Failures ({{ $executions->count() }})
-            </div>
-            <div @class([
-                    'box-without-bg cursor-pointer dark:bg-coolgray-100 dark:text-white w-full text-center items-center justify-center',
-                ])
-                :class="activeTab === 'scheduler-runs' && 'dark:bg-coollabs bg-coollabs text-white'"
-                @click="activeTab = 'scheduler-runs'; window.location.hash = 'scheduler-runs'">
-                Scheduler Runs ({{ $managerRuns->count() }})
-            </div>
-            <div @class([
-                    'box-without-bg cursor-pointer dark:bg-coolgray-100 dark:text-white w-full text-center items-center justify-center',
-                ])
-                :class="activeTab === 'skipped-jobs' && 'dark:bg-coollabs bg-coollabs text-white'"
-                @click="activeTab = 'skipped-jobs'; window.location.hash = 'skipped-jobs'">
-                Skipped Jobs ({{ $skipTotalCount }})
-            </div>
-        </div>
+    <x-settings.navbar>
+        <x-slot:actions>
+            <button type="button" class="button" wire:click="refresh">
+                <x-reicon name="refresh" class="size-3.5" />
+                Refresh
+            </button>
+        </x-slot:actions>
+    </x-settings.navbar>
 
-        {{-- Executions Tab --}}
-        <div x-show="activeTab === 'executions'" x-cloak>
-            {{-- Filters --}}
-            <div class="flex gap-4 flex-wrap mb-4">
-                <div class="flex flex-col gap-1">
-                    <label class="text-sm font-medium">Type</label>
-                    <select wire:model.live="filterType"
-                        class="w-40 border bg-white dark:bg-coolgray-100 border-gray-300 dark:border-coolgray-400 rounded-md text-sm">
-                        <option value="all">All Types</option>
-                        <option value="backup">Backups</option>
-                        <option value="task">Tasks</option>
-                        <option value="cleanup">Docker Cleanup</option>
-                    </select>
+    <div class="application-settings-form" x-data="{
+        activeTab: ['executions', 'scheduler-runs', 'skipped-jobs'].includes(location.hash.slice(1))
+            ? location.hash.slice(1)
+            : 'executions',
+        select(tab) {
+            this.activeTab = tab;
+            history.replaceState(null, '', `#${tab}`);
+        }
+    }">
+        <x-application.settings-section title="Scheduler activity"
+            description="Inspect failed executions, manager runs, and jobs skipped by their conditions." flush>
+            <div
+                class="flex flex-col gap-3 border-b border-neutral-200 p-3 sm:flex-row sm:items-center sm:justify-between dark:border-white/[0.08]">
+                <div
+                    class="flex w-fit items-center gap-0.5 rounded-[10px] border border-neutral-200 bg-neutral-100 p-1 dark:border-white/[0.07] dark:bg-white/[0.035]">
+                    <button type="button" class="app-tab"
+                        :class="activeTab === 'executions' &&
+                            'bg-coollabs/10 text-coollabs ring-1 ring-coollabs/25 dark:bg-warning/15 dark:text-warning dark:ring-warning/25'"
+                        @click="select('executions')">
+                        Failures <span class="opacity-60">{{ $executions->count() }}</span>
+                    </button>
+                    <button type="button" class="app-tab"
+                        :class="activeTab === 'scheduler-runs' &&
+                            'bg-coollabs/10 text-coollabs ring-1 ring-coollabs/25 dark:bg-warning/15 dark:text-warning dark:ring-warning/25'"
+                        @click="select('scheduler-runs')">
+                        Scheduler runs <span class="opacity-60">{{ $managerRuns->count() }}</span>
+                    </button>
+                    <button type="button" class="app-tab"
+                        :class="activeTab === 'skipped-jobs' &&
+                            'bg-coollabs/10 text-coollabs ring-1 ring-coollabs/25 dark:bg-warning/15 dark:text-warning dark:ring-warning/25'"
+                        @click="select('skipped-jobs')">
+                        Skipped <span class="opacity-60">{{ $skipTotalCount }}</span>
+                    </button>
                 </div>
-                <div class="flex flex-col gap-1">
-                    <label class="text-sm font-medium">Time Range</label>
-                    <select wire:model.live="filterDate"
-                        class="w-40 border bg-white dark:bg-coolgray-100 border-gray-300 dark:border-coolgray-400 rounded-md text-sm">
-                        <option value="last_24h">Last 24 Hours</option>
-                        <option value="last_7d">Last 7 Days</option>
-                        <option value="last_30d">Last 30 Days</option>
-                        <option value="all">All Time</option>
-                    </select>
+
+                <div x-show="activeTab === 'executions'" class="grid gap-2 sm:grid-cols-2">
+                    <x-forms.listbox id="filterType" live :options="[
+                        ['value' => 'all', 'label' => 'All types'],
+                        ['value' => 'backup', 'label' => 'Backups'],
+                        ['value' => 'task', 'label' => 'Tasks'],
+                        ['value' => 'cleanup', 'label' => 'Docker cleanup'],
+                    ]" />
+                    <x-forms.listbox id="filterDate" live :options="[
+                        ['value' => 'last_24h', 'label' => 'Last 24 hours'],
+                        ['value' => 'last_7d', 'label' => 'Last 7 days'],
+                        ['value' => 'last_30d', 'label' => 'Last 30 days'],
+                        ['value' => 'all', 'label' => 'All time'],
+                    ]" />
                 </div>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left">
-                    <thead class="text-xs uppercase bg-gray-50 dark:bg-coolgray-200">
-                        <tr>
-                            <th class="px-4 py-3">Type</th>
-                            <th class="px-4 py-3">Resource</th>
-                            <th class="px-4 py-3">Server</th>
-                            <th class="px-4 py-3">Started</th>
-                            <th class="px-4 py-3">Duration</th>
-                            <th class="px-4 py-3">Message</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($executions as $execution)
-                            <tr wire:key="exec-{{ $execution['type'] }}-{{ $execution['id'] }}"
-                                class="border-b border-gray-200 dark:border-coolgray-400 hover:bg-gray-50 dark:hover:bg-coolgray-200">
-                                <td class="px-4 py-3">
+            <div x-cloak x-show="activeTab === 'executions'">
+                @if ($executions->isEmpty())
+                    <x-empty title="No failures"
+                        description="No failed scheduled executions match the current filters." size="sm">
+                        <x-slot:icon>
+                            <x-reicon name="check-circle" class="size-6" />
+                        </x-slot:icon>
+                    </x-empty>
+                @else
+                    <div class="overflow-x-auto">
+                        <table class="w-full min-w-[860px]">
+                            <thead>
+                                <tr>
+                                    <th class="px-4 py-2.5 text-left">Type</th>
+                                    <th class="px-4 py-2.5 text-left">Resource</th>
+                                    <th class="px-4 py-2.5 text-left">Server</th>
+                                    <th class="px-4 py-2.5 text-left">Started</th>
+                                    <th class="px-4 py-2.5 text-left">Duration</th>
+                                    <th class="px-4 py-2.5 text-left">Message</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($executions as $execution)
                                     @php
-                                        $typeLabel = match($execution['type']) {
+                                        $typeLabel = match ($execution['type']) {
                                             'backup' => 'Backup',
                                             'task' => 'Task',
                                             'cleanup' => 'Cleanup',
                                             default => ucfirst($execution['type']),
                                         };
-                                        $typeBg = match($execution['type']) {
-                                            'backup' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-                                            'task' => 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-                                            'cleanup' => 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-                                            default => 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
-                                        };
                                     @endphp
-                                    <span class="px-2 py-1 rounded-md text-xs font-medium {{ $typeBg }}">
-                                        {{ $typeLabel }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3">
-                                    {{ $execution['resource_name'] }}
-                                    @if($execution['resource_type'])
-                                        <span class="text-xs text-gray-500">({{ $execution['resource_type'] }})</span>
-                                    @endif
-                                </td>
-                                <td class="px-4 py-3">{{ $execution['server_name'] }}</td>
-                                <td class="px-4 py-3 whitespace-nowrap">
-                                    {{ $execution['created_at']->diffForHumans() }}
-                                    <span class="block text-xs text-gray-500">{{ $execution['created_at']->format('M d H:i') }}</span>
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap">
-                                    @if($execution['finished_at'] && $execution['created_at'])
-                                        {{ \Carbon\Carbon::parse($execution['created_at'])->diffInSeconds(\Carbon\Carbon::parse($execution['finished_at'])) }}s
-                                    @elseif($execution['status'] === 'running')
-                                        <x-loading class="w-4 h-4" />
-                                    @else
-                                        -
-                                    @endif
-                                </td>
-                                <td class="px-4 py-3 max-w-xs truncate" title="{{ $execution['message'] }}">
-                                    {{ \Illuminate\Support\Str::limit($execution['message'], 80) }}
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="6" class="px-4 py-8 text-center text-gray-500">
-                                    No failures found for the selected filters.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                                    <tr wire:key="exec-{{ $execution['type'] }}-{{ $execution['id'] }}"
+                                        class="border-t border-neutral-200 hover:bg-neutral-50 dark:border-white/[0.07] dark:hover:bg-white/[0.025]">
+                                        <td class="px-4 py-3">
+                                            <span
+                                                class="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium text-neutral-600 dark:bg-white/[0.06] dark:text-fg-dim">
+                                                {{ $typeLabel }}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3 text-[12px] font-medium text-black dark:text-fg">
+                                            {{ $execution['resource_name'] }}
+                                            @if ($execution['resource_type'])
+                                                <span class="text-[10px] font-normal text-neutral-400">
+                                                    {{ $execution['resource_type'] }}
+                                                </span>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-3 text-[11px] text-neutral-500 dark:text-fg-dim">
+                                            {{ $execution['server_name'] }}
+                                        </td>
+                                        <td class="px-4 py-3 text-[11px] text-neutral-500 dark:text-fg-dim">
+                                            {{ $execution['created_at']->format('Y-m-d H:i') }}
+                                        </td>
+                                        <td class="px-4 py-3 text-[11px] text-neutral-500 dark:text-fg-dim">
+                                            @if ($execution['finished_at'] && $execution['created_at'])
+                                                {{ \Carbon\Carbon::parse($execution['created_at'])->diffInSeconds(\Carbon\Carbon::parse($execution['finished_at'])) }}s
+                                            @elseif ($execution['status'] === 'running')
+                                                <x-loading class="size-3.5" />
+                                            @else
+                                                —
+                                            @endif
+                                        </td>
+                                        <td class="max-w-xs truncate px-4 py-3 text-[11px] text-neutral-500 dark:text-fg-dim"
+                                            title="{{ $execution['message'] }}">
+                                            {{ Str::limit($execution['message'], 80) }}
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
             </div>
-        </div>
 
-        {{-- Scheduler Runs Tab --}}
-        <div x-show="activeTab === 'scheduler-runs'" x-cloak>
-            <div class="pb-4 text-sm text-gray-500">Shows when the ScheduledJobManager executed. Gaps indicate lock conflicts or missed runs.</div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left">
-                    <thead class="text-xs uppercase bg-gray-50 dark:bg-coolgray-200">
-                        <tr>
-                            <th class="px-4 py-3">Time</th>
-                            <th class="px-4 py-3">Event</th>
-                            <th class="px-4 py-3">Duration</th>
-                            <th class="px-4 py-3">Dispatched</th>
-                            <th class="px-4 py-3">Skipped</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($managerRuns as $run)
-                            <tr wire:key="run-{{ $loop->index }}"
-                                class="border-b border-gray-200 dark:border-coolgray-400">
-                                <td class="px-4 py-2 whitespace-nowrap text-xs">{{ $run['timestamp'] }}</td>
-                                <td class="px-4 py-2">{{ $run['message'] }}</td>
-                                <td class="px-4 py-2">
-                                    @if($run['duration_ms'] !== null)
-                                        {{ $run['duration_ms'] }}ms
-                                    @else
-                                        -
-                                    @endif
-                                </td>
-                                <td class="px-4 py-2">{{ $run['dispatched'] ?? '-' }}</td>
-                                <td class="px-4 py-2">
-                                    @if(($run['skipped'] ?? 0) > 0)
-                                        <span class="text-warning">{{ $run['skipped'] }}</span>
-                                    @else
-                                        {{ $run['skipped'] ?? '-' }}
-                                    @endif
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="5" class="px-4 py-4 text-center text-gray-500">
-                                    No scheduler run logs found. Logs appear after the ScheduledJobManager runs.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+            <div x-cloak x-show="activeTab === 'scheduler-runs'">
+                @if ($managerRuns->isEmpty())
+                    <x-empty title="No manager runs"
+                        description="Scheduler manager activity appears here after its next run." size="sm">
+                        <x-slot:icon>
+                            <x-reicon name="refresh" class="size-6" />
+                        </x-slot:icon>
+                    </x-empty>
+                @else
+                    <div class="overflow-x-auto">
+                        <table class="w-full min-w-[680px]">
+                            <thead>
+                                <tr>
+                                    <th class="px-4 py-2.5 text-left">Time</th>
+                                    <th class="px-4 py-2.5 text-left">Event</th>
+                                    <th class="px-4 py-2.5 text-left">Duration</th>
+                                    <th class="px-4 py-2.5 text-left">Dispatched</th>
+                                    <th class="px-4 py-2.5 text-left">Skipped</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($managerRuns as $run)
+                                    <tr wire:key="run-{{ $loop->index }}"
+                                        class="border-t border-neutral-200 dark:border-white/[0.07]">
+                                        <td class="px-4 py-3 font-mono text-[11px] text-neutral-500 dark:text-fg-dim">
+                                            {{ $run['timestamp'] }}
+                                        </td>
+                                        <td class="px-4 py-3 text-[12px] text-black dark:text-fg">{{ $run['message'] }}</td>
+                                        <td class="px-4 py-3 text-[11px] text-neutral-500 dark:text-fg-dim">
+                                            {{ $run['duration_ms'] !== null ? $run['duration_ms'] . 'ms' : '—' }}
+                                        </td>
+                                        <td class="px-4 py-3 text-[11px] text-neutral-500 dark:text-fg-dim">
+                                            {{ $run['dispatched'] ?? '—' }}
+                                        </td>
+                                        <td class="px-4 py-3 text-[11px] text-neutral-500 dark:text-fg-dim">
+                                            {{ $run['skipped'] ?? '—' }}
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
             </div>
-        </div>
 
-        {{-- Skipped Jobs Tab --}}
-        <div x-show="activeTab === 'skipped-jobs'" x-cloak>
-            <div class="pb-4 text-sm text-gray-500">Jobs that were not dispatched because conditions were not met.</div>
-            @if($skipTotalCount > $skipDefaultTake)
-                <div class="flex items-center gap-2 mb-4">
-                    <x-forms.button disabled="{{ !$showSkipPrev }}" wire:click="skipPreviousPage">
-                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M15 19l-7-7 7-7" />
-                        </svg>
-                    </x-forms.button>
-                    <span class="text-sm">
-                        Page {{ $skipCurrentPage }} of {{ ceil($skipTotalCount / $skipDefaultTake) }}
-                    </span>
-                    <x-forms.button disabled="{{ !$showSkipNext }}" wire:click="skipNextPage">
-                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 5l7 7-7 7" />
-                        </svg>
-                    </x-forms.button>
-                </div>
-            @endif
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left">
-                    <thead class="text-xs uppercase bg-gray-50 dark:bg-coolgray-200">
-                        <tr>
-                            <th class="px-4 py-3">Time</th>
-                            <th class="px-4 py-3">Type</th>
-                            <th class="px-4 py-3">Resource</th>
-                            <th class="px-4 py-3">Reason</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($skipLogs as $skip)
-                            <tr wire:key="skip-{{ $loop->index }}"
-                                class="border-b border-gray-200 dark:border-coolgray-400">
-                                <td class="px-4 py-2 whitespace-nowrap text-xs">{{ $skip['timestamp'] }}</td>
-                                <td class="px-4 py-2">
+            <div x-cloak x-show="activeTab === 'skipped-jobs'">
+                @if ($skipLogs->isEmpty())
+                    <x-empty title="No skipped jobs"
+                        description="All scheduled jobs met their dispatch conditions." size="sm">
+                        <x-slot:icon>
+                            <x-reicon name="check-circle" class="size-6" />
+                        </x-slot:icon>
+                    </x-empty>
+                @else
+                    <div class="overflow-x-auto">
+                        <table class="w-full min-w-[760px]">
+                            <thead>
+                                <tr>
+                                    <th class="px-4 py-2.5 text-left">Time</th>
+                                    <th class="px-4 py-2.5 text-left">Type</th>
+                                    <th class="px-4 py-2.5 text-left">Resource</th>
+                                    <th class="px-4 py-2.5 text-left">Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($skipLogs as $skip)
                                     @php
-                                        $skipTypeBg = match($skip['type']) {
-                                            'backup' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-                                            'task' => 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-                                            'docker_cleanup' => 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-                                            default => 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
-                                        };
-                                    @endphp
-                                    <span class="px-2 py-1 rounded-md text-xs font-medium {{ $skipTypeBg }}">
-                                        {{ ucfirst(str_replace('_', ' ', $skip['type'])) }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-2">
-                                    @if($skip['link'] ?? null)
-                                        <a href="{{ $skip['link'] }}" class="text-white underline hover:no-underline">
-                                            {{ $skip['resource_name'] }}
-                                        </a>
-                                    @elseif($skip['resource_name'] ?? null)
-                                        {{ $skip['resource_name'] }}
-                                    @else
-                                        <span class="text-gray-500">{{ $skip['context']['task_name'] ?? $skip['context']['server_name'] ?? 'Deleted' }}</span>
-                                    @endif
-                                </td>
-                                <td class="px-4 py-2">
-                                    @php
-                                        $reasonLabel = match($skip['reason']) {
+                                        $reasonLabel = match ($skip['reason']) {
                                             'server_not_functional' => 'Server not functional',
                                             'subscription_unpaid' => 'Subscription unpaid',
                                             'database_deleted' => 'Database deleted',
@@ -258,26 +214,59 @@
                                             'service_not_running' => 'Service not running',
                                             default => ucfirst(str_replace('_', ' ', $skip['reason'])),
                                         };
-                                        $reasonBg = match($skip['reason']) {
-                                            'server_not_functional', 'database_deleted', 'server_deleted', 'resource_deleted' => 'text-red-600 dark:text-red-400',
-                                            'subscription_unpaid' => 'text-warning',
-                                            'application_not_running', 'service_not_running' => 'text-orange-600 dark:text-orange-400',
-                                            default => '',
-                                        };
                                     @endphp
-                                    <span class="{{ $reasonBg }}">{{ $reasonLabel }}</span>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="4" class="px-4 py-4 text-center text-gray-500">
-                                    No skipped jobs found. This means all scheduled jobs passed their conditions.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                                    <tr wire:key="skip-{{ $loop->index }}"
+                                        class="border-t border-neutral-200 dark:border-white/[0.07]">
+                                        <td class="px-4 py-3 font-mono text-[11px] text-neutral-500 dark:text-fg-dim">
+                                            {{ $skip['timestamp'] }}
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <span
+                                                class="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium capitalize text-neutral-600 dark:bg-white/[0.06] dark:text-fg-dim">
+                                                {{ str_replace('_', ' ', $skip['type']) }}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3 text-[12px] text-black dark:text-fg">
+                                            @if ($skip['link'] ?? null)
+                                                <a href="{{ $skip['link'] }}"
+                                                    class="font-medium text-coollabs hover:underline dark:text-warning">
+                                                    {{ $skip['resource_name'] }}
+                                                </a>
+                                            @else
+                                                {{ $skip['resource_name'] ?? $skip['context']['task_name'] ?? $skip['context']['server_name'] ?? 'Deleted resource' }}
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-3 text-[11px] text-neutral-500 dark:text-fg-dim">
+                                            {{ $reasonLabel }}
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    <div
+                        class="flex min-h-12 items-center justify-between border-t border-neutral-200 px-4 dark:border-white/[0.08]">
+                        <span class="text-[11px] text-neutral-500 dark:text-fg-faint">
+                            {{ $skipTotalCount }} {{ Str::plural('skipped job', $skipTotalCount) }}
+                        </span>
+                        @if ($skipTotalCount > $skipDefaultTake)
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] text-neutral-500 dark:text-fg-dim">
+                                    Page {{ $skipCurrentPage }} of {{ ceil($skipTotalCount / $skipDefaultTake) }}
+                                </span>
+                                <button type="button" class="button size-8! px-0!" wire:click="skipPreviousPage"
+                                    @disabled(!$showSkipPrev) aria-label="Previous page">
+                                    <x-reicon name="arrow-right" class="size-3.5 rotate-180" />
+                                </button>
+                                <button type="button" class="button size-8! px-0!" wire:click="skipNextPage"
+                                    @disabled(!$showSkipNext) aria-label="Next page">
+                                    <x-reicon name="arrow-right" class="size-3.5" />
+                                </button>
+                            </div>
+                        @endif
+                    </div>
+                @endif
             </div>
-        </div>
+        </x-application.settings-section>
     </div>
 </div>

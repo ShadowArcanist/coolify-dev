@@ -10,17 +10,9 @@
         <x-settings.sidebar activeMenu="general" />
 
         <form wire:submit="submit" class="application-settings-form w-full min-w-0">
+            <x-unsaved-bar action="submit" />
             <x-application.settings-section title="General"
                 description="Set the public identity, address, and timezone for this Coolify instance.">
-                <x-slot:actions>
-                    @can('update', $settings)
-                        <button type="submit"
-                            class="button bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!">
-                            Save changes
-                        </button>
-                    @endcan
-                </x-slot:actions>
-
                 <div class="grid gap-4 lg:grid-cols-2">
                     <div class="lg:col-span-2">
                         <x-forms.input canGate="update" :canResource="$settings" id="fqdn" label="URL"
