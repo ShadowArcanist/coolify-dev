@@ -27,8 +27,7 @@
 
     <form wire:submit="changePrivateKey" class="application-settings-form" x-data="{ showPrivateKey: false }">
         <x-unsaved-bar action="changePrivateKey" />
-        <x-application.settings-section title="{{ $private_key->name }}"
-            description="SSH key material used to authenticate servers and private repositories.">
+        <x-application.settings-section title="{{ $private_key->name }}">
             <div class="grid gap-4 lg:grid-cols-2">
                 <x-forms.input canGate="update" :canResource="$private_key" id="name" label="Name" required />
                 <x-forms.input canGate="update" :canResource="$private_key" id="description"

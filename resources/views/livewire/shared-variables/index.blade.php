@@ -5,7 +5,7 @@
 
     <x-dashboard.navbar section="shared-variables" />
 
-    <div class="mx-auto w-full max-w-[930px]">
+    <div class="w-full">
         <h1 class="mb-5 text-[24px]! leading-7! font-semibold! tracking-tight!">Shared variables</h1>
 
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">

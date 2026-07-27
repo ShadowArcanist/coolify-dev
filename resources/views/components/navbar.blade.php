@@ -176,52 +176,19 @@
             @endif
 
             <li class="flex-1" aria-hidden="true"></li>
-
-            <li class="mt-3 border-t border-neutral-200 pt-2 dark:border-white/[0.06]">
-                <livewire:settings-dropdown trigger="changelog-sidebar" />
-            </li>
-            <li>
-                <a title="Documentation" class="menu-item" href="https://coolify.io/docs" target="_blank"
-                    rel="noopener noreferrer" :class="collapsed && 'lg:justify-center lg:px-0'">
-                    <x-reicon name="documentation" class="menu-item-icon" />
-                    <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Documentation</span>
-                </a>
-            </li>
         @endif
         @if (!isSubscribed() && isCloud() && auth()->user()->teams()->get()->count() > 1)
             <livewire:navbar-delete-team />
         @endif
-        <li>
-            <x-modal-input title="How can we help?">
-                <x-slot:content>
-                    <div title="Send us feedback or get help!" class="cursor-pointer menu-item" wire:click="help"
-                        :class="collapsed && 'lg:justify-center lg:px-0'">
-                        <x-reicon name="feedback" class="menu-item-icon" />
-                        <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Feedback</span>
-                    </div>
-                </x-slot:content>
-                <livewire:help />
-            </x-modal-input>
-        </li>
-        @if (isSubscribed() || !isCloud())
-            <li>
-                <a title="Sponsor us" class="menu-item" href="https://coolify.io/sponsorships" target="_blank"
-                    rel="noopener noreferrer" :class="collapsed && 'lg:justify-center lg:px-0'">
-                    <x-reicon name="sponsor" class="menu-item-icon !text-pink-500" />
-                    <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Sponsor us</span>
-                </a>
-            </li>
-        @endif
     </ul>
     {{-- Sticky sidebar collapser --}}
     <div class="sticky bottom-0 mt-auto -mx-2 lg:-mx-3 border-t border-neutral-200 dark:border-white/[0.06] bg-white dark:bg-panel px-2 lg:px-3 py-2">
-        <button type="button" @click="toggleSidebar()" title="Toggle sidebar" class="menu-item"
-            :class="collapsed && 'lg:w-8 lg:justify-center lg:px-0 lg:mx-auto'">
+        <button type="button" @click="toggleSidebar()" title="Toggle sidebar" aria-label="Toggle sidebar"
+            class="menu-item mx-auto w-8 justify-center px-0">
             <svg class="menu-item-icon" viewBox="0 0 24 24" fill="none">
                 <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.6" />
                 <path d="M9 4v16" stroke="currentColor" stroke-width="1.6" />
             </svg>
-            <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Collapse</span>
         </button>
     </div>
     <div x-show="collapsed && tooltip.show" x-cloak x-transition.opacity.duration.100ms

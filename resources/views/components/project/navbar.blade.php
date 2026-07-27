@@ -12,18 +12,13 @@
     $items = $environment
         ? [
             ['label' => 'Resources', 'route' => 'project.resource.index', 'active' => request()->routeIs('project.resource.index'), 'icon' => 'grid'],
-            ['label' => 'New resource', 'route' => 'project.resource.create', 'active' => request()->routeIs('project.resource.create'), 'icon' => 'plus'],
-            ['label' => 'Clone', 'route' => 'project.clone-me', 'active' => request()->routeIs('project.clone-me'), 'icon' => 'layers'],
-            ['label' => 'Settings', 'route' => 'project.environment.edit', 'active' => request()->routeIs('project.environment.edit'), 'icon' => 'settings'],
         ]
-        : [
-            ['label' => 'Environments', 'route' => 'project.show', 'active' => request()->routeIs('project.show'), 'icon' => 'layers'],
-            ['label' => 'Settings', 'route' => 'project.edit', 'active' => request()->routeIs('project.edit'), 'icon' => 'settings'],
-        ];
+        : [];
 
     $routeParameters = $environment ? $environmentParameters : $projectParameters;
 @endphp
 
+@if ($environment)
 <nav class="mb-6 w-full lg:mb-0">
     <div class="flex w-full items-center justify-between gap-4 lg:fixed lg:top-12 lg:right-0 lg:z-30 lg:h-12 lg:w-auto lg:border-b lg:border-neutral-200 lg:bg-white/95 lg:pr-4 lg:pl-2 lg:backdrop-blur lg:transition-[left] lg:duration-200 lg:dark:border-white/[0.06] lg:dark:bg-panel/95"
         :class="[typeof collapsed !== 'undefined' && collapsed ? 'lg:left-16' : 'lg:left-56']">
@@ -46,7 +41,17 @@
                 {{ $actions }}
             </div>
         @endisset
+        @can('createAnyResource')
+            <div class="flex shrink-0 items-center gap-2">
+                <a href="{{ route('project.resource.create', $environmentParameters) }}" {{ wireNavigate() }}
+                    class="button bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!">
+                    <x-reicon name="plus" class="size-3.5" />
+                    New resource
+                </a>
+            </div>
+        @endcan
     </div>
 
     <div class="hidden lg:block lg:h-10" aria-hidden="true"></div>
 </nav>
+@endif

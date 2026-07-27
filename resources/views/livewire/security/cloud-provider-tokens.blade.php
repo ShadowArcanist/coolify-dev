@@ -1,6 +1,5 @@
 <div class="application-settings-form">
-    <x-application.settings-section title="Cloud tokens"
-        description="API credentials used to provision servers with supported cloud providers." flush>
+    <x-application.settings-section title="Cloud tokens" flush>
         @if ($tokens->isEmpty())
             <x-empty title="No cloud tokens"
                 description="Add a provider token to provision new cloud servers." size="sm">

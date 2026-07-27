@@ -1,7 +1,11 @@
-<div>
+<div class="application-settings-form w-full">
     <x-slot:title>
         Terminal | Coolify
     </x-slot>
+
+    <header class="mb-5 flex items-center justify-between gap-4">
+        <h1 class="text-[24px]! leading-7! font-semibold! tracking-tight!">Terminal</h1>
+    </header>
 
     <div x-init="$wire.loadContainers()">
         @if ($isLoadingContainers)
@@ -63,23 +67,21 @@
                 $consoleThemeAccents = collect($consoleThemes)->pluck('accent', 'key');
             @endphp
 
-            <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end">
-                <div class="w-full sm:max-w-lg">
-                    <x-forms.listbox id="selected_uuid" label="Terminal target" live
-                        :options="$terminalOptions" />
-                </div>
-                <button type="button" class="button shrink-0" wire:click="connectToContainer"
-                    @disabled($selected_uuid === 'default')>
-                    <x-reicon name="browser-terminal" class="size-3.5" />
-                    Connect
-                </button>
-            </div>
-
-            <section class="h-[calc(100dvh-15rem)] min-h-[32rem] w-full"
+            <section class="h-[calc(100dvh-11rem)] min-h-[32rem] w-full"
                 x-data="{
+                    targets: @js(array_slice($terminalOptions, 1)),
+                    currentTargetLabel: @js($terminalLabel),
+                    targetOpen: false,
+                    targetSearch: '',
                     themeKeys: @js($consoleThemeKeys),
                     consoleTheme: 'shadows-cosmic-purple',
                     themeOpen: false,
+                    get filteredTargets() {
+                        const query = this.targetSearch.trim().toLowerCase();
+                        return query
+                            ? this.targets.filter((target) => target.label.toLowerCase().includes(query))
+                            : this.targets;
+                    },
                     init() {
                         const savedTheme = localStorage.getItem('coolify-console-theme');
                         this.consoleTheme = this.themeKeys.includes(savedTheme) ? savedTheme : 'shadows-cosmic-purple';
@@ -90,17 +92,70 @@
                         this.themeOpen = false;
                         localStorage.setItem('coolify-console-theme', theme);
                         window.dispatchEvent(new CustomEvent('terminal-theme-change', { detail: { theme } }));
+                    },
+                    async selectTarget(target) {
+                        this.currentTargetLabel = target.label;
+                        this.targetOpen = false;
+                        this.targetSearch = '';
+                        await $wire.set('selected_uuid', target.value);
+                        await $wire.connectToContainer();
                     }
                 }">
                 <div class="application-console-shell flex h-full min-h-0 flex-col overflow-hidden rounded-lg"
                     :data-console-theme="consoleTheme">
                     <header
                         class="application-console-header flex h-[30px] shrink-0 items-center border-b border-white/[0.12] px-2.5 text-[11px] text-white select-none">
-                        <div class="flex min-w-0 flex-1 items-center gap-2">
-                            <x-reicon name="browser-terminal" class="size-3.5 shrink-0 text-white/55" />
-                            <span class="min-w-0 truncate text-[11px] font-semibold text-white/80">
-                                {{ $terminalLabel }}
-                            </span>
+                        <div class="relative flex min-w-0 flex-1 items-center"
+                            x-on:click.outside="targetOpen = false">
+                            <button type="button"
+                                class="flex h-6 min-w-0 max-w-sm cursor-pointer items-center gap-2 rounded-md px-1.5 text-left transition-colors hover:bg-white/[0.08]"
+                                x-on:click="targetOpen = !targetOpen" :aria-expanded="targetOpen"
+                                aria-label="Choose terminal target">
+                                <x-reicon name="browser-terminal" class="size-3.5 shrink-0 text-white/55" />
+                                <span class="min-w-0 truncate text-[11px] font-semibold text-white/80"
+                                    x-text="currentTargetLabel"></span>
+                                <svg class="size-2.5 shrink-0 text-white/35" viewBox="0 0 12 12" fill="none"
+                                    aria-hidden="true">
+                                    <path d="m3.5 4.75 2.5 2.5 2.5-2.5" stroke="currentColor"
+                                        stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </button>
+
+                            <div x-cloak x-show="targetOpen" x-transition.origin.top.left
+                                class="absolute top-7 left-0 z-50 w-72 overflow-hidden rounded-lg border border-white/[0.1] bg-[#111113] shadow-[0_18px_50px_rgba(0,0,0,0.55)]">
+                                <div class="border-b border-white/[0.08] p-1.5">
+                                    <div class="relative">
+                                        <x-reicon name="search"
+                                            class="pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2 text-white/35" />
+                                        <input x-model.debounce.100ms="targetSearch" type="search"
+                                            placeholder="Filter targets…"
+                                            class="h-7! w-full rounded-md! border-white/[0.08]! bg-white/[0.05]! py-0! pr-2! pl-7! text-[11px]! text-white! shadow-none! placeholder:text-white/30 focus:border-white/[0.16]! focus:ring-0!">
+                                    </div>
+                                </div>
+                                <div class="max-h-72 overflow-y-auto p-1">
+                                    <template x-for="target in filteredTargets" :key="target.value">
+                                        <button type="button"
+                                            class="flex min-h-8 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-left text-[11px] text-white/65 transition-colors hover:bg-white/[0.07] hover:text-white"
+                                            x-on:click="selectTarget(target)">
+                                            <x-reicon name="browser-terminal"
+                                                class="size-3.5 shrink-0 text-white/35" />
+                                            <span class="min-w-0 flex-1 truncate" x-text="target.label"></span>
+                                            <svg x-show="$wire.selected_uuid === target.value"
+                                                class="size-3 text-[#fcd452]" viewBox="0 0 12 12" fill="none"
+                                                aria-hidden="true">
+                                                <path d="m2.5 6.25 2.1 2.1 4.9-5" stroke="currentColor"
+                                                    stroke-width="1.4" stroke-linecap="round"
+                                                    stroke-linejoin="round" />
+                                            </svg>
+                                        </button>
+                                    </template>
+                                    <div x-show="filteredTargets.length === 0"
+                                        class="px-2 py-5 text-center text-[11px] text-white/35">
+                                        No matching targets
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="hidden items-center gap-1.5 text-[10px] font-medium text-white/40"
                                 wire:loading.flex wire:target="selected_uuid,connectToContainer">
                                 <svg class="size-3 animate-spin" viewBox="0 0 24 24" fill="none">

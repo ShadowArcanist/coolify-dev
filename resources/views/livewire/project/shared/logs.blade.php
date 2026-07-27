@@ -20,26 +20,6 @@
     @endphp
 
     <div class="application-settings-form flex flex-col gap-6">
-        <x-application.settings-section title="Runtime logs"
-            helper="Inspect and stream output from the resource's running containers.">
-            <x-slot:actions>
-                <x-status-badge :status="$isRunning ? 'Resource running' : 'Resource stopped'"
-                    :type="$isRunning ? 'success' : 'neutral'" />
-            </x-slot:actions>
-            <div class="flex items-start gap-3">
-                <div
-                    class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600 dark:bg-white/[0.06] dark:text-fg-dim">
-                    <x-reicon name="file-content" class="size-4.5" />
-                </div>
-                <div>
-                    <p class="text-sm font-medium text-neutral-950 dark:text-fg">Live container output</p>
-                    <p class="mt-1 text-xs leading-5 text-neutral-500 dark:text-fg-dim">
-                        Search, filter, follow, copy, or download the output shown for each container.
-                    </p>
-                </div>
-            </div>
-        </x-application.settings-section>
-
         <div wire:loading wire:target="loadAllContainers"
             class="application-settings-section-body flex min-h-32 items-center justify-center">
             <x-loading text="Loading containers" />

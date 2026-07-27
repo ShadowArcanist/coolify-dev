@@ -18,7 +18,7 @@
         ->values();
 @endphp
 
-<div class="application-settings-form mx-auto w-full max-w-[930px]" x-data="{
+<div class="application-settings-form w-full" x-data="{
     sharedSearch: '',
     sharedSort: 'alphabetical',
     sortOpen: false,

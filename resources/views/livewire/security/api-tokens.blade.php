@@ -34,8 +34,7 @@
         <div class="application-settings-form flex flex-col gap-6">
             @can('create', App\Models\PersonalAccessToken::class)
                 <form wire:submit="addNewToken">
-                    <x-application.settings-section title="New API token"
-                        description="Tokens are scoped to the current team and only shown once.">
+                    <x-application.settings-section title="New API token">
                         <x-slot:actions>
                             <button type="submit"
                                 class="button bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!">
@@ -123,8 +122,7 @@
                 </x-application.settings-section>
             @endif
 
-            <x-application.settings-section title="Issued tokens"
-                description="Active API credentials created for this team." flush>
+            <x-application.settings-section title="Issued tokens" flush>
                 <div x-data="{
                     search: '',
                     page: 1,
@@ -201,14 +199,14 @@
                                     <div class="min-w-0 truncate text-[12px] font-medium text-black dark:text-fg">
                                         {{ $token->name }}
                                     </div>
-                                    <div class="flex min-w-0 flex-wrap gap-1">
+                                    <div class="flex min-w-0 flex-wrap items-center gap-1.5">
                                         @foreach ($token->abilities ?? [] as $ability)
                                             <span @class([
-                                                'rounded-full px-2 py-0.5 text-[10px] font-medium',
-                                                'bg-error/10 text-error' => $ability === 'root',
-                                                'bg-warning/10 text-warning' => in_array($ability, ['write', 'write:sensitive']),
-                                                'bg-coollabs/10 text-coollabs dark:bg-warning/10 dark:text-warning' => $ability === 'deploy',
-                                                'bg-neutral-100 text-neutral-600 dark:bg-white/[0.06] dark:text-fg-dim' => in_array($ability, ['read', 'read:sensitive']),
+                                                'inline-flex min-h-5 items-center rounded-md border px-2 py-0.5 text-[10px] font-medium',
+                                                'border-error/20 bg-error/10 text-error' => $ability === 'root',
+                                                'border-warning/20 bg-warning/10 text-warning' => in_array($ability, ['write', 'write:sensitive']),
+                                                'border-coollabs/20 bg-coollabs/10 text-coollabs dark:border-warning/20 dark:bg-warning/10 dark:text-warning' => $ability === 'deploy',
+                                                'border-neutral-200 bg-neutral-100 text-neutral-600 dark:border-white/[0.08] dark:bg-white/[0.06] dark:text-fg-dim' => in_array($ability, ['read', 'read:sensitive']),
                                             ])>{{ $ability }}</span>
                                         @endforeach
                                     </div>
@@ -230,14 +228,21 @@
                                     <div class="flex justify-end">
                                         @if (auth()->id() === $token->tokenable_id)
                                             <x-modal-confirmation title="Confirm API Token Revocation?"
-                                                isErrorButton buttonTitle="Revoke"
                                                 submitAction="revoke({{ $token->id }})" :actions="[
                                                     'This API token will be permanently revoked.',
                                                 ]"
                                                 confirmationText="{{ $token->name }}"
                                                 confirmationLabel="Enter the token description to confirm"
                                                 shortConfirmationLabel="Token description"
-                                                :confirmWithPassword="false" step2ButtonText="Revoke token" />
+                                                :confirmWithPassword="false" step2ButtonText="Revoke token">
+                                                <x-slot:trigger>
+                                                    <button type="button"
+                                                        class="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px] font-medium text-error transition-colors hover:bg-error/10">
+                                                        <x-reicon name="trash" class="size-3" />
+                                                        Revoke
+                                                    </button>
+                                                </x-slot:trigger>
+                                            </x-modal-confirmation>
                                         @endif
                                     </div>
                                 </div>

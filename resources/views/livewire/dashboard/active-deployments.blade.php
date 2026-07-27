@@ -1,5 +1,5 @@
 <section class="mb-0! min-w-0" wire:poll.3000ms="refreshDeployments">
-    <div class="mb-3 flex items-end justify-between gap-4">
+    <div class="mb-3">
         <div>
             <h2 class="text-[14px]! leading-5! font-semibold! text-black dark:text-fg">
                 Active deployments
@@ -8,7 +8,6 @@
                 Applications currently running or waiting
             </p>
         </div>
-        <x-status-badge status="Live updates" :type="$deployments->isEmpty() ? 'neutral' : 'warning'" />
     </div>
 
     <div

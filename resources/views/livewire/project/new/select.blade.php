@@ -1,20 +1,15 @@
 <div class="application-settings-form" x-data x-init="$wire.loadServers">
     <div x-data="searchResources()">
         @if ($current_step === 'type')
-            @php
-                $environmentOptions = $environments
-                    ->map(fn ($environment) => [
-                        'value' => $environment->name,
-                        'label' => $environment->name,
-                    ])
-                    ->values()
-                    ->all();
-            @endphp
-
-            <x-application.settings-section title="Choose a resource"
-                description="Deploy an application, database, or service into this environment." flush>
+            <x-application.settings-section title="Choose a resource" flush>
+                <x-slot:actions>
+                    <button type="button" class="button" :disabled="loading" @click="loadResources">
+                        <x-reicon name="refresh" class="size-3.5" />
+                        Reload
+                    </button>
+                </x-slot:actions>
                 <div
-                    class="flex flex-col gap-3 border-b border-neutral-200 p-4 dark:border-white/[0.08] lg:flex-row lg:items-end">
+                    class="flex flex-col gap-3 border-b border-neutral-200 p-4 dark:border-white/[0.08] sm:flex-row sm:items-center sm:justify-between">
                     <div class="relative min-w-0 flex-1">
                         <x-reicon name="search"
                             class="pointer-events-none absolute top-1/2 left-2.5 z-10 size-3.5 -translate-y-1/2 text-neutral-400 dark:text-fg-faint" />
@@ -24,51 +19,69 @@
                             @keydown.window.slash.prevent="$refs.searchInput.focus()">
                     </div>
 
-                    <div class="w-full lg:w-52">
-                        <x-forms.listbox id="selectedEnvironment" :options="$environmentOptions"
-                            placeholder="Environment" live />
-                    </div>
-
-                    <div class="relative w-full lg:w-52"
-                        x-data="{ openCategoryDropdown: false, categorySearch: '' }"
-                        @click.outside="openCategoryDropdown = false" @keydown.escape="openCategoryDropdown = false">
-                        <button type="button" class="listbox-trigger"
-                            :disabled="loading || categories.length === 0"
-                            @click="openCategoryDropdown = !openCategoryDropdown; $nextTick(() => openCategoryDropdown && $refs.categorySearchInput.focus())">
-                            <span class="truncate capitalize"
-                                x-text="selectedCategory === '' ? 'All categories' : selectedCategory"></span>
-                            <svg class="size-3.5 shrink-0 opacity-60" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="m8 9 4-4 4 4m0 6-4 4-4-4" />
-                            </svg>
-                        </button>
-                        <div x-cloak x-show="openCategoryDropdown" x-transition class="listbox-panel">
-                            <div class="border-b border-neutral-200 p-2 dark:border-white/[0.08]">
-                                <input type="search" x-ref="categorySearchInput" x-model="categorySearch"
-                                    placeholder="Search categories"
-                                    class="h-8! w-full rounded-md! border-neutral-200! bg-neutral-50! px-2.5! py-0! text-[12px]! shadow-none! focus:ring-0! dark:border-white/[0.08]! dark:bg-white/[0.04]! dark:text-fg!"
-                                    @click.stop>
-                            </div>
-                            <div class="max-h-60 overflow-auto p-1">
-                                <button type="button" class="listbox-option"
-                                    @click="selectedCategory = ''; categorySearch = ''; openCategoryDropdown = false"
-                                    :aria-selected="selectedCategory === ''">
-                                    <span>All categories</span>
-                                    <x-reicon name="check-circle" class="size-3.5"
-                                        x-show="selectedCategory === ''" />
-                                </button>
-                                <template
-                                    x-for="category in categories.filter(cat => categorySearch === '' || cat.toLowerCase().includes(categorySearch.toLowerCase()))"
-                                    :key="category">
-                                    <button type="button" class="listbox-option capitalize"
-                                        @click="selectedCategory = category; categorySearch = ''; openCategoryDropdown = false"
-                                        :aria-selected="selectedCategory === category">
-                                        <span class="truncate" x-text="category"></span>
-                                        <x-reicon name="check-circle" class="size-3.5"
-                                            x-show="selectedCategory === category" />
+                    <div class="flex shrink-0 items-center gap-2">
+                        <div class="relative" @click.outside="filterOpen = false"
+                            @keydown.escape.window="filterOpen = false">
+                            <button type="button" class="button" @click="filterOpen = !filterOpen">
+                                <x-reicon name="filter" class="size-3.5" />
+                                Filter
+                            </button>
+                            <div x-show="filterOpen" x-cloak x-transition.opacity.duration.120ms
+                                class="listbox-panel right-0 left-auto! min-w-48">
+                                <div
+                                    class="px-2 py-1 text-[10px] font-semibold tracking-wide text-neutral-400 uppercase dark:text-fg-faint">
+                                    Resource type
+                                </div>
+                                <template x-for="option in resourceTypeOptions" :key="option.value">
+                                    <button type="button" class="listbox-option"
+                                        @click="resourceType = option.value; filterOpen = false">
+                                        <span x-text="option.label"></span>
+                                        <x-reicon name="check-circle" class="size-3.5 text-accent"
+                                            x-show="resourceType === option.value" />
                                     </button>
                                 </template>
+                            </div>
+                        </div>
+
+                        <div class="relative w-48" @click.outside="categoryOpen = false"
+                            @keydown.escape.window="categoryOpen = false">
+                            <button type="button" class="listbox-trigger"
+                                :disabled="loading || categories.length === 0"
+                                @click="categoryOpen = !categoryOpen; $nextTick(() => categoryOpen && $refs.categorySearchInput.focus())">
+                                <span class="truncate capitalize"
+                                    x-text="selectedCategory === '' ? 'All categories' : selectedCategory"></span>
+                                <svg class="size-3.5 shrink-0 opacity-60" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="m8 9 4-4 4 4m0 6-4 4-4-4" />
+                                </svg>
+                            </button>
+                            <div x-show="categoryOpen" x-cloak x-transition.opacity.duration.120ms
+                                class="listbox-panel right-0 left-auto! min-w-56">
+                                <div class="border-b border-neutral-200 p-2 dark:border-white/[0.08]">
+                                    <input type="search" x-ref="categorySearchInput" x-model="categorySearch"
+                                        placeholder="Search categories"
+                                        class="h-8! w-full rounded-md! border-neutral-200! bg-neutral-50! px-2.5! py-0! text-[12px]! shadow-none! focus:ring-0! dark:border-white/[0.08]! dark:bg-white/[0.04]! dark:text-fg!"
+                                        @click.stop>
+                                </div>
+                                <div class="max-h-60 overflow-auto p-1">
+                                    <button type="button" class="listbox-option"
+                                        @click="selectedCategory = ''; categorySearch = ''; categoryOpen = false">
+                                        <span>All categories</span>
+                                        <x-reicon name="check-circle" class="size-3.5 text-accent"
+                                            x-show="selectedCategory === ''" />
+                                    </button>
+                                    <template
+                                        x-for="category in categories.filter(category => categorySearch === '' || category.toLowerCase().includes(categorySearch.toLowerCase()))"
+                                        :key="category">
+                                        <button type="button" class="listbox-option capitalize"
+                                            @click="selectedCategory = category; categorySearch = ''; categoryOpen = false">
+                                            <span class="truncate" x-text="category"></span>
+                                            <x-reicon name="check-circle" class="size-3.5 text-accent"
+                                                x-show="selectedCategory === category" />
+                                        </button>
+                                    </template>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -79,7 +92,8 @@
                 <x-loading text="Loading resources..." />
             </div>
             <div x-show="!loading" class="mt-6 flex flex-col gap-6">
-                <section x-show="filteredGitBasedApplications.length > 0 || filteredDockerBasedApplications.length > 0"
+                <section
+                    x-show="(resourceType === 'all' || resourceType === 'applications') && (filteredGitBasedApplications.length > 0 || filteredDockerBasedApplications.length > 0)"
                     class="application-settings-section">
                     <div class="application-settings-section-header">
                         <div class="flex items-center gap-2">
@@ -87,49 +101,83 @@
                             <h2>Applications</h2>
                         </div>
                     </div>
-                    <div class="application-settings-section-body grid grid-cols-1 gap-4 lg:grid-cols-2">
-                        <div x-show="filteredGitBasedApplications.length > 0" class="space-y-2">
-                            <p class="text-[11px] font-medium text-neutral-500 dark:text-fg-faint">Git based</p>
-                            <div class="grid grid-cols-1 justify-start gap-2 text-left">
-                                <template x-for="application in filteredGitBasedApplications" :key="application.name">
-                                    <div x-on:click='setType(application.id)'
-                                        :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }">
-                                        <x-resource-view>
-                                            <x-slot:title><span x-text="application.name"></span></x-slot>
-                                            <x-slot:description>
-                                                <span x-html="window.sanitizeHTML(application.description)"></span>
-                                            </x-slot>
-                                            <x-slot:logo>
-                                                <img class="h-full w-full bg-black/10 object-contain p-2 transition-all duration-200 dark:bg-white/10"
-                                                    :src="application.logo">
-                                            </x-slot:logo>
-                                        </x-resource-view>
+                    <div
+                        class="application-settings-section-body grid grid-cols-1 justify-start gap-3 text-left md:grid-cols-2 xl:grid-cols-3">
+                        <template x-for="application in filteredGitBasedApplications" :key="application.name">
+                            <article
+                                class="flex min-h-48 flex-col rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300 dark:border-white/[0.08] dark:bg-white/[0.025] dark:hover:border-white/[0.14]">
+                                <div class="flex min-w-0 items-start gap-3">
+                                    <div
+                                        class="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50 dark:border-white/[0.08] dark:bg-white/[0.04]">
+                                        <img class="size-8 object-contain" :src="application.logo" alt="" />
                                     </div>
-                                </template>
-                            </div>
-                        </div>
-                        <div x-show="filteredDockerBasedApplications.length > 0" class="space-y-2">
-                            <p class="text-[11px] font-medium text-neutral-500 dark:text-fg-faint">Docker based</p>
-                            <div class="grid grid-cols-1 justify-start gap-2 text-left">
-                                <template x-for="application in filteredDockerBasedApplications" :key="application.name">
-                                    <div x-on:click="setType(application.id)"
-                                        :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }">
-                                        <x-resource-view>
-                                            <x-slot:title><span x-text="application.name"></span></x-slot>
-                                            <x-slot:description><span x-text="application.description"></span></x-slot>
-                                            <x-slot:logo>
-                                                <img class="h-full w-full bg-black/10 object-contain p-2 transition-all duration-200 dark:bg-white/10"
-                                                    :src="application.logo">
-                                            </x-slot:logo>
-                                        </x-resource-view>
+                                    <div class="min-w-0 flex-1">
+                                        <h3 class="truncate text-[13px] font-semibold text-black dark:text-fg"
+                                            x-text="application.name"></h3>
+                                        <p class="mt-0.5 text-[11px] text-neutral-500 dark:text-fg-faint">
+                                            Git source
+                                        </p>
                                     </div>
-                                </template>
-                            </div>
-                        </div>
+                                </div>
+
+                                <p class="mt-3 line-clamp-2 text-[12px] leading-5 text-neutral-600 dark:text-fg-dim"
+                                    x-html="window.sanitizeHTML(application.description)"></p>
+
+                                <div
+                                    class="mt-auto flex items-center gap-1.5 border-t border-neutral-200 pt-3 dark:border-white/[0.07]">
+                                    <a class="button" :href="application.documentation" target="_blank"
+                                        rel="noopener noreferrer">
+                                        Docs
+                                    </a>
+                                    <button type="button"
+                                        class="button ml-auto bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!"
+                                        :disabled="selecting" @click="setType(application.id)">
+                                        Deploy
+                                    </button>
+                                </div>
+                            </article>
+                        </template>
+
+                        <template x-for="application in filteredDockerBasedApplications" :key="application.name">
+                            <article
+                                class="flex min-h-48 flex-col rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300 dark:border-white/[0.08] dark:bg-white/[0.025] dark:hover:border-white/[0.14]">
+                                <div class="flex min-w-0 items-start gap-3">
+                                    <div
+                                        class="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50 dark:border-white/[0.08] dark:bg-white/[0.04]">
+                                        <img class="size-8 object-contain" :src="application.logo" alt="" />
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <h3 class="truncate text-[13px] font-semibold text-black dark:text-fg"
+                                            x-text="application.name"></h3>
+                                        <p class="mt-0.5 text-[11px] text-neutral-500 dark:text-fg-faint">
+                                            Docker source
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <p class="mt-3 line-clamp-2 text-[12px] leading-5 text-neutral-600 dark:text-fg-dim"
+                                    x-text="application.description"></p>
+
+                                <div
+                                    class="mt-auto flex items-center gap-1.5 border-t border-neutral-200 pt-3 dark:border-white/[0.07]">
+                                    <a class="button" :href="application.documentation" target="_blank"
+                                        rel="noopener noreferrer">
+                                        Docs
+                                    </a>
+                                    <button type="button"
+                                        class="button ml-auto bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!"
+                                        :disabled="selecting" @click="setType(application.id)">
+                                        Deploy
+                                    </button>
+                                </div>
+                            </article>
+                        </template>
                     </div>
                 </section>
 
-                <section x-show="filteredDatabases.length > 0" class="application-settings-section">
+                <section
+                    x-show="(resourceType === 'all' || resourceType === 'databases') && filteredDatabases.length > 0"
+                    class="application-settings-section">
                     <div class="application-settings-section-header">
                         <div class="flex items-center gap-2">
                             <x-reicon name="database" class="size-4 text-neutral-400 dark:text-fg-faint" />
@@ -137,25 +185,52 @@
                         </div>
                     </div>
                     <div
-                        class="application-settings-section-body grid grid-cols-1 justify-start gap-2 text-left md:grid-cols-2 xl:grid-cols-3">
+                        class="application-settings-section-body grid grid-cols-1 justify-start gap-3 text-left md:grid-cols-2 xl:grid-cols-3">
                         <template x-for="database in filteredDatabases" :key="database.id">
-                            <div x-on:click="setType(database.id)"
-                                :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }">
-                                <x-resource-view>
-                                    <x-slot:title><span x-text="database.name"></span></x-slot>
-                                    <x-slot:description><span x-text="database.description"></span></x-slot>
-                                    <x-slot:logo>
+                            <article
+                                class="flex min-h-48 flex-col rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300 dark:border-white/[0.08] dark:bg-white/[0.025] dark:hover:border-white/[0.14]">
+                                <div class="flex min-w-0 items-center gap-3">
+                                    <div
+                                        class="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50 dark:border-white/[0.08] dark:bg-white/[0.04]">
                                         <span x-show="database.logo">
-                                            <span x-html="database.logo"></span>
+                                            <span
+                                                class="flex size-8 items-center justify-center [&>div]:h-8! [&>div]:w-8! [&>div]:bg-transparent! [&>div]:p-0! [&>div>svg]:h-8! [&>div>svg]:w-8! [&>svg]:h-8! [&>svg]:w-8! [&>svg]:bg-transparent! [&>svg]:p-0!"
+                                                x-html="database.logo"></span>
                                         </span>
-                                    </x-slot>
-                                </x-resource-view>
-                            </div>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <h3 class="truncate text-[13px] font-semibold text-black dark:text-fg"
+                                            x-text="database.name"></h3>
+                                    </div>
+                                </div>
+
+                                <p class="mt-3 line-clamp-2 text-[12px] leading-5 text-neutral-600 dark:text-fg-dim"
+                                    x-text="database.description"></p>
+
+                                <div
+                                    class="mt-auto flex items-center gap-1.5 border-t border-neutral-200 pt-3 dark:border-white/[0.07]">
+                                    <a :href="databaseDocsUrl(database)" target="_blank" rel="noopener noreferrer"
+                                        class="button">
+                                        Docs
+                                    </a>
+                                    <a :href="databaseWebsiteUrl(database)" target="_blank" rel="noopener noreferrer"
+                                        class="button">
+                                        Website
+                                    </a>
+                                    <button type="button"
+                                        class="button ml-auto bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!"
+                                        :disabled="selecting" @click="setType(database.id)">
+                                        Deploy
+                                    </button>
+                                </div>
+                            </article>
                         </template>
                     </div>
                 </section>
 
-                <section x-show="filteredServices.length > 0" class="application-settings-section">
+                <section
+                    x-show="(resourceType === 'all' || resourceType === 'services') && filteredServices.length > 0"
+                    class="application-settings-section">
                     <div class="application-settings-section-header" x-init="loadResources">
                         <div class="flex items-center gap-2">
                             <x-reicon name="layers" class="size-4 text-neutral-400 dark:text-fg-faint" />
@@ -166,10 +241,6 @@
                                 class="text-[11px] text-neutral-500 dark:text-fg-faint">
                                 Updated <span x-text="serviceTemplatesLastUpdated"></span>
                             </div>
-                            <button type="button" class="button" x-on:click="loadResources">
-                                <x-reicon name="refresh" class="size-3.5" />
-                                Reload
-                            </button>
                         </div>
                     </div>
                     <div class="application-settings-section-body">
@@ -178,89 +249,65 @@
                             does not imply any affiliation or endorsement.
                         </x-callout>
 
-                        <div class="grid grid-cols-1 justify-start gap-2 text-left md:grid-cols-2 xl:grid-cols-3">
+                        <div class="grid grid-cols-1 justify-start gap-3 text-left md:grid-cols-2 xl:grid-cols-3">
                             <template x-for="service in filteredServices" :key="service.name">
-                                <div class="relative" x-on:click="setType('one-click-service-' + service.id)"
-                                    :class="{ 'cursor-pointer': !selecting, 'cursor-not-allowed opacity-50': selecting }">
-                                    <x-resource-view>
-                                        <x-slot:title>
-                                            <template x-if="service.name">
-                                                <div>
-                                                    <span x-text="service.name"></span>
-                                                    <template x-if="service.templateLastUpdated">
-                                                        <div
-                                                            class="mt-1 text-[0.7rem] font-normal text-neutral-500 dark:text-neutral-500">
-                                                            Updated: <span x-text="service.templateLastUpdated"></span>
-                                                        </div>
-                                                    </template>
-                                                </div>
-                                            </template>
-                                        </x-slot>
-                                        <x-slot:description>
-                                            <template x-if="service.slogan">
-                                                <span x-text="service.slogan"></span>
-                                            </template>
-                                        </x-slot>
-                                        <x-slot:logo>
+                                <article
+                                    class="flex min-h-48 flex-col rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300 dark:border-white/[0.08] dark:bg-white/[0.025] dark:hover:border-white/[0.14]">
+                                    <div class="flex min-w-0 items-start gap-3">
+                                        <div
+                                            class="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50 dark:border-white/[0.08] dark:bg-white/[0.04]">
                                             <template x-if="service.logo">
-                                                <img class="h-full w-full bg-black/10 object-contain p-2 transition-all duration-200 dark:bg-white/10"
-                                                    :src='service.logo'
-                                                    x-on:error.window="$event.target.src = service.logo_github_url"
+                                                <img class="h-full w-full object-contain p-2" :src="service.logo"
                                                     onerror="this.onerror=null; this.src=this.getAttribute('data-fallback');"
-                                                    x-on:error="$event.target.src = '/coolify-logo.svg'"
-                                                    :data-fallback='service.logo_github_url' />
+                                                    :data-fallback="service.logo_github_url || '/coolify-logo.svg'" />
                                             </template>
-                                        </x-slot:logo>
-                                    </x-resource-view>
-                                    <template x-if="service.amd_only">
-                                        <div class="group absolute top-2 right-10">
-                                            <span
-                                                class="cursor-pointer rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">
-                                                AMD only
-                                            </span>
-                                            <div class="info-helper-popup right-0 w-sm">
-                                                <div class="p-4">
-                                                    This service only supports AMD64/x86_64 architecture. It will not work
-                                                    on ARM-based servers (e.g., Apple Silicon, Raspberry Pi, AWS Graviton).
-                                                </div>
-                                            </div>
+                                            <template x-if="!service.logo">
+                                                <img class="size-6 object-contain" src="/coolify-logo.svg" alt="" />
+                                            </template>
                                         </div>
-                                    </template>
-                                    <template x-if="service.arm_only">
-                                        <div class="group absolute top-2 right-10">
-                                            <span
-                                                class="cursor-pointer rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">
-                                                ARM only
-                                            </span>
-                                            <div class="info-helper-popup right-0 w-sm">
-                                                <div class="p-4">
-                                                    This service only supports ARM64/aarch64 architecture. It will not work
-                                                    on AMD64/x86_64-based servers.
-                                                </div>
-                                            </div>
+                                        <div class="min-w-0 flex-1">
+                                            <h3 class="truncate text-[13px] font-semibold text-black dark:text-fg"
+                                                x-text="service.name"></h3>
+                                            <p class="mt-0.5 truncate text-[11px] text-neutral-500 dark:text-fg-faint">
+                                                <span x-show="service.templateLastUpdated">Updated </span>
+                                                <span x-text="service.templateLastUpdated || 'Template ready'"></span>
+                                            </p>
                                         </div>
-                                    </template>
-                                    <template x-if="shouldShowDocIcon(service)">
+                                        <span x-show="service.amd_only || service.arm_only"
+                                            class="shrink-0 rounded-md border border-amber-300/50 bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:border-warning/20 dark:bg-warning/10 dark:text-warning"
+                                            x-text="service.arm_only ? 'ARM only' : 'AMD only'"></span>
+                                    </div>
+
+                                    <p class="mt-3 line-clamp-2 text-[12px] leading-5 text-neutral-600 dark:text-fg-dim"
+                                        x-text="service.slogan || service.description || 'Deploy this service with a ready-to-use Coolify template.'">
+                                    </p>
+
+                                    <div
+                                        class="mt-auto flex items-center gap-1.5 border-t border-neutral-200 pt-3 dark:border-white/[0.07]">
                                         <a :href="getDocLink(service) || coolifyDocsUrl(service)" target="_blank"
-                                            @click.stop @mouseenter="resolveDocLink(service)"
-                                            class="absolute top-2 right-2 rounded p-1.5 transition-colors hover:bg-neutral-200 dark:hover:bg-coolgray-300"
-                                            :class="{ 'opacity-50': docCheckInProgress[service.name] }"
-                                            title="View documentation">
-                                            <svg class="h-4 w-4 text-neutral-600 dark:text-neutral-400" fill="none"
-                                                stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                            </svg>
+                                            rel="noopener noreferrer" @mouseenter="resolveDocLink(service)"
+                                            class="button" :class="{ 'opacity-60': docCheckInProgress[service.name] }">
+                                            Docs
                                         </a>
-                                    </template>
-                                </div>
+                                        <a x-show="serviceWebsiteUrl(service)" :href="serviceWebsiteUrl(service)"
+                                            target="_blank" rel="noopener noreferrer" class="button">
+                                            Website
+                                        </a>
+                                        <button type="button"
+                                            class="button ml-auto bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!"
+                                            :disabled="selecting"
+                                            @click="setType('one-click-service-' + service.id)">
+                                            Deploy
+                                        </button>
+                                    </div>
+                                </article>
                             </template>
                         </div>
                     </div>
                 </section>
-                <div
-                    x-show="filteredGitBasedApplications.length === 0 && filteredDockerBasedApplications.length === 0 && filteredDatabases.length === 0 && filteredServices.length === 0 && loading === false">
-                    <div>No resources found.</div>
+                <div x-show="visibleResourceCount === 0 && loading === false"
+                    class="rounded-xl border border-dashed border-neutral-300 px-6 py-12 text-center text-[13px] text-neutral-500 dark:border-white/[0.1] dark:text-fg-dim">
+                    No resources found.
                 </div>
             </div>
             <script>
@@ -271,6 +318,27 @@
                 function searchResources() {
                     return {
                         search: '',
+                        resourceType: 'all',
+                        resourceTypeOptions: [{
+                                value: 'all',
+                                label: 'All resources'
+                            },
+                            {
+                                value: 'applications',
+                                label: 'Applications'
+                            },
+                            {
+                                value: 'databases',
+                                label: 'Databases'
+                            },
+                            {
+                                value: 'services',
+                                label: 'Services'
+                            }
+                        ],
+                        filterOpen: false,
+                        categoryOpen: false,
+                        categorySearch: '',
                         selectedCategory: '',
                         categories: [],
                         loading: false,
@@ -281,6 +349,40 @@
                         gitBasedApplications: [],
                         dockerBasedApplications: [],
                         databases: [],
+                        databaseLinks: {
+                            postgresql: {
+                                docs: 'https://www.postgresql.org/docs/',
+                                website: 'https://www.postgresql.org/'
+                            },
+                            mysql: {
+                                docs: 'https://dev.mysql.com/doc/',
+                                website: 'https://www.mysql.com/'
+                            },
+                            mariadb: {
+                                docs: 'https://mariadb.com/kb/en/documentation/',
+                                website: 'https://mariadb.org/'
+                            },
+                            redis: {
+                                docs: 'https://redis.io/docs/latest/',
+                                website: 'https://redis.io/'
+                            },
+                            keydb: {
+                                docs: 'https://docs.keydb.dev/',
+                                website: 'https://keydb.dev/'
+                            },
+                            dragonfly: {
+                                docs: 'https://www.dragonflydb.io/docs',
+                                website: 'https://www.dragonflydb.io/'
+                            },
+                            mongodb: {
+                                docs: 'https://www.mongodb.com/docs/',
+                                website: 'https://www.mongodb.com/'
+                            },
+                            clickhouse: {
+                                docs: 'https://clickhouse.com/docs',
+                                website: 'https://clickhouse.com/'
+                            }
+                        },
                         docLinkCache: {}, // Cache resolved doc URLs: { serviceName: url | null }
                         docCheckInProgress: {}, // Track ongoing checks: { serviceName: boolean }
                         setType(type) {
@@ -300,7 +402,7 @@
                             } = await this.$wire.loadServices();
                             this.services = services;
                             this.serviceTemplatesLastUpdated = serviceTemplatesLastUpdated;
-                            this.categories = categories || [];
+                            this.categories = categories;
                             this.gitBasedApplications = gitBasedApplications;
                             this.dockerBasedApplications = dockerBasedApplications;
                             this.databases = databases;
@@ -321,6 +423,22 @@
                         },
                         officialDocsUrl(service) {
                             return service.documentation || null;
+                        },
+                        databaseDocsUrl(database) {
+                            return this.databaseLinks[database.id]?.docs;
+                        },
+                        databaseWebsiteUrl(database) {
+                            return this.databaseLinks[database.id]?.website;
+                        },
+                        serviceWebsiteUrl(service) {
+                            const source = service.website || service.homepage || service.documentation;
+                            if (!source) return null;
+
+                            try {
+                                return new URL(source).origin;
+                            } catch (error) {
+                                return null;
+                            }
                         },
                         async checkUrlExists(url) {
                             if (!url) return false;
@@ -388,21 +506,6 @@
                             const searchLower = this.search.trim().toLowerCase();
                             let filtered = Object.values(items);
 
-                            // Filter by category if selected
-                            if (this.selectedCategory !== '') {
-                                const selectedCategoryLower = this.selectedCategory.toLowerCase();
-                                filtered = filtered.filter(item => {
-                                    if (!item.category) return false;
-                                    // Handle comma-separated categories
-                                    const categories = item.category.includes(',') ?
-                                        item.category.split(',').map(c => c.trim().toLowerCase()) : [item.category
-                                            .toLowerCase()
-                                        ];
-                                    return categories.includes(selectedCategoryLower);
-                                });
-                            }
-
-                            // Filter by search term
                             if (searchLower !== '') {
                                 filtered = filtered.filter(item => {
                                     return (item.name?.toLowerCase().includes(searchLower) ||
@@ -441,9 +544,38 @@
                             if (this.services.length === 0) {
                                 return [];
                             }
-                            return [
+                            const services = [
                                 this.services,
                             ].flatMap((items) => this.filterAndSort(items, true));
+
+                            if (this.selectedCategory === '') {
+                                return services;
+                            }
+
+                            const selectedCategory = this.selectedCategory.toLowerCase();
+
+                            return services.filter((service) => String(service.category ?? '')
+                                .split(',')
+                                .map((category) => category.trim().toLowerCase())
+                                .includes(selectedCategory));
+                        },
+                        get visibleResourceCount() {
+                            const applicationCount = this.filteredGitBasedApplications.length +
+                                this.filteredDockerBasedApplications.length;
+
+                            if (this.resourceType === 'applications') {
+                                return applicationCount;
+                            }
+
+                            if (this.resourceType === 'databases') {
+                                return this.filteredDatabases.length;
+                            }
+
+                            if (this.resourceType === 'services') {
+                                return this.filteredServices.length;
+                            }
+
+                            return applicationCount + this.filteredDatabases.length + this.filteredServices.length;
                         }
                     }
                 }

@@ -12,6 +12,10 @@ class AdminView extends Component
 
     public string $search = '';
 
+    public string $teamFilter = 'all';
+
+    public string $sort = 'name_asc';
+
     public function mount()
     {
         if (! isInstanceAdmin()) {
@@ -25,6 +29,16 @@ class AdminView extends Component
             return;
         }
 
+        $this->resetPage();
+    }
+
+    public function updatedTeamFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedSort(): void
+    {
         $this->resetPage();
     }
 
@@ -69,6 +83,7 @@ class AdminView extends Component
     public function render()
     {
         $search = trim($this->search);
+        $teamId = currentTeam()->id;
         $users = User::query()
             ->where('id', '!=', auth()->id())
             ->when($search !== '', function ($query) use ($search): void {
@@ -77,8 +92,17 @@ class AdminView extends Component
                         ->orWhere('email', 'like', "%{$search}%");
                 });
             })
-            ->orderBy('name')
-            ->orderBy('email')
+            ->when($this->teamFilter === 'current', function ($query) use ($teamId): void {
+                $query->whereHas('teams', fn ($teamQuery) => $teamQuery->where('teams.id', $teamId));
+            })
+            ->when($this->teamFilter === 'outside', function ($query) use ($teamId): void {
+                $query->whereDoesntHave('teams', fn ($teamQuery) => $teamQuery->where('teams.id', $teamId));
+            })
+            ->when($this->sort === 'name_desc', fn ($query) => $query->orderByDesc('name'))
+            ->when($this->sort === 'email_asc', fn ($query) => $query->orderBy('email'))
+            ->when($this->sort === 'email_desc', fn ($query) => $query->orderByDesc('email'))
+            ->when($this->sort === 'name_asc', fn ($query) => $query->orderBy('name'))
+            ->orderBy('id')
             ->paginate(10);
 
         return view('livewire.team.admin-view', [

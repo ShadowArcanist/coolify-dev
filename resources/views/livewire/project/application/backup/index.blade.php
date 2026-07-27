@@ -1,14 +1,33 @@
 <div x-data="{
     search: @js($search),
+    typeFilter: 'all',
+    sortBy: 'target_asc',
     backups: @js($backups->map(fn ($backup) => [
+        'id' => (string) $backup->id,
         'name' => strtolower($backup->targetName()),
         'type' => strtolower($backup->targetType()),
         'frequency' => strtolower($backup->frequency),
+        'createdAt' => $backup->created_at?->timestamp ?? 0,
     ])->values()),
-    hasMatches() {
+    get filteredBackups() {
         const query = this.search.toLowerCase();
-
-        return this.backups.some((backup) => backup.name.includes(query) || backup.type.includes(query) || backup.frequency.includes(query));
+        const filtered = this.backups.filter((backup) => {
+            const matchesSearch = !query || backup.name.includes(query) || backup.type.includes(query) || backup.frequency.includes(query);
+            const matchesType = this.typeFilter === 'all' || backup.type === this.typeFilter;
+            return matchesSearch && matchesType;
+        });
+        return filtered.sort((left, right) => {
+            if (this.sortBy === 'target_desc') return right.name.localeCompare(left.name);
+            if (this.sortBy === 'newest') return right.createdAt - left.createdAt;
+            if (this.sortBy === 'oldest') return left.createdAt - right.createdAt;
+            return left.name.localeCompare(right.name);
+        });
+    },
+    isVisible(id) {
+        return this.filteredBackups.some((backup) => backup.id === String(id));
+    },
+    backupOrder(id) {
+        return this.filteredBackups.findIndex((backup) => backup.id === String(id));
     },
 }">
     <x-slot:title>
@@ -58,7 +77,7 @@
             </div>
         </x-application.settings-section>
 
-        <div class="flex flex-wrap items-center gap-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
             <div class="relative min-w-0 max-w-md flex-1">
                 <input type="search" x-model="search" placeholder="Search backups" aria-label="Search backups"
                     class="input w-full pl-8!" />
@@ -66,16 +85,36 @@
                     <x-reicon name="search" class="size-3.5 text-neutral-400 dark:text-fg-faint" />
                 </div>
             </div>
+            <div class="flex items-center gap-2">
+                <div class="w-40">
+                    <x-forms.listbox id="backup-type-filter" :wire="false" x-model="typeFilter"
+                        :value="'all'" :options="collect([['value' => 'all', 'label' => 'All targets']])->merge(
+                            $backups->map(fn ($backup) => [
+                                'value' => strtolower($backup->targetType()),
+                                'label' => $backup->targetType(),
+                            ])->unique('value')->values()
+                        )->all()" />
+                </div>
+                <div class="w-40">
+                    <x-forms.listbox id="backup-sort" :wire="false" x-model="sortBy"
+                        :value="'target_asc'" :options="[
+                            ['value' => 'target_asc', 'label' => 'Target A–Z'],
+                            ['value' => 'target_desc', 'label' => 'Target Z–A'],
+                            ['value' => 'newest', 'label' => 'Newest first'],
+                            ['value' => 'oldest', 'label' => 'Oldest first'],
+                        ]" />
+                </div>
+            </div>
         </div>
 
         <div class="application-settings-section-body is-flush w-full">
-            <div x-cloak x-show="search !== '' && backups.length > 0 && !hasMatches()">
+            <div x-cloak x-show="backups.length > 0 && filteredBackups.length === 0">
                 <x-empty size="sm" title="No backups found"
                     description="No scheduled backups match your search." />
             </div>
 
             @if ($backups->isNotEmpty())
-                <div class="data-table w-full" x-show="search === '' || hasMatches()">
+                <div class="data-table flex w-full flex-col" x-show="filteredBackups.length > 0">
                     <div class="data-table-header backup-table-grid">
                         <span>Target</span>
                         <span>Type</span>
@@ -104,7 +143,8 @@
                             };
                         @endphp
                         <a wire:key="volume-backup-{{ $backup->uuid }}"
-                            x-show="search === '' || @js(strtolower($backup->targetName())).includes(search.toLowerCase()) || @js(strtolower($backup->targetType())).includes(search.toLowerCase()) || @js(strtolower($backup->frequency)).includes(search.toLowerCase())"
+                            x-show="isVisible(@js((string) $backup->id))"
+                            x-bind:style="{ order: backupOrder(@js((string) $backup->id)) }"
                             href="{{ route('project.application.backup.show', [...$parameters, 'backup_uuid' => $backup->uuid]) }}"
                             {{ wireNavigate() }}
                             class="data-table-row backup-table-grid text-[13px] text-neutral-700 dark:text-fg-dim">

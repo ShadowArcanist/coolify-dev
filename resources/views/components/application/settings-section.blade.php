@@ -28,13 +28,6 @@
         @endisset
     </header>
     <div class="application-settings-section-body {{ $flush ? 'is-flush' : '' }}">
-        @if ($description)
-            <p @class([
-                'text-sm leading-6 text-neutral-500 dark:text-fg-dim',
-                'mb-4' => ! $flush,
-                'border-b border-neutral-200 px-4 py-3 dark:border-white/[0.08]' => $flush,
-            ])>{{ $description }}</p>
-        @endif
         {{ $slot }}
     </div>
 </section>

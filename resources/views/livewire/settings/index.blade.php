@@ -9,7 +9,7 @@
         class="application-settings-workspace mx-auto grid w-full max-w-[1180px] min-w-0 gap-8 xl:grid-cols-[210px_minmax(0,1fr)] xl:gap-10">
         <x-settings.sidebar activeMenu="general" />
 
-        <form wire:submit="submit" class="application-settings-form w-full min-w-0">
+        <form wire:submit="submit" class="application-settings-form flex w-full min-w-0 flex-col gap-6">
             <x-unsaved-bar action="submit" />
             <x-application.settings-section title="General">
                 <div class="grid gap-4 lg:grid-cols-2">
@@ -66,7 +66,11 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </x-application.settings-section>
 
+            <x-application.settings-section title="Network addresses">
+                <div class="grid gap-4 lg:grid-cols-2">
                     <x-forms.input canGate="update" :canResource="$settings" id="public_ipv4" type="password"
                         label="Instance public IPv4"
                         helper="Set this when Coolify cannot detect the correct public IPv4 address."
@@ -75,17 +79,17 @@
                         label="Instance public IPv6"
                         helper="Set this when Coolify cannot detect the correct public IPv6 address."
                         placeholder="2001:db8::1" autocomplete="new-password" />
-
-                    @if (isDev())
-                        <div class="lg:col-span-2">
-                            <x-forms.input canGate="update" :canResource="$settings" id="dev_helper_version"
-                                label="Dev helper version"
-                                helper="Override the default coolify-helper image version. Leave empty to use {{ config('constants.coolify.helper_version') }}."
-                                placeholder="{{ config('constants.coolify.helper_version') }}" />
-                        </div>
-                    @endif
                 </div>
             </x-application.settings-section>
+
+            @if (isDev())
+                <x-application.settings-section title="Development helper">
+                    <x-forms.input canGate="update" :canResource="$settings" id="dev_helper_version"
+                        label="Version override"
+                        helper="Override the default coolify-helper image version. Leave empty to use {{ config('constants.coolify.helper_version') }}."
+                        placeholder="{{ config('constants.coolify.helper_version') }}" />
+                </x-application.settings-section>
+            @endif
         </form>
     </div>
 

@@ -3,10 +3,9 @@
         Sources | Coolify
     </x-slot>
 
-    <div class="mb-4 flex items-center justify-between gap-4">
-        <div class="text-[11px] text-neutral-500 dark:text-fg-faint">
-            {{ $sources->count() }} {{ Str::plural('Git source', $sources->count()) }} connected to your team
-        </div>
+    <div class="application-settings-form w-full">
+    <header class="mb-5 flex items-center justify-between gap-4">
+        <h1 class="text-[24px]! leading-7! font-semibold! tracking-tight!">Sources</h1>
         <div class="shrink-0">
             @can('createAnyResource')
                 <x-modal-input title="New GitHub App" :closeOutside="false">
@@ -21,7 +20,11 @@
                 </x-modal-input>
             @endcan
         </div>
-    </div>
+    </header>
+
+    <p class="mb-4 text-[11px] text-neutral-500 dark:text-fg-faint">
+        {{ $sources->count() }} {{ Str::plural('Git source', $sources->count()) }} connected to your team
+    </p>
 
     @if ($sources->isEmpty())
         <div
@@ -69,4 +72,5 @@
             @endforeach
         </div>
     @endif
+    </div>
 </x-layout>

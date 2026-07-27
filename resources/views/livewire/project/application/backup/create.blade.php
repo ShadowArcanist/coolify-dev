@@ -11,7 +11,7 @@
             <x-forms.listbox id="targetKey" label="Backup target" required :options="$targets->map(fn ($target) => [
                 'value' => $target['key'],
                 'label' => $target['type'] . ': ' . $target['name'],
-            ])->all()" x-bind:disabled="@js($targetLocked)" />
+            ])->all()" x-bind:disabled="{{ $targetLocked ? 'true' : 'false' }}" />
             <x-forms.input id="frequency" placeholder="daily or 0 0 * * *"
                 helper="Use every_minute, hourly, daily, weekly, monthly, yearly, or a cron expression."
                 label="Frequency" required />

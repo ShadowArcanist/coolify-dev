@@ -19,11 +19,19 @@
                 </x-slot:actions>
 
                 <div class="grid gap-4 lg:grid-cols-2">
-                    <x-forms.checkbox canGate="update" :canResource="$settings"
-                        instantSave="instantSaveDiscordEnabled" id="discordEnabled" label="Enabled" />
-                    <x-forms.checkbox canGate="update" :canResource="$settings"
-                        instantSave="instantSaveDiscordPingEnabled" id="discordPingEnabled"
-                        helper="Mention @here when a critical event occurs." label="Ping channel" />
+                    <x-forms.listbox id="discordEnabled" label="Discord delivery"
+                        onChange="instantSaveDiscordEnabled"
+                        :disabled="!auth()->user()->can('update', $settings)" :options="[
+                            ['value' => true, 'label' => 'Enabled'],
+                            ['value' => false, 'label' => 'Disabled'],
+                        ]" />
+                    <x-forms.listbox id="discordPingEnabled" label="Critical event mention"
+                        helper="Mention @here when a critical event occurs."
+                        onChange="instantSaveDiscordPingEnabled"
+                        :disabled="!auth()->user()->can('update', $settings)" :options="[
+                            ['value' => true, 'label' => 'Mention @here'],
+                            ['value' => false, 'label' => 'Do not mention'],
+                        ]" />
                     <div class="lg:col-span-2">
                         @can('update', $settings)
                             <x-forms.input type="password" required id="discordWebhookUrl" label="Webhook URL"

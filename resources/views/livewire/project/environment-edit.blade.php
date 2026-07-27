@@ -11,6 +11,13 @@
                         <h2>Environment details</h2>
                         <p>Name and describe this environment inside {{ $project->name }}.</p>
                     </div>
+                    @can('createAnyResource')
+                        <a class="button" {{ wireNavigate() }}
+                            href="{{ route('project.clone-me', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid]) }}">
+                            <x-reicon name="layers" class="size-3.5 opacity-70" />
+                            Clone environment
+                        </a>
+                    @endcan
                 </div>
                 <div class="application-settings-section-body grid gap-4 sm:grid-cols-2">
                     <x-forms.input label="Name" id="name" canGate="update" :canResource="$environment" />

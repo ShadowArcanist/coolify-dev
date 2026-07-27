@@ -5,29 +5,26 @@
 
     <livewire:server.navbar :server="$server" />
 
-    <div class="application-settings-form w-full max-w-[1180px]">
+    <div class="application-settings-form w-full">
         <x-application.settings-section id="server-resources-section" title="Resources"
             helper="Review Coolify-managed resources and other Docker containers running on this server."
             flush>
             <x-slot:actions>
+                <div class="inline-flex w-fit rounded-[10px] bg-neutral-100 p-1 dark:bg-white/[0.05]">
+                    <button type="button" wire:click="loadManagedContainers"
+                        class="rounded-md px-3 py-1 text-xs font-medium transition-colors {{ $activeTab === 'managed' ? 'bg-white text-neutral-950 shadow-sm dark:bg-warning/15 dark:text-warning' : 'text-neutral-500 hover:text-neutral-900 dark:text-fg-dim dark:hover:text-fg' }}">
+                        Managed
+                    </button>
+                    <button type="button" wire:click="loadUnmanagedContainers"
+                        class="rounded-md px-3 py-1 text-xs font-medium transition-colors {{ $activeTab === 'unmanaged' ? 'bg-white text-neutral-950 shadow-sm dark:bg-warning/15 dark:text-warning' : 'text-neutral-500 hover:text-neutral-900 dark:text-fg-dim dark:hover:text-fg' }}">
+                        Unmanaged
+                    </button>
+                </div>
                 <x-forms.button wire:click="refreshStatus">
                     <x-reicon name="refresh" class="size-3.5" />
                     Refresh
                 </x-forms.button>
             </x-slot:actions>
-
-            <div class="border-b border-neutral-200 px-4 py-3 dark:border-white/[0.08]">
-                <div class="inline-flex w-fit rounded-[10px] bg-neutral-100 p-1 dark:bg-white/[0.05]">
-                    <button type="button" wire:click="loadManagedContainers"
-                        class="rounded-md px-4 py-1.5 text-xs font-medium transition-colors {{ $activeTab === 'managed' ? 'bg-white text-neutral-950 shadow-sm dark:bg-warning/15 dark:text-warning' : 'text-neutral-500 hover:text-neutral-900 dark:text-fg-dim dark:hover:text-fg' }}">
-                        Managed
-                    </button>
-                    <button type="button" wire:click="loadUnmanagedContainers"
-                        class="rounded-md px-4 py-1.5 text-xs font-medium transition-colors {{ $activeTab === 'unmanaged' ? 'bg-white text-neutral-950 shadow-sm dark:bg-warning/15 dark:text-warning' : 'text-neutral-500 hover:text-neutral-900 dark:text-fg-dim dark:hover:text-fg' }}">
-                        Unmanaged
-                    </button>
-                </div>
-            </div>
 
             @if ($activeTab === 'managed')
                 @php($managedResources = $server->definedResources()->sortBy('name', SORT_NATURAL))
@@ -45,10 +42,9 @@
                             <div
                                 class="data-table-row server-resources-managed-table-grid border-b border-neutral-200 last:border-b-0 dark:border-white/[0.08]">
                                 <div class="min-w-0">
-                                    <a class="inline-flex max-w-full items-center gap-1 truncate text-[12px] font-medium text-neutral-950 hover:underline dark:text-fg"
+                                    <a class="block max-w-full truncate text-[12px] font-medium text-neutral-950 hover:underline dark:text-fg"
                                         {{ wireNavigate() }} href="{{ $resource->link() }}">
-                                        <span class="truncate">{{ $resource->name }}</span>
-                                        <x-internal-link />
+                                        {{ $resource->name }}
                                     </a>
                                 </div>
                                 <div class="truncate text-[11px] text-neutral-600 dark:text-fg-dim">

@@ -88,10 +88,40 @@
         <div data-testid="server-topbar-context"
             class="flex min-w-0 items-center gap-1 text-[13px]">
             <span class="shrink-0 px-0.5 text-neutral-300 dark:text-fg-faint">/</span>
-            <span class="flex min-w-0 shrink items-center gap-2 px-1">
-                <span class="max-w-48 min-w-0 truncate font-semibold text-black dark:text-fg xl:max-w-64">
-                    {{ $server->name }}
-                </span>
+            <span class="relative flex min-w-0 shrink items-center gap-2 px-1"
+                x-data="{ open: false, search: '', servers: @js($serverSwitcherOptions) }"
+                @click.outside="open = false" @keydown.escape.window="open = false">
+                <button type="button"
+                    class="flex h-8 max-w-56 min-w-0 items-center gap-1.5 rounded-md px-2 transition-colors hover:bg-neutral-100 dark:hover:bg-white/[0.05] xl:max-w-72"
+                    @click="open = !open" :aria-expanded="open" aria-label="Switch server">
+                    <span class="min-w-0 truncate font-semibold text-black dark:text-fg">
+                        {{ $server->name }}
+                    </span>
+                    <x-reicon name="chevron-down" class="size-3 shrink-0 text-neutral-400 dark:text-fg-faint" />
+                </button>
+                <div x-cloak x-show="open" x-transition.origin.top.left
+                    class="listbox-panel top-9! left-1! z-[90]! w-64! min-w-0!">
+                    <div class="border-b border-neutral-200 p-1.5 dark:border-white/[0.08]">
+                        <div class="relative">
+                            <x-reicon name="search"
+                                class="pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2 text-neutral-400 dark:text-fg-faint" />
+                            <input type="search" x-model.debounce.100ms="search" placeholder="Filter servers…"
+                                class="h-7! w-full rounded-md! py-0! pr-2! pl-7! text-[11px]!">
+                        </div>
+                    </div>
+                    <template x-for="option in servers.filter((item) => item.name.toLowerCase().includes(search.toLowerCase()))"
+                        :key="option.uuid">
+                        <a :href="option.href" {{ wireNavigate() }} @click="open = false"
+                            class="listbox-option gap-2.5!">
+                            <span class="size-1.5 shrink-0 rounded-full"
+                                :class="option.functional ? 'bg-success' : 'bg-error'"></span>
+                            <span class="min-w-0 flex-1 truncate" x-text="option.name"></span>
+                            <x-reicon name="check"
+                                class="size-3.5 shrink-0 text-coollabs dark:text-warning"
+                                x-show="option.uuid === '{{ $server->uuid }}'" />
+                        </a>
+                    </template>
+                </div>
                 <x-status-badge :status="$server->isFunctional() ? 'Ready' : 'Validation required'"
                     :type="$server->isFunctional() ? 'success' : 'warning'" />
             </span>

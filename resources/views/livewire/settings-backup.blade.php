@@ -5,8 +5,7 @@
 
     <x-settings.navbar />
 
-    <div class="application-settings-form mx-auto flex w-full max-w-[930px] flex-col gap-6">
-        <h1 class="text-[24px]! leading-7! font-semibold! tracking-tight!">Instance backup</h1>
+    <div class="application-settings-form flex w-full min-w-0 flex-col gap-6">
         @if ($server->isFunctional())
             @if (isset($database) && isset($backup))
                 <form wire:submit="submit">

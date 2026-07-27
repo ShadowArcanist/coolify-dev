@@ -17,12 +17,6 @@
 
             <div class="flex flex-wrap items-center gap-2">
                 @can('update', $project)
-                    <a class="button" {{ wireNavigate() }}
-                        href="{{ route('project.edit', ['project_uuid' => $project->uuid]) }}">
-                        <x-reicon name="settings" class="size-3.5 opacity-70" />
-                        Settings
-                    </a>
-
                     <x-modal-input title="New Environment">
                         <x-slot:content>
                             <button type="button"

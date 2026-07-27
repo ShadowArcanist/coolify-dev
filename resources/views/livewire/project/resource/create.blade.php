@@ -2,10 +2,6 @@
     <x-slot:title>
         {{ data_get_str($project, 'name')->limit(10) }} > New | Coolify
     </x-slot>
-    @php
-        $environment = $project->environments->firstWhere('uuid', request()->route('environment_uuid'));
-    @endphp
-    <x-project.navbar :project="$project" :environment="$environment" />
     @if ($type === 'public')
         <livewire:project.new.public-git-repository :type="$type" />
     @elseif ($type === 'private-gh-app')

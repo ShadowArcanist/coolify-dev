@@ -35,35 +35,41 @@
     ];
 @endphp
 
-<x-application.settings-section title="Notification events"
-    description="Choose the events that should be delivered through {{ $channel }}.">
-    <div class="grid gap-3 lg:grid-cols-2">
+<x-application.settings-section title="Notification events">
+    <div class="grid gap-4 lg:grid-cols-2">
         @foreach ($eventGroups as $group => $events)
-            <div
-                class="rounded-lg border border-neutral-200 bg-neutral-50/70 p-3 dark:border-white/[0.08] dark:bg-white/[0.025]">
-                <h4 class="mb-3 text-[12px] font-semibold text-black dark:text-fg">{{ $group }}</h4>
-                <div class="flex flex-col gap-3">
-                    @foreach ($events as $event)
-                        @php
-                            $notificationModel = $event['key'] . Str::studly($channel) . 'Notifications';
-                            $threadModel = Str::camel(
-                                Str::studly($channel) . 'Notifications' . Str::studly($event['key']) . 'ThreadId',
-                            );
-                        @endphp
-                        <div @class([
-                            'grid items-end gap-3',
-                            'sm:grid-cols-[minmax(0,1fr)_minmax(180px,0.75fr)]' => $threaded,
-                        ])>
-                            <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel"
-                                :id="$notificationModel" :label="$event['label']"
-                                :helper="$event['helper'] ?? null" />
-                            @if ($threaded)
-                                <x-forms.input canGate="update" :canResource="$settings" type="password"
-                                    :id="$threadModel" label="Thread ID" placeholder="Optional" />
-                            @endif
-                        </div>
-                    @endforeach
-                </div>
+            @php
+                $multiselectEvents = collect($events)
+                    ->map(fn ($event) => [
+                        'property' => $event['key'] . Str::studly($channel) . 'Notifications',
+                        'label' => $event['label'],
+                        'enabled' => (bool) data_get(
+                            $settings,
+                            Str::snake($event['key'] . '_' . $channel . '_notifications'),
+                        ),
+                    ])
+                    ->all();
+                $groupId = Str::slug($channel . '-' . $group . '-events');
+            @endphp
+            <div class="min-w-0">
+                <x-notification.event-multiselect :settings="$settings" :id="$groupId"
+                    :label="$group" :events="$multiselectEvents" />
+
+                @if ($threaded)
+                    <div
+                        class="mt-3 grid gap-3 border-l border-neutral-200 pl-3 sm:grid-cols-2 dark:border-white/[0.08]">
+                        @foreach ($events as $event)
+                            @php
+                                $threadModel = Str::camel(
+                                    Str::studly($channel) . 'Notifications' . Str::studly($event['key']) . 'ThreadId',
+                                );
+                            @endphp
+                            <x-forms.input wire:key="{{ $channel }}-thread-{{ $event['key'] }}"
+                                canGate="update" :canResource="$settings" type="password" :id="$threadModel"
+                                label="{{ $event['label'] }} thread ID" placeholder="Optional" />
+                        @endforeach
+                    </div>
+                @endif
             </div>
         @endforeach
     </div>

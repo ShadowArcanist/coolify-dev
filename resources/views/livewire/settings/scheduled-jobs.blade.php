@@ -12,7 +12,7 @@
         </x-slot:actions>
     </x-settings.navbar>
 
-    <div class="application-settings-form mx-auto w-full max-w-[930px]" x-data="{
+    <div class="application-settings-form w-full min-w-0" x-data="{
         activeTab: ['executions', 'scheduler-runs', 'skipped-jobs'].includes(location.hash.slice(1))
             ? location.hash.slice(1)
             : 'executions',
@@ -26,10 +26,9 @@
         <h1 class="mb-5 text-[24px]! leading-7! font-semibold! tracking-tight!">Scheduled jobs</h1>
 
         <x-application.settings-section title="Scheduler activity" flush>
-            <div
-                class="flex flex-col gap-3 border-b border-neutral-200 p-3 dark:border-white/[0.08]">
+            <x-slot:actions>
                 <div
-                    class="flex w-fit items-center gap-0.5 rounded-[10px] border border-neutral-200 bg-neutral-100 p-1 dark:border-white/[0.07] dark:bg-white/[0.035]">
+                    class="flex items-center gap-0.5 rounded-[10px] border border-neutral-200 bg-neutral-100 p-1 dark:border-white/[0.07] dark:bg-white/[0.035]">
                     <button type="button" class="app-tab"
                         :class="activeTab === 'executions' &&
                             'bg-coollabs/10 text-coollabs ring-1 ring-coollabs/25 dark:bg-warning/15 dark:text-warning dark:ring-warning/25'"
@@ -49,7 +48,9 @@
                         Skipped <span class="ml-1 opacity-60">{{ $skipTotalCount }}</span>
                     </button>
                 </div>
-
+            </x-slot:actions>
+            <div
+                class="flex flex-col gap-3 border-b border-neutral-200 p-3 dark:border-white/[0.08]">
                 <div x-show="activeTab === 'executions'"
                     class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div class="relative w-full sm:max-w-sm">

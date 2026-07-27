@@ -1,10 +1,11 @@
-<div>
+<div class="application-settings-form w-full">
     <x-slot:title>
         Projects | Coolify
     </x-slot>
 
     <div x-data="projectsIndex()" class="w-full">
-        <div class="mb-4 flex justify-end">
+        <header class="mb-5 flex items-center justify-between gap-4">
+            <h1 class="text-[24px]! leading-7! font-semibold! tracking-tight!">Projects</h1>
             @can('createAnyResource')
                 <x-modal-input title="New Project">
                     <x-slot:content>
@@ -17,7 +18,7 @@
                     <livewire:project.add-empty />
                 </x-modal-input>
             @endcan
-        </div>
+        </header>
 
         @if ($projects->isEmpty())
             <div

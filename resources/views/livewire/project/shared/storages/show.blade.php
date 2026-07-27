@@ -66,9 +66,12 @@
             @if (!$isService)
                 @can('update', $resource)
                     <div class="w-full sm:w-96">
-                        <x-forms.checkbox instantSave canGate="update" :canResource="$resource" label="Add suffix for PR deployments"
-                            id="isPreviewSuffixEnabled"
-                            helper="When enabled, a -pr-N suffix is added to this volume's name for preview deployments (e.g. myvolume becomes myvolume-pr-1). Disable this for volumes that should be shared between the main and preview deployments."></x-forms.checkbox>
+                        <x-forms.listbox id="isPreviewSuffixEnabled" label="PR deployment suffix"
+                            helper="Choose whether preview deployments receive an isolated -pr-N volume suffix."
+                            onChange="instantSave" :options="[
+                                ['value' => true, 'label' => 'Add suffix'],
+                                ['value' => false, 'label' => 'Share volume'],
+                            ]" />
                     </div>
                 @endcan
             @endif
@@ -115,9 +118,12 @@
                 @endif
                 @if (!$isService)
                     <div class="w-full sm:w-96">
-                        <x-forms.checkbox instantSave canGate="update" :canResource="$resource" label="Add suffix for PR deployments"
-                            id="isPreviewSuffixEnabled"
-                            helper="When enabled, a -pr-N suffix is added to this volume's name for preview deployments (e.g. myvolume becomes myvolume-pr-1). Disable this for volumes that should be shared between the main and preview deployments."></x-forms.checkbox>
+                        <x-forms.listbox id="isPreviewSuffixEnabled" label="PR deployment suffix"
+                            helper="Choose whether preview deployments receive an isolated -pr-N volume suffix."
+                            onChange="instantSave" :options="[
+                                ['value' => true, 'label' => 'Add suffix'],
+                                ['value' => false, 'label' => 'Share volume'],
+                            ]" />
                     </div>
                 @endif
                 <div class="flex gap-2">

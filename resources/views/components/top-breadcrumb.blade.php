@@ -6,6 +6,9 @@
     $currentProject = $projectUuid ? $projects->firstWhere('uuid', $projectUuid) : null;
     $environments = $currentProject ? $currentProject->environments()->get() : collect();
     $currentEnvironment = $environmentUuid ? $environments->firstWhere('uuid', $environmentUuid) : null;
+    $projectDestinationRoute = request()->routeIs('shared-variables.project.*')
+        ? 'shared-variables.project.show'
+        : 'project.show';
     $applicationUuid = request()->route('application_uuid');
     $currentApplication = $currentEnvironment && $applicationUuid
         ? $currentEnvironment->applications()->where('uuid', $applicationUuid)->first()
@@ -99,7 +102,7 @@
             <div x-show="open" x-cloak x-transition.opacity.duration.120ms
                 class="listbox-panel scrollbar left-0! z-[90]! max-h-80! min-w-56 max-w-72">
                 @foreach ($projects as $p)
-                    <a href="{{ route('project.show', ['project_uuid' => $p->uuid]) }}" {{ wireNavigate() }} @click="open = false"
+                    <a href="{{ route($projectDestinationRoute, ['project_uuid' => $p->uuid]) }}" {{ wireNavigate() }} @click="open = false"
                         class="listbox-option {{ $p->uuid === $currentProject->uuid ? 'bg-neutral-100 font-medium text-black dark:bg-white/[0.07] dark:text-fg' : '' }}">
                         <span class="min-w-0 flex-1 truncate">{{ $p->name }}</span>
                         @if ($p->uuid === $currentProject->uuid)

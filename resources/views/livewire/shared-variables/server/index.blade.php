@@ -5,7 +5,7 @@
 
     <x-dashboard.navbar section="shared-variables" />
 
-    <div class="mx-auto w-full max-w-[930px]">
+    <div class="w-full">
         <h1 class="mb-5 text-[24px]! leading-7! font-semibold! tracking-tight!">Server variables</h1>
 
     @if ($servers->isEmpty())

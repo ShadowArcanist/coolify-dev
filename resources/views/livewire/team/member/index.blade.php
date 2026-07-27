@@ -1,5 +1,7 @@
 <div x-data="{
     search: '',
+    roleFilter: 'all',
+    sortBy: 'name_asc',
     page: 1,
     perPage: 10,
     members: @js(currentTeam()->members->map(fn ($member) => [
@@ -11,12 +13,21 @@
     get filteredMembers() {
         const query = this.search.trim().toLowerCase();
 
-        if (!query) return this.members;
+        const filtered = this.members.filter(member => {
+            const matchesSearch = !query || [member.name, member.email, member.role]
+                .some(value => String(value || '').toLowerCase().includes(query));
+            const matchesRole = this.roleFilter === 'all' || member.role === this.roleFilter;
 
-        return this.members.filter(member =>
-            [member.name, member.email, member.role]
-                .some(value => String(value || '').toLowerCase().includes(query))
-        );
+            return matchesSearch && matchesRole;
+        });
+
+        return filtered.sort((left, right) => {
+            if (this.sortBy === 'name_desc') return right.name.localeCompare(left.name);
+            if (this.sortBy === 'email_asc') return left.email.localeCompare(right.email);
+            if (this.sortBy === 'role') return left.role.localeCompare(right.role);
+
+            return left.name.localeCompare(right.name);
+        });
     },
     get lastPage() {
         return Math.max(1, Math.ceil(this.filteredMembers.length / this.perPage));
@@ -34,6 +45,9 @@
             .slice(start, start + this.perPage)
             .some(member => member.id === id);
     },
+    memberOrder(id) {
+        return this.filteredMembers.findIndex(member => member.id === id);
+    },
     goToPage(page) {
         this.page = Math.min(Math.max(page, 1), this.lastPage);
     }
@@ -45,10 +59,9 @@
     <x-team.navbar />
 
     <div class="application-settings-form flex flex-col gap-6">
-        <x-application.settings-section title="Members"
-            description="People who can access this team and their current role." flush>
+        <x-application.settings-section title="Members" flush>
             <div
-                class="flex items-center border-b border-neutral-200 p-3 dark:border-white/[0.08]">
+                class="flex flex-col gap-2 border-b border-neutral-200 p-3 sm:flex-row sm:items-center sm:justify-between dark:border-white/[0.08]">
                 <div class="relative w-full max-w-sm">
                     <x-reicon name="search"
                         class="pointer-events-none absolute top-1/2 left-2.5 z-10 size-3.5 -translate-y-1/2 text-neutral-400 dark:text-fg-faint" />
@@ -61,9 +74,29 @@
                         <x-reicon name="x" class="size-3" />
                     </button>
                 </div>
+                <div class="flex w-full gap-2 sm:w-auto">
+                    <div class="w-full sm:w-36">
+                        <x-forms.listbox id="member-role-filter" :wire="false" x-model="roleFilter"
+                            x-effect="page = 1" :value="'all'" :options="[
+                                ['value' => 'all', 'label' => 'All roles'],
+                                ['value' => 'owner', 'label' => 'Owner'],
+                                ['value' => 'admin', 'label' => 'Admin'],
+                                ['value' => 'member', 'label' => 'Member'],
+                            ]" />
+                    </div>
+                    <div class="w-full sm:w-40">
+                        <x-forms.listbox id="member-sort" :wire="false" x-model="sortBy"
+                            x-effect="page = 1" :value="'name_asc'" :options="[
+                                ['value' => 'name_asc', 'label' => 'Name A–Z'],
+                                ['value' => 'name_desc', 'label' => 'Name Z–A'],
+                                ['value' => 'email_asc', 'label' => 'Email A–Z'],
+                                ['value' => 'role', 'label' => 'Role'],
+                            ]" />
+                    </div>
+                </div>
             </div>
 
-            <div x-cloak x-show="filteredMembers.length > 0" class="data-table">
+            <div x-cloak x-show="filteredMembers.length > 0" class="data-table flex flex-col">
                 <div class="data-table-header team-members-table-grid">
                     <span>Name</span>
                     <span>Email</span>

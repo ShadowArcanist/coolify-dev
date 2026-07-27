@@ -1,5 +1,6 @@
 <div wire:key="team-member-row-{{ $member->id }}"
     x-cloak x-show="isMemberVisible({{ $member->id }})"
+    x-bind:style="{ order: memberOrder({{ $member->id }}) }"
     class="data-table-row team-members-table-grid border-b border-neutral-200 last:border-b-0 dark:border-white/[0.07]">
     <div>
         <div class="flex items-center gap-2">

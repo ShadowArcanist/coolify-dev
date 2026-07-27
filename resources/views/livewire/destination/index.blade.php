@@ -1,12 +1,10 @@
-<div>
+<div class="application-settings-form w-full">
     <x-slot:title>
         Destinations | Coolify
     </x-slot>
 
-    <div class="mb-4 flex items-center justify-between gap-4">
-        <div class="text-[11px] text-neutral-500 dark:text-fg-faint">
-            {{ $destinations->count() }} {{ Str::plural('network endpoint', $destinations->count()) }}
-        </div>
+    <header class="mb-5 flex items-center justify-between gap-4">
+        <h1 class="text-[24px]! leading-7! font-semibold! tracking-tight!">Destinations</h1>
         <div class="shrink-0">
             @if ($servers->count() > 0)
                 @can('createAnyResource')
@@ -23,7 +21,11 @@
                 @endcan
             @endif
         </div>
-    </div>
+    </header>
+
+    <p class="mb-4 text-[11px] text-neutral-500 dark:text-fg-faint">
+        {{ $destinations->count() }} {{ Str::plural('network endpoint', $destinations->count()) }}
+    </p>
 
     @if ($destinations->isEmpty())
         <div

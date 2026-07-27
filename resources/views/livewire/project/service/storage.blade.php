@@ -1,4 +1,11 @@
-<div class="flex flex-col gap-6">
+@php
+    $hasVolumes = $this->volumeCount > 0;
+    $hasFiles = $this->fileCount > 0;
+    $hasDirectories = $this->directoryCount > 0;
+    $defaultTab = $hasVolumes ? 'volumes' : ($hasFiles ? 'files' : 'directories');
+@endphp
+
+<div class="flex flex-col gap-6" x-data="{ activeTab: '{{ $defaultTab }}' }">
     @if (
         $resource->getMorphClass() == 'App\Models\Application' ||
             $resource->getMorphClass() == 'App\Models\StandalonePostgresql' ||
@@ -345,13 +352,36 @@
                         </div>
                     @endcan
                 @endif
+                @if ($hasVolumes || $hasFiles || $hasDirectories)
+                    <div
+                        class="inline-flex items-center gap-0.5 rounded-lg bg-neutral-100 p-1 dark:bg-white/[0.04]">
+                        <button type="button" @click="activeTab = 'volumes'"
+                            :class="activeTab === 'volumes'
+                                ? 'bg-white text-black shadow-sm ring-1 ring-neutral-200 dark:bg-white/[0.09] dark:text-fg dark:ring-white/[0.08]'
+                                : 'text-neutral-500 hover:text-black dark:text-fg-faint dark:hover:text-fg'"
+                            @disabled(!$hasVolumes)
+                            class="h-7 rounded-md px-2.5 text-[12px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40">
+                            Volumes ({{ $this->volumeCount }})
+                        </button>
+                        <button type="button" @click="activeTab = 'files'"
+                            :class="activeTab === 'files'
+                                ? 'bg-white text-black shadow-sm ring-1 ring-neutral-200 dark:bg-white/[0.09] dark:text-fg dark:ring-white/[0.08]'
+                                : 'text-neutral-500 hover:text-black dark:text-fg-faint dark:hover:text-fg'"
+                            @disabled(!$hasFiles)
+                            class="h-7 rounded-md px-2.5 text-[12px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40">
+                            Files ({{ $this->fileCount }})
+                        </button>
+                        <button type="button" @click="activeTab = 'directories'"
+                            :class="activeTab === 'directories'
+                                ? 'bg-white text-black shadow-sm ring-1 ring-neutral-200 dark:bg-white/[0.09] dark:text-fg dark:ring-white/[0.08]'
+                                : 'text-neutral-500 hover:text-black dark:text-fg-faint dark:hover:text-fg'"
+                            @disabled(!$hasDirectories)
+                            class="h-7 rounded-md px-2.5 text-[12px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40">
+                            Directories ({{ $this->directoryCount }})
+                        </button>
+                    </div>
+                @endif
             </x-slot:actions>
-        @php
-            $hasVolumes = $this->volumeCount > 0;
-            $hasFiles = $this->fileCount > 0;
-            $hasDirectories = $this->directoryCount > 0;
-            $defaultTab = $hasVolumes ? 'volumes' : ($hasFiles ? 'files' : 'directories');
-        @endphp
 
         @if (!$hasVolumes && !$hasFiles && !$hasDirectories)
             <x-empty title="No persistent storage"
@@ -361,40 +391,7 @@
                 </x-slot:icon>
             </x-empty>
         @else
-            <div x-data="{
-                activeTab: '{{ $defaultTab }}'
-            }">
-                {{-- Tabs Navigation --}}
-                <div class="border-b border-neutral-200 px-3 pt-3 dark:border-white/[0.07]">
-                    <div
-                        class="inline-flex items-center gap-0.5 rounded-lg bg-neutral-100 p-1 dark:bg-white/[0.04]">
-                    <button @click="activeTab = 'volumes'"
-                        :class="activeTab === 'volumes'
-                            ? 'bg-white text-black shadow-sm ring-1 ring-neutral-200 dark:bg-white/[0.09] dark:text-fg dark:ring-white/[0.08]'
-                            : 'text-neutral-500 hover:text-black dark:text-fg-faint dark:hover:text-fg'"
-                        @if (!$hasVolumes) disabled @endif
-                        class="h-7 rounded-md px-2.5 text-[13px] font-medium transition-colors {{ $hasVolumes ? 'cursor-pointer' : 'cursor-not-allowed opacity-40' }}">
-                        Volumes ({{ $this->volumeCount }})
-                    </button>
-                    <button @click="activeTab = 'files'"
-                        :class="activeTab === 'files'
-                            ? 'bg-white text-black shadow-sm ring-1 ring-neutral-200 dark:bg-white/[0.09] dark:text-fg dark:ring-white/[0.08]'
-                            : 'text-neutral-500 hover:text-black dark:text-fg-faint dark:hover:text-fg'"
-                        @if (!$hasFiles) disabled @endif
-                        class="h-7 rounded-md px-2.5 text-[13px] font-medium transition-colors {{ $hasFiles ? 'cursor-pointer' : 'cursor-not-allowed opacity-40' }}">
-                        Files ({{ $this->fileCount }})
-                    </button>
-                    <button @click="activeTab = 'directories'"
-                        :class="activeTab === 'directories'
-                            ? 'bg-white text-black shadow-sm ring-1 ring-neutral-200 dark:bg-white/[0.09] dark:text-fg dark:ring-white/[0.08]'
-                            : 'text-neutral-500 hover:text-black dark:text-fg-faint dark:hover:text-fg'"
-                        @if (!$hasDirectories) disabled @endif
-                        class="h-7 rounded-md px-2.5 text-[13px] font-medium transition-colors {{ $hasDirectories ? 'cursor-pointer' : 'cursor-not-allowed opacity-40' }}">
-                        Directories ({{ $this->directoryCount }})
-                    </button>
-                    </div>
-                </div>
-
+            <div>
                 {{-- Tab Content --}}
                 <div class="p-4">
                     {{-- Volumes Tab --}}

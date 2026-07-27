@@ -25,9 +25,7 @@
         </x-slot:actions>
     </x-settings.navbar>
 
-    <div class="application-settings-form mx-auto flex w-full max-w-[930px] flex-col gap-6">
-        <h1 class="text-[24px]! leading-7! font-semibold! tracking-tight!">Transactional email</h1>
-
+    <div class="application-settings-form flex w-full min-w-0 flex-col gap-6">
         <form wire:submit="submit">
             <x-unsaved-bar action="submit" />
             <x-application.settings-section title="Sender">
@@ -45,7 +43,7 @@
             <x-application.settings-section title="SMTP server">
                 <div class="grid gap-4 lg:grid-cols-3">
                     <div class="lg:col-span-3">
-                        <div class="max-w-sm">
+                        <div class="w-full sm:w-72">
                             <x-forms.listbox id="smtpEnabled" label="SMTP delivery"
                                 onChange="instantSaveSmtp" :options="[
                                     ['value' => true, 'label' => 'Enabled'],

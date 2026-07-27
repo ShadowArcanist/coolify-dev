@@ -35,9 +35,12 @@
         @if ($resource instanceof \App\Models\Application)
             @can('update', $resource)
                 <div class="w-full sm:w-96">
-                    <x-forms.checkbox instantSave canGate="update" :canResource="$resource" label="Add suffix for PR deployments"
-                        id="isPreviewSuffixEnabled"
-                        helper="When enabled, a -pr-N suffix is added to this volume's path for preview deployments (e.g. ./scripts becomes ./scripts-pr-1). Disable this for volumes that contain shared config or scripts from your repository."></x-forms.checkbox>
+                    <x-forms.listbox id="isPreviewSuffixEnabled" label="PR deployment suffix"
+                        helper="Choose whether preview deployments receive an isolated -pr-N path suffix."
+                        onChange="instantSave" :options="[
+                            ['value' => true, 'label' => 'Add suffix'],
+                            ['value' => false, 'label' => 'Share path'],
+                        ]" />
                 </div>
             @endcan
         @endif

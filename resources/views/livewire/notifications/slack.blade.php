@@ -20,8 +20,14 @@
 
                 <div class="grid gap-4 lg:grid-cols-2">
                     <div class="lg:col-span-2">
-                        <x-forms.checkbox canGate="update" :canResource="$settings"
-                            instantSave="instantSaveSlackEnabled" id="slackEnabled" label="Enabled" />
+                        <div class="w-full sm:w-72">
+                            <x-forms.listbox id="slackEnabled" label="Slack delivery"
+                                onChange="instantSaveSlackEnabled"
+                                :disabled="!auth()->user()->can('update', $settings)" :options="[
+                                    ['value' => true, 'label' => 'Enabled'],
+                                    ['value' => false, 'label' => 'Disabled'],
+                                ]" />
+                        </div>
                     </div>
                     <div class="lg:col-span-2">
                         @can('update', $settings)

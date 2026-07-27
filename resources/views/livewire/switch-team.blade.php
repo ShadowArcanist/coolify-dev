@@ -16,17 +16,17 @@
             </svg>
         </button>
         <div x-show="open" x-cloak x-transition.opacity.duration.120ms
-            class="absolute left-0 z-[90] mt-1 min-w-56 max-w-72 max-h-72 overflow-y-auto rounded-lg border border-neutral-200 dark:border-white/10 bg-white dark:bg-raised py-1.5 shadow-modal">
-            <div class="px-3 pb-1.5 pt-1 text-[10.5px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-fg-faint">Teams</div>
+            class="listbox-panel left-0! z-[90]! max-h-72! min-w-56">
+            <div
+                class="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-fg-faint">
+                Teams
+            </div>
             @foreach (auth()->user()->teams as $team)
                 <button type="button" wire:click="switch_to({{ $team->id }})" @click="open = false"
-                    class="flex w-full items-center gap-2 px-3 h-8 text-left text-[13px] transition-colors hover:bg-neutral-100 dark:hover:bg-white/[0.06] {{ $team->id === $currentTeam->id ? 'text-black dark:text-fg font-medium' : 'text-neutral-600 dark:text-fg-dim' }}">
-                    <span class="flex items-center justify-center size-5 shrink-0 rounded-md bg-neutral-100 dark:bg-white/[0.06] text-[11px] font-semibold text-neutral-500 dark:text-fg-dim">{{ strtoupper(mb_substr($team->name, 0, 1)) }}</span>
+                    class="listbox-option {{ $team->id === $currentTeam->id ? 'bg-neutral-100 font-medium dark:bg-white/[0.06]' : '' }}">
                     <span class="min-w-0 flex-1 truncate">{{ $team->name }}</span>
                     @if ($team->id === $currentTeam->id)
-                        <svg class="size-3.5 shrink-0 text-accent" viewBox="0 0 24 24" fill="none">
-                            <path d="M5 12l5 5 9-11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
+                        <x-reicon name="check-circle" class="size-3.5 shrink-0 text-warning" />
                     @endif
                 </button>
             @endforeach
@@ -52,12 +52,18 @@
         </button>
         <div x-show="teamOpen" @click.outside="teamOpen = false" x-transition.opacity.duration.100ms x-cloak
             :style="`left: ${teamX}px; top: ${teamY}px;`"
-            class="fixed z-[100] min-w-48 max-h-72 overflow-y-auto bg-white dark:bg-raised border border-neutral-200 dark:border-white/10 rounded-xl shadow-modal py-1.5">
-            <div class="px-3 py-1 text-[10.5px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-fg-faint">Teams</div>
+            class="listbox-panel fixed! top-auto! z-[100]! max-h-72! min-w-48">
+            <div
+                class="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-fg-faint">
+                Teams
+            </div>
             @foreach (auth()->user()->teams as $team)
                 <button type="button" wire:click="switch_to({{ $team->id }})" @click="teamOpen = false"
-                    class="w-full px-3 h-8 text-left text-[13px] hover:bg-neutral-100 dark:hover:bg-white/[0.06] dark:text-fg {{ $team->id === $currentTeam->id ? 'font-medium' : 'text-neutral-600 dark:text-fg-dim' }}">
-                    {{ $team->name }}
+                    class="listbox-option {{ $team->id === $currentTeam->id ? 'bg-neutral-100 font-medium dark:bg-white/[0.06]' : '' }}">
+                    <span class="min-w-0 flex-1 truncate">{{ $team->name }}</span>
+                    @if ($team->id === $currentTeam->id)
+                        <x-reicon name="check-circle" class="size-3.5 shrink-0 text-warning" />
+                    @endif
                 </button>
             @endforeach
         </div>

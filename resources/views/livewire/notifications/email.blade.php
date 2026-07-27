@@ -8,8 +8,7 @@
     <div class="flex flex-col gap-6">
         <form wire:submit="submit" class="application-settings-form">
             <x-unsaved-bar action="submit" />
-            <x-application.settings-section title="Email delivery"
-                description="Configure the sender identity and email service used for this team.">
+            <x-application.settings-section title="Email delivery">
                 <x-slot:actions>
                     @if (auth()->user()->isAdminFromSession())
                         @can('sendTest', $settings)
@@ -42,12 +41,23 @@
                 <div class="grid gap-4 lg:grid-cols-2">
                     <div class="lg:col-span-2">
                         @if (isCloud())
-                            <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="instantSave()"
-                                id="useInstanceEmailSettings" label="Use Hosted Email Service" />
+                            <div class="w-full sm:w-72">
+                                <x-forms.listbox id="useInstanceEmailSettings" label="Email service"
+                                    onChange="instantSave"
+                                    :disabled="!auth()->user()->can('update', $settings)" :options="[
+                                        ['value' => true, 'label' => 'Use hosted email service'],
+                                        ['value' => false, 'label' => 'Use team email settings'],
+                                    ]" />
+                            </div>
                         @else
-                            <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="instantSave()"
-                                id="useInstanceEmailSettings"
-                                label="Use system-wide transactional email settings" />
+                            <div class="w-full sm:w-72">
+                                <x-forms.listbox id="useInstanceEmailSettings" label="Email service"
+                                    onChange="instantSave"
+                                    :disabled="!auth()->user()->can('update', $settings)" :options="[
+                                        ['value' => true, 'label' => 'Use system-wide settings'],
+                                        ['value' => false, 'label' => 'Use team email settings'],
+                                    ]" />
+                            </div>
                         @endif
                     </div>
 
@@ -75,8 +85,14 @@
                     description="Deliver messages through your own SMTP server.">
                     <div class="grid gap-4 lg:grid-cols-3">
                         <div class="lg:col-span-3">
-                            <x-forms.checkbox canGate="update" :canResource="$settings" wire:model="smtpEnabled"
-                                instantSave="instantSave('SMTP')" id="smtpEnabled" label="Enabled" />
+                            <div class="w-full sm:w-72">
+                                <x-forms.listbox id="smtpEnabled" label="SMTP delivery"
+                                    onChange="submitSmtp"
+                                    :disabled="!auth()->user()->can('update', $settings)" :options="[
+                                        ['value' => true, 'label' => 'Enabled'],
+                                        ['value' => false, 'label' => 'Disabled'],
+                                    ]" />
+                            </div>
                         </div>
                         <x-forms.input canGate="update" :canResource="$settings" required id="smtpHost"
                             placeholder="smtp.mailgun.org" label="Host" />
@@ -107,8 +123,14 @@
                     description="Use Resend as an alternative email delivery provider.">
                     <div class="grid gap-4 lg:grid-cols-2">
                         <div class="lg:col-span-2">
-                            <x-forms.checkbox canGate="update" :canResource="$settings" wire:model="resendEnabled"
-                                instantSave="instantSave('Resend')" id="resendEnabled" label="Enabled" />
+                            <div class="w-full sm:w-72">
+                                <x-forms.listbox id="resendEnabled" label="Resend delivery"
+                                    onChange="submitResend"
+                                    :disabled="!auth()->user()->can('update', $settings)" :options="[
+                                        ['value' => true, 'label' => 'Enabled'],
+                                        ['value' => false, 'label' => 'Disabled'],
+                                    ]" />
+                            </div>
                         </div>
                         @can('update', $settings)
                             <x-forms.input canGate="update" :canResource="$settings" required type="password"
@@ -122,65 +144,34 @@
         @endif
 
         <div class="application-settings-form">
-            <x-application.settings-section title="Notification events"
-                description="Choose which events should send an email to this team.">
-                <div class="grid gap-3 lg:grid-cols-2">
-                    <div
-                        class="rounded-lg border border-neutral-200 bg-neutral-50/70 p-3 dark:border-white/[0.08] dark:bg-white/[0.025]">
-                        <h4 class="mb-3 text-[12px] font-semibold text-black dark:text-fg">Deployments</h4>
-                        <div class="flex flex-col gap-2.5">
-                            <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel"
-                                id="deploymentSuccessEmailNotifications" label="Deployment success" />
-                            <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel"
-                                id="deploymentFailureEmailNotifications" label="Deployment failure" />
-                            <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel"
-                                helper="Send an email when a container stops or restarts."
-                                id="statusChangeEmailNotifications" label="Container status changes" />
-                        </div>
-                    </div>
-
-                    <div
-                        class="rounded-lg border border-neutral-200 bg-neutral-50/70 p-3 dark:border-white/[0.08] dark:bg-white/[0.025]">
-                        <h4 class="mb-3 text-[12px] font-semibold text-black dark:text-fg">Backups</h4>
-                        <div class="flex flex-col gap-2.5">
-                            <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel"
-                                id="backupSuccessEmailNotifications" label="Backup success" />
-                            <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel"
-                                id="backupFailureEmailNotifications" label="Backup failure" />
-                        </div>
-                    </div>
-
-                    <div
-                        class="rounded-lg border border-neutral-200 bg-neutral-50/70 p-3 dark:border-white/[0.08] dark:bg-white/[0.025]">
-                        <h4 class="mb-3 text-[12px] font-semibold text-black dark:text-fg">Scheduled tasks</h4>
-                        <div class="flex flex-col gap-2.5">
-                            <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel"
-                                id="scheduledTaskSuccessEmailNotifications" label="Scheduled task success" />
-                            <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel"
-                                id="scheduledTaskFailureEmailNotifications" label="Scheduled task failure" />
-                        </div>
-                    </div>
-
-                    <div
-                        class="rounded-lg border border-neutral-200 bg-neutral-50/70 p-3 dark:border-white/[0.08] dark:bg-white/[0.025]">
-                        <h4 class="mb-3 text-[12px] font-semibold text-black dark:text-fg">Server</h4>
-                        <div class="grid gap-2.5 sm:grid-cols-2">
-                            <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel"
-                                id="dockerCleanupSuccessEmailNotifications" label="Docker cleanup success" />
-                            <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel"
-                                id="dockerCleanupFailureEmailNotifications" label="Docker cleanup failure" />
-                            <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel"
-                                id="serverDiskUsageEmailNotifications" label="Server disk usage" />
-                            <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel"
-                                id="serverReachableEmailNotifications" label="Server reachable" />
-                            <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel"
-                                id="serverUnreachableEmailNotifications" label="Server unreachable" />
-                            <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel"
-                                id="serverPatchEmailNotifications" label="Server patching" />
-                            <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel"
-                                id="traefikOutdatedEmailNotifications" label="Traefik proxy outdated" />
-                        </div>
-                    </div>
+            <x-application.settings-section title="Notification events">
+                <div class="grid gap-4 lg:grid-cols-2">
+                    <x-notification.event-multiselect :settings="$settings" id="deployment-email-events" label="Deployments"
+                        :events="[
+                            ['property' => 'deploymentSuccessEmailNotifications', 'label' => 'Deployment success', 'enabled' => $deploymentSuccessEmailNotifications],
+                            ['property' => 'deploymentFailureEmailNotifications', 'label' => 'Deployment failure', 'enabled' => $deploymentFailureEmailNotifications],
+                            ['property' => 'statusChangeEmailNotifications', 'label' => 'Container status changes', 'enabled' => $statusChangeEmailNotifications],
+                        ]" />
+                    <x-notification.event-multiselect :settings="$settings" id="backup-email-events" label="Backups"
+                        :events="[
+                            ['property' => 'backupSuccessEmailNotifications', 'label' => 'Backup success', 'enabled' => $backupSuccessEmailNotifications],
+                            ['property' => 'backupFailureEmailNotifications', 'label' => 'Backup failure', 'enabled' => $backupFailureEmailNotifications],
+                        ]" />
+                    <x-notification.event-multiselect :settings="$settings" id="scheduled-task-email-events"
+                        label="Scheduled tasks" :events="[
+                            ['property' => 'scheduledTaskSuccessEmailNotifications', 'label' => 'Scheduled task success', 'enabled' => $scheduledTaskSuccessEmailNotifications],
+                            ['property' => 'scheduledTaskFailureEmailNotifications', 'label' => 'Scheduled task failure', 'enabled' => $scheduledTaskFailureEmailNotifications],
+                        ]" />
+                    <x-notification.event-multiselect :settings="$settings" id="server-email-events" label="Server"
+                        :events="[
+                            ['property' => 'dockerCleanupSuccessEmailNotifications', 'label' => 'Docker cleanup success', 'enabled' => $dockerCleanupSuccessEmailNotifications],
+                            ['property' => 'dockerCleanupFailureEmailNotifications', 'label' => 'Docker cleanup failure', 'enabled' => $dockerCleanupFailureEmailNotifications],
+                            ['property' => 'serverDiskUsageEmailNotifications', 'label' => 'Server disk usage', 'enabled' => $serverDiskUsageEmailNotifications],
+                            ['property' => 'serverReachableEmailNotifications', 'label' => 'Server reachable', 'enabled' => $serverReachableEmailNotifications],
+                            ['property' => 'serverUnreachableEmailNotifications', 'label' => 'Server unreachable', 'enabled' => $serverUnreachableEmailNotifications],
+                            ['property' => 'serverPatchEmailNotifications', 'label' => 'Server patching', 'enabled' => $serverPatchEmailNotifications],
+                            ['property' => 'traefikOutdatedEmailNotifications', 'label' => 'Traefik proxy outdated', 'enabled' => $traefikOutdatedEmailNotifications],
+                        ]" />
                 </div>
             </x-application.settings-section>
         </div>

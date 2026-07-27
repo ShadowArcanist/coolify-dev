@@ -6,10 +6,9 @@
     <x-team.navbar />
 
     <div class="application-settings-form">
-        <x-application.settings-section title="Instance users"
-            description="Search and manage every user registered on this Coolify instance." flush>
+        <x-application.settings-section title="Instance users" flush>
             <form wire:submit.prevent="submitSearch"
-                class="flex items-center border-b border-neutral-200 p-3 dark:border-white/[0.08]">
+                class="flex flex-col gap-2 border-b border-neutral-200 p-3 sm:flex-row sm:items-center sm:justify-between dark:border-white/[0.08]">
                 <div class="relative w-full max-w-sm">
                     <x-reicon name="search"
                         class="pointer-events-none absolute top-1/2 left-2.5 z-10 size-3.5 -translate-y-1/2 text-neutral-400 dark:text-fg-faint" />
@@ -22,6 +21,23 @@
                     ]) aria-label="Clear search">
                         <x-reicon name="x" class="size-3" />
                     </button>
+                </div>
+                <div class="flex w-full gap-2 sm:w-auto">
+                    <div class="w-full sm:w-40">
+                        <x-forms.listbox id="teamFilter" live :options="[
+                            ['value' => 'all', 'label' => 'All users'],
+                            ['value' => 'current', 'label' => 'Current team'],
+                            ['value' => 'outside', 'label' => 'Outside team'],
+                        ]" />
+                    </div>
+                    <div class="w-full sm:w-40">
+                        <x-forms.listbox id="sort" live :options="[
+                            ['value' => 'name_asc', 'label' => 'Name A–Z'],
+                            ['value' => 'name_desc', 'label' => 'Name Z–A'],
+                            ['value' => 'email_asc', 'label' => 'Email A–Z'],
+                            ['value' => 'email_desc', 'label' => 'Email Z–A'],
+                        ]" />
+                    </div>
                 </div>
             </form>
 

@@ -2,8 +2,6 @@
     <x-slot:title>
         {{ data_get_str($environment, 'name')->limit(10) }} > Resources | Coolify
     </x-slot>
-    <x-project.navbar :project="$project" :environment="$environment" />
-
     <div x-data="resourceIndex()" class="w-full">
         <header class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div class="min-w-0">
@@ -13,29 +11,13 @@
                     in {{ $project->name }}
                 </p>
             </div>
-
-            <div class="flex flex-wrap items-center gap-2">
-                @can('update', $environment)
-                    <a class="button" {{ wireNavigate() }}
-                        href="{{ route('project.environment.edit', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid]) }}">
-                        <x-reicon name="settings" class="size-3.5 opacity-70" />
-                        Settings
-                    </a>
-                @endcan
-                @can('createAnyResource')
-                    <a class="button" {{ wireNavigate() }}
-                        href="{{ route('project.clone-me', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid]) }}">
-                        <x-reicon name="layers" class="size-3.5 opacity-70" />
-                        Clone
-                    </a>
-                    <a href="{{ route('project.resource.create', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid]) }}"
-                        {{ wireNavigate() }}
-                        class="button bg-coollabs/10! text-coollabs! ring-1 ring-coollabs/25 hover:bg-coollabs/15! dark:bg-warning/15! dark:text-warning! dark:ring-warning/25 dark:hover:bg-warning/20!">
-                        <x-reicon name="plus" class="size-3.5" />
-                        New resource
-                    </a>
-                @endcan
-            </div>
+            @can('createAnyResource')
+                <a href="{{ route('project.resource.create', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid]) }}"
+                    {{ wireNavigate() }} class="button bg-coollabs text-white hover:bg-coollabs-100">
+                    <x-reicon name="plus" class="size-3.5" />
+                    New resource
+                </a>
+            @endcan
         </header>
 
         @if ($environment->isEmpty())

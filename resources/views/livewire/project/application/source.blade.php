@@ -67,8 +67,7 @@
         </x-application.settings-section>
     @else
         @can('update', $application)
-            <x-application.settings-section title="Git source"
-                description="Move this application to another connected Git source.">
+            <x-application.settings-section title="Git source">
                 <div class="grid gap-2 sm:grid-cols-2">
                     @forelse ($sources as $source)
                         <x-modal-confirmation title="Change Git source?" :actions="['Change Git source to ' . $source->name]"
@@ -88,8 +87,24 @@
                             </x-slot:customButton>
                         </x-modal-confirmation>
                     @empty
-                        <x-empty title="No other sources"
-                            description="Connect another Git source before moving this application." size="sm" />
+                        <div
+                            class="col-span-full flex items-center justify-between gap-4 rounded-lg border border-dashed border-neutral-300 bg-neutral-50 px-4 py-3 dark:border-white/[0.1] dark:bg-white/[0.02]">
+                            <div class="flex min-w-0 items-center gap-3">
+                                <div
+                                    class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white text-neutral-400 shadow-sm ring-1 ring-neutral-200 dark:bg-white/[0.05] dark:ring-white/[0.08]">
+                                    <x-reicon name="sources" class="size-4" />
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="text-[12px] font-medium text-black dark:text-fg">No other sources</p>
+                                    <p class="mt-0.5 text-[11px] text-neutral-500 dark:text-fg-dim">
+                                        Connect another Git source before moving this application.
+                                    </p>
+                                </div>
+                            </div>
+                            <a href="{{ route('source.all') }}" {{ wireNavigate() }} class="button shrink-0">
+                                Connect source
+                            </a>
+                        </div>
                     @endforelse
                 </div>
             </x-application.settings-section>
