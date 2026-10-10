@@ -175,3 +175,35 @@ it('builds view actions from buttons and points localhost links at the app url',
             ['action' => 'view', 'label' => 'Open', 'url' => 'https://coolify.example.com/project/1'],
         ]);
 });
+
+it('sends at most three actions, which is the ntfy limit', function () {
+    $buttons = collect(range(1, 5))->map(fn (int $i) => ['text' => "Open {$i}", 'url' => "https://coolify.example.com/{$i}"])->all();
+
+    $payload = (new NtfyMessage('Title', 'Body', buttons: $buttons))->toPayload('alerts');
+
+    expect($payload['actions'])->toHaveCount(3)
+        ->and(array_column($payload['actions'], 'label'))->toBe(['Open 1', 'Open 2', 'Open 3']);
+});
+
+it('shortens messages above the ntfy message size limit without splitting characters', function () {
+    $payload = (new NtfyMessage('Title', str_repeat('ğ', 5000)))->toPayload('alerts');
+
+    expect(strlen($payload['message']))->toBeLessThanOrEqual(NtfyMessage::MAX_MESSAGE_BYTES)
+        ->and(mb_check_encoding($payload['message'], 'UTF-8'))->toBeTrue()
+        ->and($payload['message'])->toEndWith('…');
+});
+
+it('keeps short messages unchanged', function () {
+    expect((new NtfyMessage('Title', 'Short body'))->toPayload('alerts')['message'])->toBe('Short body');
+});
+
+it('does not copy the ntfy server response into the failure message', function () {
+    Http::fake(['*' => Http::response('echoed Authorization: Bearer tk_secret', 500)]);
+
+    $job = new SendMessageToNtfyJob(new NtfyMessage('Title', 'Body'), 'https://1.1.1.1/', 'alerts', 'tk_secret');
+
+    expect(fn () => $job->handle())->toThrow(function (RuntimeException $e) {
+        expect($e->getMessage())->toContain('500')
+            ->not->toContain('tk_secret');
+    });
+});

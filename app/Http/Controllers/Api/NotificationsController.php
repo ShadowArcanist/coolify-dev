@@ -169,14 +169,16 @@ class NotificationsController extends Controller
             ],
             'ntfy' => [
                 'model' => NtfyNotificationSettings::class,
+                // Stored credentials must not follow a changed server URL to a new destination.
+                'credentials_bound_to' => ['ntfy_url' => ['ntfy_token', 'ntfy_username', 'ntfy_password']],
                 'rules' => [
                     'ntfy_enabled' => 'sometimes|boolean',
                     'ntfy_url' => ['sometimes', 'nullable', 'string', new SafeWebhookUrl],
-                    'ntfy_topic' => ['sometimes', 'nullable', 'string', 'max:64', 'regex:/^[a-zA-Z0-9_-]+$/'],
+                    'ntfy_topic' => ['sometimes', 'nullable', 'string', 'max:64', 'regex:/\A[a-zA-Z0-9_-]+\z/'],
                     'ntfy_auth_method' => 'sometimes|string|in:none,token,basic',
-                    'ntfy_token' => 'sometimes|nullable|string|max:255',
-                    'ntfy_username' => 'sometimes|nullable|string|max:255',
-                    'ntfy_password' => 'sometimes|nullable|string|max:255',
+                    'ntfy_token' => ['sometimes', 'nullable', 'string', 'max:255', 'not_regex:/[\x00-\x1F\x7F]/'],
+                    'ntfy_username' => ['sometimes', 'nullable', 'string', 'max:255', 'not_regex:/[\x00-\x1F\x7F]/'],
+                    'ntfy_password' => ['sometimes', 'nullable', 'string', 'max:255', 'not_regex:/[\x00-\x1F\x7F]/'],
                     'ntfy_priority_success_events' => 'sometimes|integer|between:1,5',
                     'ntfy_priority_info_events' => 'sometimes|integer|between:1,5',
                     'ntfy_priority_warning_events' => 'sometimes|integer|between:1,5',
@@ -310,6 +312,14 @@ class NotificationsController extends Controller
         $this->authorize('update', $settings);
 
         $settings->fill(array_intersect_key($body, array_flip($allowedFields)));
+        foreach ($config['credentials_bound_to'] ?? [] as $destinationField => $credentialFields) {
+            if (! $settings->isDirty($destinationField)) {
+                continue;
+            }
+            foreach (array_diff($credentialFields, array_keys($body)) as $credentialField) {
+                $settings->{$credentialField} = null;
+            }
+        }
         $settings->save();
 
         auditLog("api.notifications.{$channel}.updated", [

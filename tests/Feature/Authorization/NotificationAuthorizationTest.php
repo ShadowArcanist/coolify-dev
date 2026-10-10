@@ -462,6 +462,60 @@ test('admin can update ntfy notification settings', function () {
     expect($this->admin->can('update', $settings))->toBeTrue();
 });
 
+test('admin saves ntfy settings from the settings page', function () {
+    $this->actingAs($this->admin);
+    session(['currentTeam' => $this->team]);
+
+    Livewire::test(NtfyNotification::class)
+        ->set('ntfyUrl', 'https://1.1.1.1')
+        ->set('ntfyTopic', 'coolify-alerts')
+        ->set('ntfyAuthMethod', 'token')
+        ->set('ntfyToken', 'tk_admin')
+        ->set('ntfyPriorityErrorEvents', 4)
+        ->call('submit')
+        ->assertHasNoErrors()
+        ->assertDispatched('success');
+
+    $settings = $this->team->ntfyNotificationSettings->fresh();
+    expect($settings->ntfy_topic)->toBe('coolify-alerts')
+        ->and($settings->ntfy_token)->toBe('tk_admin')
+        ->and($settings->ntfy_priority_error_events)->toBe(4);
+});
+
+test('the ntfy settings page rejects a topic with a trailing newline', function () {
+    $this->actingAs($this->admin);
+    session(['currentTeam' => $this->team]);
+
+    Livewire::test(NtfyNotification::class)
+        ->set('ntfyUrl', 'https://1.1.1.1')
+        ->set('ntfyTopic', "coolify-alerts\n")
+        ->call('submit')
+        ->assertDispatched('error', 'The ntfy topic field format is invalid.');
+
+    expect($this->team->ntfyNotificationSettings->fresh()->ntfy_topic)->toBeNull();
+});
+
+test('a member who owns another team cannot save ntfy settings after switching teams', function () {
+    $ownTeam = Team::factory()->create();
+    $this->member->teams()->attach($ownTeam, ['role' => 'owner']);
+
+    $this->actingAs($this->member);
+    session(['currentTeam' => $this->team]);
+
+    $component = Livewire::test(NtfyNotification::class);
+
+    session(['currentTeam' => $ownTeam]);
+
+    $component
+        ->set('ntfyUrl', 'https://1.1.1.1')
+        ->set('ntfyTopic', 'stolen-alerts')
+        ->call('submit')
+        ->assertDispatched('error');
+
+    expect($this->team->ntfyNotificationSettings->fresh()->ntfy_topic)->toBeNull()
+        ->and($ownTeam->ntfyNotificationSettings->fresh()->ntfy_topic)->toBeNull();
+});
+
 // --- Webhook ---
 
 test('member cannot send test notification on webhook', function () {

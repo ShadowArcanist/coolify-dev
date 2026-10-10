@@ -87,7 +87,8 @@ class SendMessageToNtfyJob implements ShouldBeEncrypted, ShouldQueue
         $response = $request->post($url, $payload);
 
         if ($response->failed()) {
-            throw new \RuntimeException('Ntfy notification failed with '.$response->status().' status code.'.$response->body());
+            // The response body can echo credentials or the message, so keep it out of failed job records.
+            throw new \RuntimeException('Ntfy notification failed with '.$response->status().' status code.');
         }
     }
 }

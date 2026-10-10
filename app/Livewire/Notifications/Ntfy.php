@@ -30,19 +30,19 @@ class Ntfy extends Component
     #[Validate(['nullable', new SafeWebhookUrl])]
     public ?string $ntfyUrl = null;
 
-    #[Validate(['nullable', 'string', 'max:64', 'regex:/^[a-zA-Z0-9_-]+$/'])]
+    #[Validate(['nullable', 'string', 'max:64', 'regex:/\A[a-zA-Z0-9_-]+\z/'])]
     public ?string $ntfyTopic = null;
 
     #[Validate(['string', 'in:none,token,basic'])]
     public string $ntfyAuthMethod = 'basic';
 
-    #[Validate(['nullable', 'string'])]
+    #[Validate(['nullable', 'string', 'max:255', 'not_regex:/[\x00-\x1F\x7F]/'])]
     public ?string $ntfyToken = null;
 
-    #[Validate(['nullable', 'string'])]
+    #[Validate(['nullable', 'string', 'max:255', 'not_regex:/[\x00-\x1F\x7F]/'])]
     public ?string $ntfyUsername = null;
 
-    #[Validate(['nullable', 'string'])]
+    #[Validate(['nullable', 'string', 'max:255', 'not_regex:/[\x00-\x1F\x7F]/'])]
     public ?string $ntfyPassword = null;
 
     #[Validate(['integer', 'min:1', 'max:5'])]
@@ -241,7 +241,7 @@ class Ntfy extends Component
     {
         $this->validate([
             'ntfyUrl' => ['required', new SafeWebhookUrl],
-            'ntfyTopic' => ['required', 'max:64', 'regex:/^[a-zA-Z0-9_-]+$/'],
+            'ntfyTopic' => ['required', 'max:64', 'regex:/\A[a-zA-Z0-9_-]+\z/'],
         ], [
             'ntfyUrl.required' => 'Ntfy Server URL is required.',
             'ntfyTopic.required' => 'Ntfy Topic is required.',
