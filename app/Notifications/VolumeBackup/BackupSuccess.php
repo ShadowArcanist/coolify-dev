@@ -7,6 +7,7 @@ use App\Models\ServiceApplication;
 use App\Models\ServiceDatabase;
 use App\Notifications\CustomEmailNotification;
 use App\Notifications\Dto\DiscordMessage;
+use App\Notifications\Dto\NtfyMessage;
 use App\Notifications\Dto\PushoverMessage;
 use App\Notifications\Dto\SlackMessage;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -95,6 +96,16 @@ class BackupSuccess extends CustomEmailNotification
             title: $this->warning ? 'Storage backup succeeded with a warning' : 'Storage backup successful',
             level: $this->warning ? 'warning' : 'success',
             message: "{$this->summary()}<br/><br/><b>Frequency:</b> {$this->frequency}.",
+            buttons: $this->url ? [['text' => 'Open resource in Coolify', 'url' => $this->url]] : [],
+        );
+    }
+
+    public function toNtfy(): NtfyMessage
+    {
+        return new NtfyMessage(
+            title: $this->warning ? 'Storage backup succeeded with a warning' : 'Storage backup successful',
+            level: $this->warning ? 'warning' : 'success',
+            message: "{$this->summary()}\n\nFrequency: {$this->frequency}.",
             buttons: $this->url ? [['text' => 'Open resource in Coolify', 'url' => $this->url]] : [],
         );
     }

@@ -8,6 +8,7 @@ use App\Models\ServiceApplication;
 use App\Models\ServiceDatabase;
 use App\Notifications\CustomEmailNotification;
 use App\Notifications\Dto\DiscordMessage;
+use App\Notifications\Dto\NtfyMessage;
 use App\Notifications\Dto\PushoverMessage;
 use App\Notifications\Dto\SlackMessage;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -101,6 +102,16 @@ class RecoveryFailed extends CustomEmailNotification
     public function toPushover(): PushoverMessage
     {
         return new PushoverMessage(
+            title: 'Storage backup recovery failed',
+            level: 'error',
+            message: "[ACTION REQUIRED] {$this->summary()}",
+            buttons: $this->url ? [['text' => 'Open resource in Coolify', 'url' => $this->url]] : [],
+        );
+    }
+
+    public function toNtfy(): NtfyMessage
+    {
+        return new NtfyMessage(
             title: 'Storage backup recovery failed',
             level: 'error',
             message: "[ACTION REQUIRED] {$this->summary()}",

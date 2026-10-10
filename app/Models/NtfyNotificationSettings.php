@@ -30,6 +30,7 @@ class NtfyNotificationSettings extends Model
         'deployment_success_ntfy_notifications',
         'deployment_failure_ntfy_notifications',
         'status_change_ntfy_notifications',
+        'restart_limit_reached_ntfy_notifications',
         'backup_success_ntfy_notifications',
         'backup_failure_ntfy_notifications',
         'scheduled_task_success_ntfy_notifications',
@@ -41,6 +42,14 @@ class NtfyNotificationSettings extends Model
         'server_unreachable_ntfy_notifications',
         'server_patch_ntfy_notifications',
         'traefik_outdated_ntfy_notifications',
+    ];
+
+    protected $hidden = [
+        'ntfy_url',
+        'ntfy_topic',
+        'ntfy_token',
+        'ntfy_username',
+        'ntfy_password',
     ];
 
     protected function casts(): array
@@ -61,6 +70,7 @@ class NtfyNotificationSettings extends Model
             'deployment_success_ntfy_notifications' => 'boolean',
             'deployment_failure_ntfy_notifications' => 'boolean',
             'status_change_ntfy_notifications' => 'boolean',
+            'restart_limit_reached_ntfy_notifications' => 'boolean',
             'backup_success_ntfy_notifications' => 'boolean',
             'backup_failure_ntfy_notifications' => 'boolean',
             'scheduled_task_success_ntfy_notifications' => 'boolean',

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Notifications;
 
+use App\Livewire\Notifications\Concerns\TogglesNotificationEvents;
 use App\Models\NtfyNotificationSettings;
 use App\Models\Team;
 use App\Notifications\Test;
@@ -13,7 +14,7 @@ use Livewire\Component;
 
 class Ntfy extends Component
 {
-    use AuthorizesRequests;
+    use AuthorizesRequests, TogglesNotificationEvents;
 
     protected $listeners = ['refresh' => '$refresh'];
 
@@ -29,7 +30,7 @@ class Ntfy extends Component
     #[Validate(['nullable', new SafeWebhookUrl])]
     public ?string $ntfyUrl = null;
 
-    #[Validate(['nullable', 'string', 'regex:/^[a-zA-Z0-9_-]+$/'])]
+    #[Validate(['nullable', 'string', 'max:64', 'regex:/^[a-zA-Z0-9_-]+$/'])]
     public ?string $ntfyTopic = null;
 
     #[Validate(['string', 'in:none,token,basic'])]
@@ -64,6 +65,9 @@ class Ntfy extends Component
 
     #[Validate(['boolean'])]
     public bool $statusChangeNtfyNotifications = false;
+
+    #[Validate(['boolean'])]
+    public bool $restartLimitReachedNtfyNotifications = true;
 
     #[Validate(['boolean'])]
     public bool $backupSuccessNtfyNotifications = false;
@@ -110,11 +114,10 @@ class Ntfy extends Component
         }
     }
 
-    public function syncData(bool $toModel = false)
+    private function syncData(bool $toModel = false): void
     {
         if ($toModel) {
             $this->validate();
-            $this->authorize('update', $this->settings);
             $this->settings->ntfy_enabled = $this->ntfyEnabled;
             $this->settings->ntfy_url = $this->ntfyUrl;
             $this->settings->ntfy_topic = $this->ntfyTopic;
@@ -141,6 +144,7 @@ class Ntfy extends Component
             $this->settings->deployment_success_ntfy_notifications = $this->deploymentSuccessNtfyNotifications;
             $this->settings->deployment_failure_ntfy_notifications = $this->deploymentFailureNtfyNotifications;
             $this->settings->status_change_ntfy_notifications = $this->statusChangeNtfyNotifications;
+            $this->settings->restart_limit_reached_ntfy_notifications = $this->restartLimitReachedNtfyNotifications;
             $this->settings->backup_success_ntfy_notifications = $this->backupSuccessNtfyNotifications;
             $this->settings->backup_failure_ntfy_notifications = $this->backupFailureNtfyNotifications;
             $this->settings->scheduled_task_success_ntfy_notifications = $this->scheduledTaskSuccessNtfyNotifications;
@@ -153,15 +157,25 @@ class Ntfy extends Component
             $this->settings->server_patch_ntfy_notifications = $this->serverPatchNtfyNotifications;
             $this->settings->traefik_outdated_ntfy_notifications = $this->traefikOutdatedNtfyNotifications;
 
+            $changedFields = array_keys($this->settings->getDirty());
             $this->settings->save();
+            $this->auditNotificationSettings($changedFields);
             refreshSession();
         } else {
             $this->ntfyEnabled = $this->settings->ntfy_enabled;
-            $this->ntfyUrl = $this->settings->ntfy_url;
-            $this->ntfyTopic = $this->settings->ntfy_topic;
-            $this->ntfyToken = $this->settings->ntfy_token;
-            $this->ntfyUsername = $this->settings->ntfy_username;
-            $this->ntfyPassword = $this->settings->ntfy_password;
+            if (auth()->user()->can('update', $this->settings)) {
+                $this->ntfyUrl = $this->settings->ntfy_url;
+                $this->ntfyTopic = $this->settings->ntfy_topic;
+                $this->ntfyToken = $this->settings->ntfy_token;
+                $this->ntfyUsername = $this->settings->ntfy_username;
+                $this->ntfyPassword = $this->settings->ntfy_password;
+            } else {
+                $this->ntfyUrl = null;
+                $this->ntfyTopic = null;
+                $this->ntfyToken = null;
+                $this->ntfyUsername = null;
+                $this->ntfyPassword = null;
+            }
             $this->ntfyAuthMethod = $this->settings->ntfy_auth_method ?? 'basic';
 
             $this->ntfyPrioritySuccessEvents = $this->settings->ntfy_priority_success_events;
@@ -172,6 +186,7 @@ class Ntfy extends Component
             $this->deploymentSuccessNtfyNotifications = $this->settings->deployment_success_ntfy_notifications;
             $this->deploymentFailureNtfyNotifications = $this->settings->deployment_failure_ntfy_notifications;
             $this->statusChangeNtfyNotifications = $this->settings->status_change_ntfy_notifications;
+            $this->restartLimitReachedNtfyNotifications = $this->settings->restart_limit_reached_ntfy_notifications;
             $this->backupSuccessNtfyNotifications = $this->settings->backup_success_ntfy_notifications;
             $this->backupFailureNtfyNotifications = $this->settings->backup_failure_ntfy_notifications;
             $this->scheduledTaskSuccessNtfyNotifications = $this->settings->scheduled_task_success_ntfy_notifications;
@@ -189,17 +204,10 @@ class Ntfy extends Component
     public function instantSaveNtfyEnabled()
     {
         try {
-            $this->validate([
-                'ntfyUrl' => ['required', new SafeWebhookUrl],
-                'ntfyTopic' => ['required', 'regex:/^[a-zA-Z0-9_-]+$/'],
-            ], [
-                'ntfyUrl.required' => 'Ntfy Server URL is required.',
-                'ntfyTopic.required' => 'Ntfy Topic is required.',
-                'ntfyTopic.regex' => 'Ntfy Topic may only contain letters, numbers, hyphens, and underscores.',
-            ]);
+            $this->validateServerAndTopic();
             $this->saveModel();
         } catch (\Throwable $e) {
-            $this->ntfyEnabled = false;
+            $this->ntfyEnabled = (bool) $this->settings->refresh()->ntfy_enabled;
 
             return handleError($e, $this);
         } finally {
@@ -207,9 +215,44 @@ class Ntfy extends Component
         }
     }
 
+    public function toggleNtfyEnabled()
+    {
+        try {
+            $this->resetErrorBag();
+
+            if ($this->ntfyEnabled) {
+                $this->ntfyEnabled = false;
+            } else {
+                $this->validateServerAndTopic();
+                $this->ntfyEnabled = true;
+            }
+
+            $this->saveModel();
+        } catch (\Throwable $e) {
+            $this->syncData();
+
+            return handleError($e, $this);
+        } finally {
+            $this->dispatch('refresh');
+        }
+    }
+
+    private function validateServerAndTopic(): void
+    {
+        $this->validate([
+            'ntfyUrl' => ['required', new SafeWebhookUrl],
+            'ntfyTopic' => ['required', 'max:64', 'regex:/^[a-zA-Z0-9_-]+$/'],
+        ], [
+            'ntfyUrl.required' => 'Ntfy Server URL is required.',
+            'ntfyTopic.required' => 'Ntfy Topic is required.',
+            'ntfyTopic.regex' => 'Ntfy Topic may only contain letters, numbers, hyphens, and underscores.',
+        ]);
+    }
+
     public function instantSave()
     {
         try {
+            $this->authorize('update', $this->settings);
             $this->syncData(true);
         } catch (\Throwable $e) {
             return handleError($e, $this);
@@ -222,6 +265,7 @@ class Ntfy extends Component
     {
         try {
             $this->resetErrorBag();
+            $this->authorize('update', $this->settings);
             $this->syncData(true);
             $this->saveModel();
         } catch (\Throwable $e) {
@@ -231,6 +275,8 @@ class Ntfy extends Component
 
     public function saveModel()
     {
+        $this->authorize('update', $this->settings);
+
         $this->syncData(true);
         refreshSession();
         $this->dispatch('success', 'Settings saved.');
@@ -250,5 +296,12 @@ class Ntfy extends Component
     public function render()
     {
         return view('livewire.notifications.ntfy');
+    }
+
+    private function auditNotificationSettings(array $changedFields): void
+    {
+        if ($changedFields !== []) {
+            auditLog('ui.notifications.ntfy.updated', ['team_id' => $this->team->id, 'changed_fields' => $changedFields]);
+        }
     }
 }

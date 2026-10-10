@@ -2,6 +2,7 @@
 
 use App\Livewire\Notifications\Discord as DiscordNotification;
 use App\Livewire\Notifications\Email as EmailNotification;
+use App\Livewire\Notifications\Ntfy as NtfyNotification;
 use App\Livewire\Notifications\Pushover as PushoverNotification;
 use App\Livewire\Notifications\Slack as SlackNotification;
 use App\Livewire\Notifications\Telegram as TelegramNotification;
@@ -424,6 +425,43 @@ test('admin can update pushover notification settings', function () {
     expect($this->admin->can('update', $settings))->toBeTrue();
 });
 
+// --- Ntfy ---
+
+test('member cannot send test notification on ntfy', function () {
+    $this->actingAs($this->member);
+    session(['currentTeam' => $this->team]);
+
+    $settings = $this->team->ntfyNotificationSettings;
+    $settings->update([
+        'ntfy_enabled' => true,
+        'ntfy_url' => 'https://ntfy.sh',
+        'ntfy_topic' => 'coolify-alerts',
+    ]);
+
+    Livewire::test(NtfyNotification::class)
+        ->call('sendTestNotification')
+        ->assertDispatched('error');
+});
+
+test('the private ntfy syncData helper is not remotely callable', function () {
+    $this->actingAs($this->member);
+    session(['currentTeam' => $this->team]);
+
+    $component = Livewire::test(NtfyNotification::class);
+
+    expect(fn () => $component->call('syncData', true))
+        ->toThrow(MethodNotFoundException::class);
+});
+
+test('admin can update ntfy notification settings', function () {
+    $this->actingAs($this->admin);
+    session(['currentTeam' => $this->team]);
+
+    $settings = $this->team->ntfyNotificationSettings;
+
+    expect($this->admin->can('update', $settings))->toBeTrue();
+});
+
 // --- Webhook ---
 
 test('member cannot send test notification on webhook', function () {
@@ -471,6 +509,7 @@ test('admin can send test on all notification channels', function () {
     expect($this->admin->can('sendTest', $this->team->telegramNotificationSettings))->toBeTrue();
     expect($this->admin->can('sendTest', $this->team->emailNotificationSettings))->toBeTrue();
     expect($this->admin->can('sendTest', $this->team->pushoverNotificationSettings))->toBeTrue();
+    expect($this->admin->can('sendTest', $this->team->ntfyNotificationSettings))->toBeTrue();
     expect($this->admin->can('sendTest', $this->team->webhookNotificationSettings))->toBeTrue();
 });
 
@@ -483,6 +522,7 @@ test('member cannot send test on any notification channel', function () {
     expect($this->member->can('sendTest', $this->team->telegramNotificationSettings))->toBeFalse();
     expect($this->member->can('sendTest', $this->team->emailNotificationSettings))->toBeFalse();
     expect($this->member->can('sendTest', $this->team->pushoverNotificationSettings))->toBeFalse();
+    expect($this->member->can('sendTest', $this->team->ntfyNotificationSettings))->toBeFalse();
     expect($this->member->can('sendTest', $this->team->webhookNotificationSettings))->toBeFalse();
 });
 
@@ -518,6 +558,13 @@ test('member cannot view notification secrets', function (string $component, str
     'pushover credentials' => [PushoverNotification::class, 'pushoverNotificationSettings', [
         'pushover_user_key' => 'pushover-secret-user',
         'pushover_api_token' => 'pushover-secret-token',
+    ]],
+    'ntfy server, topic and credentials' => [NtfyNotification::class, 'ntfyNotificationSettings', [
+        'ntfy_url' => 'https://ntfy.example.com/secret-member',
+        'ntfy_topic' => 'ntfy-secret-topic',
+        'ntfy_username' => 'ntfy-secret-user',
+        'ntfy_password' => 'ntfy-secret-password',
+        'ntfy_token' => 'ntfy-secret-token',
     ]],
     'generic webhook' => [WebhookNotification::class, 'webhookNotificationSettings', [
         'webhook_url' => 'https://example.com/secret-webhook',
@@ -556,6 +603,13 @@ test('admin can view notification secrets', function (string $component, string 
     'pushover credentials' => [PushoverNotification::class, 'pushoverNotificationSettings', [
         'pushover_user_key' => 'pushover-admin-user',
         'pushover_api_token' => 'pushover-admin-token',
+    ]],
+    'ntfy server, topic and credentials' => [NtfyNotification::class, 'ntfyNotificationSettings', [
+        'ntfy_url' => 'https://ntfy.example.com/admin',
+        'ntfy_topic' => 'ntfy-admin-topic',
+        'ntfy_username' => 'ntfy-admin-user',
+        'ntfy_password' => 'ntfy-admin-password',
+        'ntfy_token' => 'ntfy-admin-token',
     ]],
     'generic webhook' => [WebhookNotification::class, 'webhookNotificationSettings', [
         'webhook_url' => 'https://example.com/admin-webhook',

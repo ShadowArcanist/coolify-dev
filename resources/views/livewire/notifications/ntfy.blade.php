@@ -1,154 +1,77 @@
+@php
+    $priorityOptions = [
+        ['value' => 1, 'label' => '1 - Min'],
+        ['value' => 2, 'label' => '2 - Low'],
+        ['value' => 3, 'label' => '3 - Default'],
+        ['value' => 4, 'label' => '4 - High'],
+        ['value' => 5, 'label' => '5 - Urgent'],
+    ];
+@endphp
+
 <div>
     <x-slot:title>
-        Notifications | Coolify
+        Ntfy Notifications | Coolify
     </x-slot>
-    <x-notification.navbar />
-    <form wire:submit='submit' class="flex flex-col gap-4 pb-4">
-        <div class="flex items-center gap-2">
-            <h2>Ntfy</h2>
-            <x-forms.button canGate="update" :canResource="$settings" type="submit">
-                Save
-            </x-forms.button>
-            @if ($ntfyEnabled)
-                <x-forms.button canGate="sendTest" :canResource="$settings" class="normal-case dark:text-white btn btn-xs no-animation btn-primary"
-                    wire:click="sendTestNotification">
-                    Send Test Notification
-                </x-forms.button>
-            @else
-                <x-forms.button canGate="sendTest" :canResource="$settings" disabled class="normal-case dark:text-white btn btn-xs no-animation btn-primary">
-                    Send Test Notification
-                </x-forms.button>
-            @endif
-        </div>
-        <div class="w-32">
-            <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="instantSaveNtfyEnabled" id="ntfyEnabled" label="Enabled" />
-        </div>
-        <div class="flex flex-col gap-2">
-            <div class="flex gap-2">
-                <x-forms.input canGate="update" :canResource="$settings"
-                    helper="The URL of your ntfy server. Use <code>https://ntfy.sh</code> for the public server, or your own self-hosted instance URL. <br><a class='inline-block underline dark:text-white' href='https://docs.ntfy.sh/' target='_blank'>Ntfy Documentation</a>"
-                    required id="ntfyUrl" label="Server URL" placeholder="https://ntfy.sh" />
-                <x-forms.input canGate="update" :canResource="$settings"
-                    helper="The topic name to publish notifications to. Choose a unique, hard-to-guess topic name for security if using the public server."
-                    required id="ntfyTopic" label="Topic" placeholder="coolify-alerts" />
-                <x-forms.select canGate="update" :canResource="$settings" wire:model.live="ntfyAuthMethod" id="ntfyAuthMethod" label="Authentication"
-                    helper="Choose how to authenticate with your ntfy server. Leave credentials empty for public topics.">
-                    <option value="basic">Username / Password</option>
-                    <option value="token">Access Token</option>
-                    <option value="none">None (public topic)</option>
-                </x-forms.select>
-            </div>
-            @if ($ntfyAuthMethod === 'token')
-                <div class="flex gap-2">
-                    <x-forms.input canGate="update" :canResource="$settings" type="password"
-                        helper="Access token for authentication."
-                        id="ntfyToken" label="Access Token" />
+
+    <x-notification.settings-layout>
+    <div class="application-settings-form flex flex-col gap-6">
+        <form wire:submit="submit" class="flex flex-col gap-6">
+            <x-unsaved-bar action="submit" />
+            <x-application.settings-section title="Ntfy"
+                description="Publish team alerts to a topic on ntfy.sh or your own ntfy server.">
+                <x-slot:actions>
+                    <x-notification.channel-actions :enabled="$ntfyEnabled" enabledProperty="ntfyEnabled"
+                        toggleMethod="instantSaveNtfyEnabled" :canUpdate="auth()->user()->can('update', $settings)"
+                        :canResource="$settings" />
+                </x-slot:actions>
+
+                <div class="grid gap-4 lg:grid-cols-2">
+                    @can('update', $settings)
+                        <x-forms.input required id="ntfyUrl" label="Server URL" placeholder="https://ntfy.sh"
+                            helper="Use https://ntfy.sh or the URL of your own ntfy server. A server on a private network must be allowed in Settings → Advanced." />
+                        <x-forms.input type="password" autocomplete="new-password" required id="ntfyTopic" label="Topic"
+                            placeholder="coolify-alerts"
+                            helper="Letters, numbers, hyphens, and underscores. On a public server, anyone who knows the topic can read it, so pick one that is hard to guess." />
+                        <x-forms.listbox id="ntfyAuthMethod" label="Authentication" live :options="[
+                            ['value' => 'none', 'label' => 'None'],
+                            ['value' => 'token', 'label' => 'Access token'],
+                            ['value' => 'basic', 'label' => 'Username and password'],
+                        ]" />
+                        @if ($ntfyAuthMethod === 'token')
+                            <x-forms.input type="password" autocomplete="new-password" id="ntfyToken" label="Access token"
+                                helper="Create a token with ntfy token add, or in the ntfy web app." />
+                        @elseif ($ntfyAuthMethod === 'basic')
+                            <x-forms.input autocomplete="off" id="ntfyUsername" label="Username" />
+                            <x-forms.input type="password" autocomplete="new-password" id="ntfyPassword" label="Password" />
+                        @endif
+                    @else
+                        <x-forms.input disabled label="Server URL" value="Hidden (only admins can view)" />
+                        <x-forms.input disabled label="Topic" value="Hidden (only admins can view)" />
+                        <x-forms.input disabled label="Credentials" value="Hidden (only admins can view)" />
+                    @endcan
                 </div>
-            @elseif ($ntfyAuthMethod === 'basic')
-                <div class="flex gap-2">
-                    <x-forms.input canGate="update" :canResource="$settings" type="password"
-                        helper="Username for basic authentication."
-                        id="ntfyUsername" label="Username" />
-                    <x-forms.input canGate="update" :canResource="$settings" type="password"
-                        helper="Password for basic authentication."
-                        id="ntfyPassword" label="Password" />
+            </x-application.settings-section>
+
+            <x-application.settings-section title="Message priority"
+                description="Priority controls sound and vibration on your devices. Set it for each kind of event.">
+                <div class="grid gap-4 lg:grid-cols-2">
+                    <x-forms.listbox canGate="update" :canResource="$settings" id="ntfyPrioritySuccessEvents"
+                        label="Success" helper="Successful deployments, backups, and cleanups, and reachable servers."
+                        :options="$priorityOptions" />
+                    <x-forms.listbox canGate="update" :canResource="$settings" id="ntfyPriorityInfoEvents"
+                        label="Info" helper="General notices, server patches, and test notifications."
+                        :options="$priorityOptions" />
+                    <x-forms.listbox canGate="update" :canResource="$settings" id="ntfyPriorityWarningEvents"
+                        label="Warning" helper="Container restarts, disk usage, SSL certificates, outdated Traefik, expiring API tokens, and backups with warnings."
+                        :options="$priorityOptions" />
+                    <x-forms.listbox canGate="update" :canResource="$settings" id="ntfyPriorityErrorEvents"
+                        label="Error" helper="Failed deployments, backups, and tasks, stopped resources, unreachable servers, and reached restart limits."
+                        :options="$priorityOptions" />
                 </div>
-            @endif
-        </div>
-    </form>
-    <h2 class="mt-4">Message Priority</h2>
-    <p class="mb-4">
-        Configure the notification priority for each event severity level. Priority controls vibration, sound, and notification behavior on your devices.
-    </p>
-    <div class="flex flex-col gap-2">
-        <div class="flex gap-2">
-            <x-forms.select canGate="update" :canResource="$settings" id="ntfyPrioritySuccessEvents" label="Success Events"
-                helper="Priority for success notifications (deployments, backups, cleanup, server reachable).">
-                <option value="1">1 - Min</option>
-                <option value="2">2 - Low</option>
-                <option value="3">3 - Default</option>
-                <option value="4">4 - High</option>
-                <option value="5">5 - Urgent</option>
-            </x-forms.select>
-            <x-forms.select canGate="update" :canResource="$settings" id="ntfyPriorityInfoEvents" label="Info Events"
-                helper="Priority for informational notifications (general, server patches, test notifications).">
-                <option value="1">1 - Min</option>
-                <option value="2">2 - Low</option>
-                <option value="3">3 - Default</option>
-                <option value="4">4 - High</option>
-                <option value="5">5 - Urgent</option>
-            </x-forms.select>
-            <x-forms.select canGate="update" :canResource="$settings" id="ntfyPriorityWarningEvents" label="Warning Events"
-                helper="Priority for warning notifications (disk usage, Traefik outdated, S3 warnings).">
-                <option value="1">1 - Min</option>
-                <option value="2">2 - Low</option>
-                <option value="3">3 - Default</option>
-                <option value="4">4 - High</option>
-                <option value="5">5 - Urgent</option>
-            </x-forms.select>
-            <x-forms.select canGate="update" :canResource="$settings" id="ntfyPriorityErrorEvents" label="Error/Failure Events"
-                helper="Priority for error notifications (deployments, server unreachable, server disabled).">
-                <option value="1">1 - Min</option>
-                <option value="2">2 - Low</option>
-                <option value="3">3 - Default</option>
-                <option value="4">4 - High</option>
-                <option value="5">5 - Urgent</option>
-            </x-forms.select>
-        </div>
+            </x-application.settings-section>
+        </form>
+
+        <x-notification.event-grid :settings="$settings" channel="ntfy" />
     </div>
-    <h2 class="mt-4">Notification Settings</h2>
-    <p class="mb-4">
-        Select events for which you would like to receive Ntfy notifications.
-    </p>
-    <div class="flex flex-col gap-4 max-w-2xl">
-        <div class="border dark:border-coolgray-300 border-neutral-200 p-4 rounded-lg">
-            <h3 class="font-medium mb-3">Deployments</h3>
-            <div class="flex flex-col gap-1.5 pl-1">
-                <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel" id="deploymentSuccessNtfyNotifications"
-                    label="Deployment Success" />
-                <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel" id="deploymentFailureNtfyNotifications"
-                    label="Deployment Failure" />
-                <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel"
-                    helper="Send a notification when a container status changes. It will notify for Stopped and Restarted events of a container."
-                    id="statusChangeNtfyNotifications" label="Container Status Changes" />
-            </div>
-        </div>
-        <div class="border dark:border-coolgray-300 border-neutral-200 p-4 rounded-lg">
-            <h3 class="font-medium mb-3">Backups</h3>
-            <div class="flex flex-col gap-1.5 pl-1">
-                <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel" id="backupSuccessNtfyNotifications"
-                    label="Backup Success" />
-                <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel" id="backupFailureNtfyNotifications"
-                    label="Backup Failure" />
-            </div>
-        </div>
-        <div class="border dark:border-coolgray-300 border-neutral-200 p-4 rounded-lg">
-            <h3 class="font-medium mb-3">Scheduled Tasks</h3>
-            <div class="flex flex-col gap-1.5 pl-1">
-                <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel" id="scheduledTaskSuccessNtfyNotifications"
-                    label="Scheduled Task Success" />
-                <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel" id="scheduledTaskFailureNtfyNotifications"
-                    label="Scheduled Task Failure" />
-            </div>
-        </div>
-        <div class="border dark:border-coolgray-300 border-neutral-200 p-4 rounded-lg">
-            <h3 class="font-medium mb-3">Server</h3>
-            <div class="flex flex-col gap-1.5 pl-1">
-                <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel" id="dockerCleanupSuccessNtfyNotifications"
-                    label="Docker Cleanup Success" />
-                <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel" id="dockerCleanupFailureNtfyNotifications"
-                    label="Docker Cleanup Failure" />
-                <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel" id="serverDiskUsageNtfyNotifications"
-                    label="Server Disk Usage" />
-                <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel" id="serverReachableNtfyNotifications"
-                    label="Server Reachable" />
-                <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel" id="serverUnreachableNtfyNotifications"
-                    label="Server Unreachable" />
-                <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel" id="serverPatchNtfyNotifications"
-                    label="Server Patching" />
-                <x-forms.checkbox canGate="update" :canResource="$settings" instantSave="saveModel" id="traefikOutdatedNtfyNotifications"
-                    label="Traefik Proxy Outdated" />
-            </div>
-        </div>
-    </div>
+    </x-notification.settings-layout>
 </div>

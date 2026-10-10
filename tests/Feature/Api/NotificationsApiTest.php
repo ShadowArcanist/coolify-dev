@@ -3,6 +3,7 @@
 use App\Models\DiscordNotificationSettings;
 use App\Models\EmailNotificationSettings;
 use App\Models\InstanceSettings;
+use App\Models\NtfyNotificationSettings;
 use App\Models\PushoverNotificationSettings;
 use App\Models\SlackNotificationSettings;
 use App\Models\Team;
@@ -77,6 +78,7 @@ describe('GET /api/v1/notifications/*', function () {
         'slack',
         'telegram',
         'pushover',
+        'ntfy',
         'webhook',
     ]);
 
@@ -236,7 +238,7 @@ describe('PATCH /api/v1/notifications/*', function () {
             ->and($settings->deployment_success_discord_notifications)->toBeTrue();
     });
 
-    test('updates slack, telegram, pushover, and webhook channels', function (string $channel, array $payload, string $modelClass, string $enabledField) {
+    test('updates slack, telegram, pushover, ntfy, and webhook channels', function (string $channel, array $payload, string $modelClass, string $enabledField) {
         $response = $this->withHeaders(authHeaders($this->bearerToken))
             ->patchJson("/api/v1/notifications/{$channel}", $payload);
 
@@ -278,6 +280,20 @@ describe('PATCH /api/v1/notifications/*', function () {
             PushoverNotificationSettings::class,
             'pushover_enabled',
         ],
+        'ntfy' => [
+            'ntfy',
+            [
+                'ntfy_enabled' => true,
+                'ntfy_url' => 'https://ntfy.sh',
+                'ntfy_topic' => 'coolify-alerts',
+                'ntfy_auth_method' => 'token',
+                'ntfy_token' => 'tk_secret',
+                'ntfy_priority_error_events' => 5,
+                'deployment_failure_ntfy_notifications' => true,
+            ],
+            NtfyNotificationSettings::class,
+            'ntfy_enabled',
+        ],
         'webhook' => [
             'webhook',
             [
@@ -288,6 +304,41 @@ describe('PATCH /api/v1/notifications/*', function () {
             WebhookNotificationSettings::class,
             'webhook_enabled',
         ],
+    ]);
+
+    test('hides ntfy server, topic, and credentials without read:sensitive ability', function () {
+        $this->team->ntfyNotificationSettings->update([
+            'ntfy_enabled' => true,
+            'ntfy_url' => 'https://ntfy.example.com/hidden-server',
+            'ntfy_topic' => 'hidden-topic',
+            'ntfy_token' => 'hidden-token',
+            'ntfy_username' => 'hidden-user',
+            'ntfy_password' => 'hidden-password',
+        ]);
+
+        $readToken = $this->user->createToken('read-token', ['read'])->plainTextToken;
+
+        $response = $this->withHeaders(authHeaders($readToken))
+            ->getJson('/api/v1/notifications/ntfy');
+
+        $response->assertSuccessful();
+        $response->assertJsonPath('ntfy_enabled', true);
+        foreach (['ntfy_url', 'ntfy_topic', 'ntfy_token', 'ntfy_username', 'ntfy_password'] as $secret) {
+            $response->assertJsonMissingPath($secret);
+        }
+        expect($response->getContent())->not->toContain('hidden-');
+    });
+
+    test('rejects invalid ntfy settings with 422', function (array $payload, string $field) {
+        $this->withHeaders(authHeaders($this->bearerToken))
+            ->patchJson('/api/v1/notifications/ntfy', $payload)
+            ->assertStatus(422)
+            ->assertJsonValidationErrors($field);
+    })->with([
+        'priority above 5' => [['ntfy_priority_error_events' => 6], 'ntfy_priority_error_events'],
+        'priority below 1' => [['ntfy_priority_success_events' => 0], 'ntfy_priority_success_events'],
+        'unknown auth method' => [['ntfy_auth_method' => 'oauth'], 'ntfy_auth_method'],
+        'topic with a slash' => [['ntfy_topic' => 'alerts/other'], 'ntfy_topic'],
     ]);
 
     test('rejects unknown fields with 422', function () {

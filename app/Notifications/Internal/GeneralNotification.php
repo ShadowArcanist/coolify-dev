@@ -54,9 +54,9 @@ class GeneralNotification extends Notification implements ShouldQueue
     public function toNtfy(): NtfyMessage
     {
         return new NtfyMessage(
-            title: 'General Notification',
+            title: $this->success ? 'General Notification' : 'Action required',
             message: $this->message,
-            level: 'info',
+            level: $this->success ? 'info' : 'error',
         );
     }
 
