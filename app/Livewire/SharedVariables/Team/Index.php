@@ -35,7 +35,7 @@ class Index extends Component
                 'is_literal' => $data['is_literal'],
                 'comment' => $data['comment'] ?? null,
                 'type' => 'team',
-                'team_id' => currentTeam()->id,
+                'team_id' => $this->team->id,
             ]);
             $this->team->refresh();
             $this->getDevView();
@@ -52,9 +52,13 @@ class Index extends Component
 
     public function switch()
     {
-        $this->authorize('view', $this->team);
-        $this->view = $this->view === 'normal' ? 'dev' : 'normal';
-        $this->getDevView();
+        try {
+            $this->authorize('view', $this->team);
+            $this->view = $this->view === 'normal' ? 'dev' : 'normal';
+            $this->getDevView();
+        } catch (\Throwable $e) {
+            return handleError($e, $this);
+        }
     }
 
     public function getDevView()
@@ -64,7 +68,12 @@ class Index extends Component
 
     private function formatEnvironmentVariables($variables)
     {
-        return $variables->map(function ($item) {
+        $canViewValues = auth()->user()?->isAdminOfTeam($this->team->id) ?? false;
+
+        return $variables->map(function ($item) use ($canViewValues) {
+            if (! $canViewValues) {
+                return "$item->key=(Hidden, only admins can view)";
+            }
             if ($item->is_shown_once) {
                 return "$item->key=(Locked Secret, delete and add again to change)";
             }
@@ -149,7 +158,7 @@ class Index extends Component
                     'is_multiline' => false,
                     'is_literal' => false,
                     'type' => 'team',
-                    'team_id' => currentTeam()->id,
+                    'team_id' => $this->team->id,
                 ]);
                 $count++;
             }

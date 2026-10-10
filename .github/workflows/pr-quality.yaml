@@ -19,13 +19,10 @@ jobs:
           max-failures: 4
 
           # PR Branch Checks
-          allowed-target-branches: "next"
+          allowed-target-branches: ""
           blocked-target-branches: ""
           allowed-source-branches: ""
-          blocked-source-branches: |
-            main
-            master
-            v4.x
+          blocked-source-branches: ""
 
           # PR Quality Checks
           max-negative-reactions: 0
@@ -40,7 +37,10 @@ jobs:
           max-emoji-count: 2
           max-code-references: 5
           require-linked-issue: false
-          blocked-terms: "STRAWBERRY"
+          blocked-terms:  |
+            STRAWBERRY
+            🤖 Generated with Claude Code
+            Generated with Claude Code
           blocked-issue-numbers: 8154
 
           # PR Template Checks
@@ -97,7 +97,7 @@ jobs:
           exempt-pr-milestones: ""
 
           # PR Success Actions
-          success-add-pr-labels: "quality/verified"
+          success-add-pr-labels: ""
 
           # PR Failure Actions
           failure-remove-pr-labels: ""

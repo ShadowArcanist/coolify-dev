@@ -35,7 +35,7 @@ class Show extends Component
                 'is_literal' => $data['is_literal'],
                 'comment' => $data['comment'] ?? null,
                 'type' => 'project',
-                'team_id' => currentTeam()->id,
+                'team_id' => $this->project->team_id,
             ]);
             $this->project->refresh();
             $this->getDevView();
@@ -44,9 +44,9 @@ class Show extends Component
         }
     }
 
-    public function mount()
+    public function mount(?string $project_uuid = null)
     {
-        $projectUuid = request()->route('project_uuid');
+        $projectUuid = $project_uuid ?? request()->route('project_uuid');
         $teamId = currentTeam()->id;
         $project = Project::where('team_id', $teamId)->where('uuid', $projectUuid)->first();
         if (! $project) {
@@ -58,9 +58,13 @@ class Show extends Component
 
     public function switch()
     {
-        $this->authorize('view', $this->project);
-        $this->view = $this->view === 'normal' ? 'dev' : 'normal';
-        $this->getDevView();
+        try {
+            $this->authorize('view', $this->project);
+            $this->view = $this->view === 'normal' ? 'dev' : 'normal';
+            $this->getDevView();
+        } catch (\Throwable $e) {
+            return handleError($e, $this);
+        }
     }
 
     public function getDevView()
@@ -70,7 +74,12 @@ class Show extends Component
 
     private function formatEnvironmentVariables($variables)
     {
-        return $variables->map(function ($item) {
+        $canViewValues = auth()->user()?->isAdminOfTeam($this->project->team_id) ?? false;
+
+        return $variables->map(function ($item) use ($canViewValues) {
+            if (! $canViewValues) {
+                return "$item->key=(Hidden, only admins can view)";
+            }
             if ($item->is_shown_once) {
                 return "$item->key=(Locked Secret, delete and add again to change)";
             }
@@ -150,7 +159,7 @@ class Show extends Component
                     'is_multiline' => false,
                     'is_literal' => false,
                     'type' => 'project',
-                    'team_id' => currentTeam()->id,
+                    'team_id' => $this->project->team_id,
                 ]);
                 $count++;
             }

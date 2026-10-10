@@ -12,20 +12,27 @@ use App\Models\StandaloneMongodb;
 use App\Models\StandaloneMysql;
 use App\Models\StandalonePostgresql;
 use App\Models\StandaloneRedis;
+use App\Models\StandaloneSqlite;
+use App\Traits\ListensToTeamChannel;
 use Illuminate\Support\Collection;
 use Livewire\Component;
 
 class Logs extends Component
 {
+    use ListensToTeamChannel;
+
     public ?string $type = null;
 
-    public Application|Service|StandalonePostgresql|StandaloneRedis|StandaloneMongodb|StandaloneMysql|StandaloneMariadb|StandaloneKeydb|StandaloneDragonfly|StandaloneClickhouse $resource;
+    public Application|Service|StandalonePostgresql|StandaloneRedis|StandaloneMongodb|StandaloneMysql|StandaloneMariadb|StandaloneKeydb|StandaloneDragonfly|StandaloneClickhouse|StandaloneSqlite $resource;
 
     public Collection $servers;
 
     public Collection $containers;
 
     public array $serverContainers = [];
+
+    /** @var array<int, string> */
+    public array $serverErrors = [];
 
     public $container = [];
 
@@ -43,17 +50,16 @@ class Logs extends Component
 
     public function getListeners()
     {
-        $teamId = auth()->user()->currentTeam()->id;
-
-        return [
-            "echo-private:team.{$teamId},ServiceChecked" => '$refresh',
-        ];
+        return $this->teamChannelListeners([
+            'ServiceChecked' => 'loadAllContainers',
+        ]);
     }
 
     public function loadAllContainers()
     {
         try {
             foreach ($this->servers as $server) {
+                unset($this->serverErrors[$server->id]);
                 $this->serverContainers[$server->id] = $this->getContainersForServer($server);
             }
             $this->containersLoaded = true;
@@ -80,17 +86,34 @@ class Logs extends Component
                 ]);
 
                 return $containers->toArray();
-            } else {
-                $containers = getCurrentApplicationContainerStatus($server, $this->resource->id, includePullrequests: true);
-                if ($containers && $containers->count() > 0) {
-                    return $containers->sort()->toArray();
-                }
-
-                return [];
             }
+
+            // Docker labels differ by resource type:
+            // applications → coolify.applicationUuid, services → coolify.serviceUuid, databases → coolify.databaseUuid
+            $containers = match (true) {
+                $this->resource instanceof Application => getCurrentApplicationContainerStatus(
+                    $server,
+                    $this->resource,
+                    includePullrequests: true
+                ),
+                $this->resource instanceof Service => getCurrentServiceContainerStatus(
+                    $server,
+                    $this->resource
+                ),
+                default => getCurrentDatabaseContainerStatus(
+                    $server,
+                    $this->resource
+                ),
+            };
+
+            if ($containers && $containers->count() > 0) {
+                return $containers->sort()->toArray();
+            }
+
+            return [];
         } catch (\Exception $e) {
-            // Log error but don't fail the entire operation
-            ray("Error loading containers for server {$server->name}: ".$e->getMessage());
+            // Keep the error for this server so the page does not report it as "no containers".
+            $this->serverErrors[$server->id] = $e->getMessage();
 
             return [];
         }

@@ -1,3 +1,243 @@
+# AGENTS.md
+
+This file provides guidance to agentic coding tools when working with code in this repository.
+
+## Project Overview
+
+Coolify is an open-source, self-hostable PaaS (alternative to Heroku/Netlify/Vercel). It manages servers, applications, databases, and services via SSH. Built with Laravel 12 (using Laravel 10 file structure), Livewire 3, and Tailwind CSS v4.
+
+## Design Reference
+
+For UI/UX design specifications, principles, and visual standards, consult the local [`DESIGN.md`](DESIGN.md). It is the source of truth for frontend design work in this repository.
+
+## Development Environment
+
+Docker Compose-based dev setup with services: coolify (app, which also runs Reverb WebSockets and the terminal server), postgres, redis, vite, testing-host, mailpit, minio.
+
+```bash
+# One dev instance per git branch (containers, volumes, VMs named after the branch)
+./scripts/dev start [qemu-profile]           # localhost VM: KVM (Linux, /dev/kvm + root/sudo) or Lima (macOS, limactl), else testing-host
+./scripts/dev stop                           # stop containers and VMs; data is kept for the next start
+./scripts/dev run                            # start + follow logs, stop on exit (Jean run script)
+./scripts/dev urls                           # all instances, URLs, ports, and checkouts
+./scripts/dev exec php artisan migrate       # run a command in this branch's Coolify container
+./scripts/dev destroy <name>                 # delete containers, volumes, VMs, and the port slot
+./scripts/dev teardown                       # destroy this worktree's instance (Jean teardown before worktree deletion)
+# Compose: docker-compose.dev-multi.yml  Env + slots: <main checkout>/.dev-instances/ (gitignored)
+
+# Legacy fixed-name stack (not used by scripts/dev)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+```
+
+The main checkout serves its branch at `localhost:8000` (Reverb `6001`, terminal `6002`, db `5432`, redis `6379`, vite `5173`). Worktrees get a port block at `20000 + slot*10` (app `+0`, Reverb `+1`, terminal `+2`, db `+3`, redis `+4`, vite `+5`). Each instance has its own libvirt network `coolify-dev-<slot>` (`10.221.<slot>.0/24`) and VMs `coolify-dev-<branch>--<profile>`; VMs are reused, use `php artisan dev:qemu <profile> --fresh` to rebuild one. On macOS with Lima >= 2.0 (`brew install lima`), the localhost VM is the Lima instance `coolify-dev-<slot>-<profile>` (same profiles, users, and SSH key); Coolify reaches it through Lima's forwarded SSH port on `host.docker.internal`, and only guest ports 80/443 are forwarded to the Mac. Rebuild it with `limactl delete -f <vm>`. Force it with `COOLIFY_DEV_SERVER_BACKEND=lima`. If `APP_URL` in `.env` is a `*.ts.net` host, the browser ports are published with `tailscale serve`. Set `COOLIFY_DEV_INSTANCE=<name>` to run another instance from the same checkout.
+
+## Testing the Self-Hosted Upgrade Process
+
+Use the following workflow to test a self-hosted upgrade:
+
+1. Install the source version with the upgrade script:
+
+   ```bash
+   bash scripts/upgrade.sh sha-6492d081362c009519481ac70e50873e39ba1861
+   ```
+
+2. Set the current Coolify version and rebuild the cached configuration:
+
+   ```bash
+   docker exec -e COOLIFY_VERSION=4.3.0 coolify php artisan config:cache
+   ```
+
+3. In the Coolify UI, click **Check for Updates**.
+4. Confirm that an upgrade is available, then click **Upgrade** and verify that the upgrade completes successfully.
+
+## Common Commands
+
+```bash
+# Tests (Pest 4)
+php artisan test --compact                          # all tests
+php artisan test --compact --filter=testName         # single test
+php artisan test --compact tests/Feature/SomeTest.php  # specific file
+
+# Code formatting (Pint, Laravel preset)
+vendor/bin/pint --dirty --format agent              # format changed files
+
+# Frontend
+npm run dev                     # vite dev server
+npm run build                   # production build
+```
+
+## Browser Tests (Pest Browser Plugin)
+
+Uses `pestphp/pest-plugin-browser` (Playwright). Browser tests go in `tests/v4/Browser/`.
+
+```bash
+# Run all browser tests
+php artisan test --compact tests/v4/Browser/
+
+# Run a specific browser test file
+php artisan test --compact tests/v4/Browser/LoginTest.php
+
+# Run a specific test by name
+php artisan test --compact --filter='can login with valid credentials'
+```
+
+### Writing Browser Tests
+
+- Place new tests in `tests/v4/Browser/`.
+- Use `RefreshDatabase` and seed required data (at minimum `InstanceSettings::create(['id' => 0])`) in `beforeEach`.
+- Key API: `visit()`, `fill(field, value)`, `click(text)`, `assertSee()`, `assertDontSee()`, `assertPathIs()`, `screenshot()`.
+- Always call `screenshot()` at the end of each test for debugging.
+- For authenticated tests, create a helper function that logs in via the UI:
+
+```php
+function loginAsRoot(): mixed
+{
+    return visit('/login')
+        ->fill('email', 'test@example.com')
+        ->fill('password', 'password')
+        ->click('Login');
+}
+```
+
+- See `tests/v4/Browser/LoginTest.php`, `tests/v4/Browser/DashboardTest.php`, and `tests/v4/Browser/RegistrationTest.php` for conventions.
+
+### How Browser Tests Actually Run (no Docker, no display needed)
+
+`visit()` does NOT hit the dev app on `localhost:8000`. Instead the Pest Browser Plugin:
+
+1. Starts a local Playwright server (`node node_modules/.bin/playwright run-server`) and launches a **headless Chromium** from `~/.cache/ms-playwright` (install once with `npm install && npx playwright install chromium`).
+2. Boots an **in-process amphp HTTP server** on a random port that serves the Laravel app from the test process itself.
+
+Because the "server" and the test share one PHP process, they share the phpunit env (sqlite `:memory:`, array cache) — so `config()->set(...)`, model writes, and `Cache` calls in the test are visible to browser-issued requests, and `RefreshDatabase` never touches the dev Postgres.
+
+`->screenshot(filename: '...')` writes real PNGs to `tests/Browser/Screenshots/` — read them to visually verify UI state (toasts, modals, stray elements).
+
+### Browser Test Gotchas
+
+- **`Class "Redis" not found` thrown by the HTTP server**: host PHP has no phpredis, and the maintenance-mode store is hard-wired to redis (`config/app.php` → `'maintenance' => ['store' => 'redis']`). Add `config()->set('app.maintenance.store', 'array');` in `beforeEach`.
+- **Every path redirects to onboarding** for a fresh user (`DecideWhatToDoWithUser` + `showBoarding()`). Finish boarding before navigating: `Team::query()->update(['show_boarding' => false]); Cache::flush();` — the `Cache::flush()` is required because `User::currentTeam()` caches the Team for an hour and the in-process server shares that cache.
+- **`->navigate('/path')` races form-submit redirects.** After `->click('Login')`, assert something on the destination page (e.g. `->assertSee('Welcome to Coolify')`) before calling `navigate()`.
+- **Failure messages print the *initial* `visit()` URL**, not the current URL. Read the auto-saved screenshot in `tests/Browser/Screenshots/` to see where the browser actually ended up.
+- **Runs hang forever**: stale Playwright servers from a previously killed run. Fix: `pkill -f "playwright run-server"` and rerun. Healthy runs take seconds.
+- **Guest pages miss `DOMPurify`** (`public/js/purify.min.js` loads only `@auth` in `layouts/base.blade.php`), so toast descriptions fail on unauthenticated pages — log in first for toast-related assertions.
+- Layouts that call `@livewireScripts` manually must also call `@livewireStyles`, otherwise Livewire's asset auto-injection is disabled and `[wire\:loading]`/`[x-cloak]` elements render visible.
+- Run browser test files in their own `php artisan test` invocation — combining them with non-browser test paths in one command can hang the runner.
+
+## Architecture
+
+### Backend Structure (app/)
+- **Actions/** — Domain actions organized by area (Application, Database, Docker, Proxy, Server, Service, Shared, Stripe, User, CoolifyTask, Fortify). Uses `lorisleiva/laravel-actions` with `AsAction` trait — actions can be called as objects, dispatched as jobs, or used as controllers.
+- **Livewire/** — All UI components (Livewire 3). Pages organized by domain: Server, Project, Settings, Security, Notifications, Terminal, Subscription, SharedVariables. This is the primary UI layer — no traditional Blade controllers. Components listen to private team channels for real-time status updates via Laravel Reverb.
+- **Jobs/** — Queue jobs for deployments (`ApplicationDeploymentJob`), backups, Docker cleanup, server management, proxy configuration. Uses Redis queue with Horizon for monitoring.
+- **Models/** — Eloquent models extending `BaseModel` which provides auto-CUID2 UUID generation. Key models: `Server`, `Application`, `Service`, `Project`, `Environment`, `Team`, plus standalone database models (`StandalonePostgresql`, `StandaloneMysql`, etc.). Common traits: `HasConfiguration`, `HasMetrics`, `HasSafeStringAttribute`, `ClearsGlobalSearchCache`.
+- **Services/** — Business logic services (ConfigurationGenerator, DockerImageParser, ContainerStatusAggregator, HetznerService, etc.). Use Services for complex orchestration; use Actions for single-purpose domain operations.
+- **Helpers/** — Global helpers loaded via `bootstrap/includeHelpers.php` from `bootstrap/helpers/` — organized into `shared.php`, `constants.php`, `versions.php`, `subscriptions.php`, `domains.php`, `docker.php`, `services.php`, `github.php`, `proxy.php`, `notifications.php`.
+- **Data/** — Spatie Laravel Data DTOs (e.g., `ServerMetadata`).
+- **Enums/** — PHP enums (TitleCase keys). Key enums: `ProcessStatus`, `Role` (MEMBER/ADMIN/OWNER with rank comparison), `BuildPackTypes`, `ProxyTypes`, `ContainerStatusTypes`.
+- **Rules/** — Custom validation rules (`ValidGitRepositoryUrl`, `ValidServerIp`, `ValidHostname`, `DockerImageFormat`, etc.).
+
+### API Layer
+- REST API at `/api/v1/` with OpenAPI 3.0 attributes (`use OpenApi\Attributes as OA`) for auto-generated docs
+- Authentication via Laravel Sanctum with custom `ApiAbility` middleware for token abilities (read, write, deploy)
+- `ApiSensitiveData` middleware masks sensitive fields (IDs, credentials) in responses
+- API controllers in `app/Http/Controllers/Api/` use inline `Validator` (not Form Request classes)
+- Response serialization via `serializeApiResponse()` helper
+
+### Authorization
+- Policy-based authorization with ~15 model-to-policy mappings in `AuthServiceProvider`
+- Custom gates: `createAnyResource`, `canAccessTerminal`
+- Role hierarchy: `Role::MEMBER` (1) < `Role::ADMIN` (2) < `Role::OWNER` (3) with `lt()`/`gt()` comparison methods
+- Multi-tenancy via Teams — team auto-initializes notification settings on creation
+- Authorize every server-side read and mutation where access can vary by user, role, team, or resource. Use policies, gates, or `$this->authorize(...)`; never rely on hidden Blade/Livewire controls such as `@can` for security.
+- Scope queries to the current team before returning records. Treat route and model identifiers as untrusted, and prevent users from reading or changing resources owned by another team.
+- Use the session team (`currentTeam()`, `Model::ownedByCurrentTeam()`) only to find or open records, for "my team" lists, to create new top-level records, and on team pages. A user can switch teams in another tab while a page stays open, and every user owns a personal team.
+- Once a component, action, or controller works on a loaded resource, use that resource's team for everything after it:
+  - Roles and redaction: use the policy (`$this->authorize('update', $resource)`) or `auth()->user()->isAdminOfTeam($resource->team()->id)`. Never use `isMember()`, `isAdmin()`, or `role()` for resource permissions; they read the role in the session team.
+  - Related records the user can pick (S3 storages, keys, servers, sources, tags, tokens): query with `->where('team_id', $resource->team()->id)` and validate submitted IDs against that team.
+  - New rows that belong to the resource: set `team_id` from the resource's team, not `currentTeam()->id`.
+- Test this with a user who is a member of the resource's team and the owner of another team, with the session switched to the other team after mount.
+- Apply authorization consistently across Livewire actions, API and web controllers, actions, downloads, exports, search, event listeners, and any other path that exposes or changes protected data.
+- Default to denying access when a policy or ownership relationship is missing or ambiguous. Members must not gain access to administrative, credential, security, billing, or instance-wide data merely because they belong to the team.
+- Add authorization regression tests for protected changes. Cover permitted access, member restrictions where applicable, and cross-team access; verify unauthorized reads and writes return `403` or otherwise reveal no protected data.
+- Do not add a `TRUSTED_PROXIES` setting or change `TrustProxies` to use one. This caused problems in supported Coolify deployments. Fix IP-based rate limits and allow-lists at their call sites instead of changing proxy trust as a shortcut.
+
+### Event Broadcasting
+- Laravel Reverb WebSocket server for real-time updates (port 6001) and a Node terminal WebSocket server (port 6002), both run inside the `coolify` container as s6 services
+- Server-side broadcasts use `PUSHER_BACKEND_HOST`/`PUSHER_BACKEND_PORT` (defaults `127.0.0.1:6001`); `PUSHER_HOST`/`PUSHER_PORT` are browser-facing only
+- Status change events: `ApplicationStatusChanged`, `ServiceStatusChanged`, `DatabaseStatusChanged`, `ProxyStatusChanged`
+- Livewire components subscribe to private team channels via `getListeners()`
+
+### Key Domain Concepts
+- **Server** — A managed host connected via SSH. Has settings, proxy config, and destinations.
+- **Application** — A deployed app (from Git or Docker image) with environment variables, previews, deployment queue.
+- **Service** — A pre-configured service stack from templates (`templates/service-templates-latest.json`).
+- **Standalone Databases** — Individual database instances (Postgres, MySQL, MariaDB, MongoDB, Redis, Clickhouse, KeyDB, Dragonfly, SQLite).
+- **Project/Environment** — Organizational hierarchy: Team → Project → Environment → Resources.
+- **Proxy** — Traefik reverse proxy managed per server.
+
+### Instance sentinels (`id = 0`)
+
+Coolify seeds **instance-owned** rows at primary key `0`. That value is a sentinel meaning “this is the Coolify instance itself”, not a normal autoincrement id. Do not migrate, resequence, or “fix” these to a positive id.
+
+| Record | Model / lookup | Meaning |
+|---|---|---|
+| Root team | `Team::find(0)`, `team_id === 0` | Instance / root team. Cloud billing and many skip-checks exempt `team_id === 0`. |
+| Localhost server | `Server::find(0)` / `findOrFail(0)` | The machine running Coolify. Upgrades, instance backups, and docker inspect target this server. |
+| Instance settings | `InstanceSettings` with `id = 0` | Singleton settings row. Tests must seed `InstanceSettings::create(['id' => 0])` (or `forceCreate`). |
+| Instance Postgres | `StandalonePostgresql` `id = 0`, name `coolify-db` | Coolify’s own database. UI treats `database_id === 0` as the instance DB (e.g. hide delete on backup screens). |
+| Local docker dest | `StandaloneDocker` `id = 0` | Destination on the localhost server (`destination_id = 0`). |
+| Root user / default GitHub App | seeders | First-install defaults. |
+
+**Do not assign `id = 0` to new or non-instance rows.** In particular, `ScheduledDatabaseBackup` and `ScheduledTask` are ordinary schedules. Legacy installs may still have a `coolify-db` backup at `id = 0`; resolve that backup via the `coolify-db` relation / uuid, not `ScheduledDatabaseBackup::find(0)`.
+
+`0` is a PHP/Eloquent landmine (`empty(0)` is true; keyset pagination `where('id', '>', $cursor)` starting at `0` skips the row). Queries that page by id must include `id = 0` on the first page (no lower bound, or cursor `< 0`). Prefer `chunkById()` over a hand-rolled `id > 0` cursor.
+
+### Frontend
+- Livewire 3 components with Alpine.js for client-side interactivity
+- Blade templates in `resources/views/livewire/`
+- Tailwind CSS v4 with `@tailwindcss/forms` and `@tailwindcss/typography`
+- Vite for asset bundling
+
+### Laravel 10 Structure (NOT Laravel 11+ slim structure)
+- Middleware in `app/Http/Middleware/` — custom middleware includes `CheckForcePasswordReset`, `DecideWhatToDoWithUser`, `ApiAbility`, `ApiSensitiveData`
+- Kernels: `app/Http/Kernel.php`, `app/Console/Kernel.php`
+- Exception handler: `app/Exceptions/Handler.php`
+- Service providers in `app/Providers/`
+
+## Livewire conventions
+
+### Dynamic lists and snapshot errors
+
+When an add, delete, or conversion leaves controls unresponsive and the browser reports `Snapshot missing on Livewire component`, inspect both component keys and refresh events. Stable keys alone may not fix it.
+
+- Give every Livewire component rendered in a loop a stable key based on the record ID, UUID, filename, or another immutable identity. Never include a collection count, `$loop->index`, or a reindexed array position in the key.
+- Pass the same stable identity to edit/delete actions. A keyed row can survive reordering while a `wire:ignore` or teleported Alpine modal keeps its original `submitAction`; an action such as `removeItem($index)` then targets a stale position after the first deletion. Resolve the current row server-side from an ID, UUID, or stable row hash instead.
+- Do not broadcast one refresh event to both a parent list component and children that the parent may insert, remove, or hide during the same operation. This can queue a child update after its snapshot has been removed from the DOM.
+- Split refresh responsibilities into targeted events. Refresh the parent for counts and tab visibility, and refresh an existing child list with a separate event. Use `$this->dispatch('event')->to(Component::class)` instead of a page-wide event when possible.
+- Before targeting a child list, confirm that it existed before the mutation, still exists afterward, and is on the active tab. A newly inserted child loads current data during `mount()` and does not need an immediate refresh. A removed or hidden child must not receive one.
+- A child that deletes itself should finish its own update, then target only the parent to refresh counts. The parent should not send a refresh back to that child when the list became empty.
+- Apply the same pattern to file, directory, conversion, and external reload paths such as Compose edits. One remaining broad event can reproduce the race.
+- Add regression tests that assert the scoped event names, assert the old broad event is not dispatched, and verify that keys do not depend on counts or positions. Manually repeat add/delete operations while watching the browser console.
+
+The persistent-storage implementation is the reference pattern: `Project\Service\Storage` handles `storageCountsChanged`, while `Project\Shared\Storages\All` handles `refreshVolumeList`.
+
+## Key Conventions
+
+- Use `php artisan make:*` commands with `--no-interaction` to create files
+- Use Eloquent relationships, avoid `DB::` facade — prefer `Model::query()`
+- PHP 8.5: constructor property promotion, explicit return types, type hints
+- Validation uses inline `Validator` facade in controllers/Livewire components and custom rules in `app/Rules/` — not Form Request classes
+- Run `vendor/bin/pint --dirty --format agent` before finalizing changes
+- Every change must have tests — write or update tests, then run them. For bug fixes, follow TDD: write a failing test first, then fix the bug (see Test Enforcement below)
+- Check sibling files for conventions before creating new files
+- When adding remote shell commands, account for servers using non-root SSH users: commands pass through `parseCommandsByLineForSudo()`, so test pipelines, redirects, substitutions, and `sh -c`/`bash -c` scripts with the non-root sudo parser.
+
+## Git Workflow
+
+- Production branch: `main`
+- Development branch: `release/v4.x`, where `x` is the next minor release (for example, `release/v4.5` while production is `4.4.x`). Do not use `next`.
+- Fix PRs should target the current production branch; feature PRs should target the current `release/v4.x` branch
+
 <laravel-boost-guidelines>
 === foundation rules ===
 
@@ -7,43 +247,15 @@ The Laravel Boost guidelines are specifically curated by Laravel maintainers for
 
 ## Foundational Context
 
-This application is a Laravel application and its main Laravel ecosystems package & versions are below. You are an expert with them all. Ensure you abide by these specific packages & versions.
+This application is a Laravel application running on PHP 8.5. You are an expert with the Laravel ecosystem. Always use the APIs that match the installed major version of each package — do not assume a version.
 
-- php - 8.5
-- laravel/fortify (FORTIFY) - v1
-- laravel/framework (LARAVEL) - v12
-- laravel/horizon (HORIZON) - v5
-- laravel/nightwatch (NIGHTWATCH) - v1
-- laravel/pail (PAIL) - v1
-- laravel/prompts (PROMPTS) - v0
-- laravel/sanctum (SANCTUM) - v4
-- laravel/socialite (SOCIALITE) - v5
-- livewire/livewire (LIVEWIRE) - v3
-- laravel/boost (BOOST) - v2
-- laravel/dusk (DUSK) - v8
-- laravel/mcp (MCP) - v0
-- laravel/pint (PINT) - v1
-- laravel/telescope (TELESCOPE) - v5
-- pestphp/pest (PEST) - v4
-- phpunit/phpunit (PHPUNIT) - v12
-- rector/rector (RECTOR) - v2
-- laravel-echo (ECHO) - v2
-- tailwindcss (TAILWINDCSS) - v4
-- vue (VUE) - v3
+Before relying on a package's API, confirm its installed version:
+- PHP packages: run `composer show --direct` to list direct dependencies with versions, or `composer show <vendor/package>` for a single package.
+- JS packages: check `package.json` for the installed versions.
 
 ## Skills Activation
 
-This project has domain-specific skills available. You MUST activate the relevant skill whenever you work in that domain—don't wait until you're stuck.
-
-- `laravel-best-practices` — Apply this skill whenever writing, reviewing, or refactoring Laravel PHP code. This includes creating or modifying controllers, models, migrations, form requests, policies, jobs, scheduled commands, service classes, and Eloquent queries. Triggers for N+1 and query performance issues, caching strategies, authorization and security patterns, validation, error handling, queue and job configuration, route definitions, and architectural decisions. Also use for Laravel code reviews and refactoring existing Laravel code to follow best practices. Covers any task involving Laravel backend PHP code patterns.
-- `configuring-horizon` — Use this skill whenever the user mentions Horizon by name in a Laravel context. Covers the full Horizon lifecycle: installing Horizon (horizon:install, Sail setup), configuring config/horizon.php (supervisor blocks, queue assignments, balancing strategies, minProcesses/maxProcesses), fixing the dashboard (authorization via Gate::define viewHorizon, blank metrics, horizon:snapshot scheduling), and troubleshooting production issues (worker crashes, timeout chain ordering, LongWaitDetected notifications, waits config). Also covers job tagging and silencing. Do not use for generic Laravel queues without Horizon, SQS or database drivers, standalone Redis setup, Linux supervisord, Telescope, or job batching.
-- `socialite-development` — Manages OAuth social authentication with Laravel Socialite. Activate when adding social login providers; configuring OAuth redirect/callback flows; retrieving authenticated user details; customizing scopes or parameters; setting up community providers; testing with Socialite fakes; or when the user mentions social login, OAuth, Socialite, or third-party authentication.
-- `livewire-development` — Use for any task or question involving Livewire. Activate if user mentions Livewire, wire: directives, or Livewire-specific concepts like wire:model, wire:click, invoke this skill. Covers building new components, debugging reactivity issues, real-time form validation, loading states, migrating from Livewire 2 to 3, converting component formats (SFC/MFC/class-based), and performance optimization. Do not use for non-Livewire reactive UI (React, Vue, Alpine-only, Inertia.js) or standard Laravel forms without Livewire.
-- `pest-testing` — Use this skill for Pest PHP testing in Laravel projects only. Trigger whenever any test is being written, edited, fixed, or refactored — including fixing tests that broke after a code change, adding assertions, converting PHPUnit to Pest, adding datasets, and TDD workflows. Always activate when the user asks how to write something in Pest, mentions test files or directories (tests/Feature, tests/Unit, tests/Browser), or needs browser testing, smoke testing multiple pages for JS errors, or architecture tests. Covers: it()/expect() syntax, datasets, mocking, browser testing (visit/click/fill), smoke testing, arch(), Livewire component tests, RefreshDatabase, and all Pest 4 features. Do not use for factories, seeders, migrations, controllers, models, or non-test PHP code.
-- `tailwindcss-development` — Always invoke when the user's message includes 'tailwind' in any form. Also invoke for: building responsive grid layouts (multi-column card grids, product grids), flex/grid page structures (dashboards with sidebars, fixed topbars, mobile-toggle navs), styling UI components (cards, tables, navbars, pricing sections, forms, inputs, badges), adding dark mode variants, fixing spacing or typography, and Tailwind v3/v4 work. The core use case: writing or fixing Tailwind utility classes in HTML templates (Blade, JSX, Vue). Skip for backend PHP logic, database queries, API routes, JavaScript with no HTML/CSS component, CSS file audits, build tool configuration, and vanilla CSS.
-- `fortify-development` — ACTIVATE when the user works on authentication in Laravel. This includes login, registration, password reset, email verification, two-factor authentication (2FA/TOTP/QR codes/recovery codes), profile updates, password confirmation, or any auth-related routes and controllers. Activate when the user mentions Fortify, auth, authentication, login, register, signup, forgot password, verify email, 2FA, or references app/Actions/Fortify/, CreateNewUser, UpdateUserProfileInformation, FortifyServiceProvider, config/fortify.php, or auth guards. Fortify is the frontend-agnostic authentication backend for Laravel that registers all auth routes and controllers. Also activate when building SPA or headless authentication, customizing login redirects, overriding response contracts like LoginResponse, or configuring login throttling. Do NOT activate for Laravel Passport (OAuth2 API tokens), Socialite (OAuth social login), or non-auth Laravel features.
-- `laravel-actions` — Build, refactor, and troubleshoot Laravel Actions using lorisleiva/laravel-actions. Use when implementing reusable action classes (object/controller/job/listener/command), converting service classes/controllers/jobs into actions, orchestrating workflows via faked actions, or debugging action entrypoints and wiring.
-- `debugging-output-and-previewing-html-using-ray` — Use when user says "send to Ray," "show in Ray," "debug in Ray," "log to Ray," "display in Ray," or wants to visualize data, debug output, or show diagrams in the Ray desktop application.
+This project has domain-specific skills available in `**/skills/**`. You MUST activate the relevant skill whenever you work in that domain—don't wait until you're stuck.
 
 ## Conventions
 
@@ -86,7 +298,7 @@ This project has domain-specific skills available. You MUST activate the relevan
 
 ## Searching Documentation (IMPORTANT)
 
-- Always use `search-docs` before making code changes. Do not skip this step. It returns version-specific docs based on installed packages automatically.
+- Use `search-docs` before changes that depend on Laravel ecosystem APIs, behavior, configuration, or version-specific syntax. Skip it for copy-only edits and other changes where package documentation is irrelevant. Reuse sufficient results already in context instead of searching again.
 - Pass a `packages` array to scope results when you know which packages are relevant.
 - Use multiple broad, topic-based queries: `['rate limiting', 'routing rate limiting', 'routing']`. Expect the most relevant results first.
 - Do not add package names to queries because package info is already shared. Use `test resource table`, not `filament 4 test resource table`.
@@ -98,12 +310,16 @@ This project has domain-specific skills available. You MUST activate the relevan
 3. Combine words and phrases for mixed queries: `middleware "rate limit"`.
 4. Use multiple queries for OR logic: `queries=["authentication", "middleware"]`.
 
+## Project Rules
+
+- This project contains committed, area-grouped rules in `.ai/rules` when that directory exists (settled decisions, non-obvious traps, standing constraints). Framework and package guidelines that only apply to specific paths (testing, frontend, components) also live there, under `.ai/rules/boost` — this is not just recorded decisions, it is load-bearing guidance you have not seen inline. Before you enter plan mode or create/edit any file, you MUST first: open @.ai/rules/index.md (it maps file globs to rule files), read every rule file whose globs cover the path(s) in scope, and run `grep -rin 'keyword' .ai/rules` to catch what a path match alone misses. Do not write code until you have read and are following every matching rule. If `.ai/rules` does not exist, continue without it.
+- Record a rule with `record-rule` only when the user explicitly asks for one. Instructions for the work at hand are not rules, no matter how emphatic: "remove this typo", "use X here" are work to do, not rules to record. Never record a rule on your own initiative, as a byproduct of a change, or to summarize what you just did. When the user does ask, pass a `glob` (e.g. `app/Http/Controllers/**`), a short `title`, and a few-line `note`. Use `record-rule` rather than your native memory or notes tool, because native memory is personal and session-scoped, while only `.ai/rules` is shared with the team and persists in the repo.
+
 ## Artisan
 
 - Run Artisan commands directly via the command line (e.g., `php artisan route:list`). Use `php artisan list` to discover available commands and `php artisan [command] --help` to check parameters.
 - Inspect routes with `php artisan route:list`. Filter with: `--method=GET`, `--name=users`, `--path=api`, `--except-vendor`, `--only-vendor`.
 - Read configuration values using dot notation: `php artisan config:show app.name`, `php artisan config:show database.default`. Or read config files directly from the `config/` directory.
-- To check environment variables, read the `.env` file directly.
 
 ## Tinker
 
@@ -118,16 +334,26 @@ This project has domain-specific skills available. You MUST activate the relevan
 - Always use curly braces for control structures, even for single-line bodies.
 - Use PHP 8 constructor property promotion: `public function __construct(public GitHub $github) { }`. Do not leave empty zero-parameter `__construct()` methods unless the constructor is private.
 - Use explicit return type declarations and type hints for all method parameters: `function isAccessible(User $user, ?string $path = null): bool`
-- Use TitleCase for Enum keys: `FavoritePerson`, `BestLake`, `Monthly`.
+- Follow existing application Enum naming conventions.
 - Prefer PHPDoc blocks over inline comments. Only add inline comments for exceptionally complex logic.
 - Use array shape type definitions in PHPDoc blocks.
+
+=== deployments rules ===
+
+# Deployment
+
+- Laravel can be deployed using [Laravel Cloud](https://cloud.laravel.com/), which is the fastest way to deploy and scale production Laravel applications.
+- Activate the `deploying-to-cloud` skill whenever deploying to Laravel Cloud, configuring Cloud environments or resources, using the Cloud CLI, or troubleshooting Cloud deployments.
 
 === tests rules ===
 
 # Test Enforcement
 
-- Every change must be programmatically tested. Write a new test or update an existing test, then run the affected tests to make sure they pass.
-- Run the minimum number of tests needed to ensure code quality and speed. Use `php artisan test --compact` with a specific filename or filter.
+- Add or update tests for behavior and logic changes when a test provides meaningful regression coverage.
+- Pure copy, styling, and layout-only changes do not require new or updated tests.
+- When test coverage applies, run the affected tests and ensure they pass.
+- Test the changed behavior and its important failure modes, but do not add tests beyond them.
+- Read the `testing-best-practices` skill before writing tests.
 
 === laravel/core rules ===
 
@@ -179,6 +405,7 @@ This project has domain-specific skills available. You MUST activate the relevan
 ## Database
 
 - When modifying a column, the migration must include all of the attributes that were previously defined on the column. Otherwise, they will be dropped and lost.
+
 - Laravel 12 allows limiting eagerly loaded records natively, without external packages: `$query->latest()->limit(10);`.
 
 ### Models
@@ -189,7 +416,7 @@ This project has domain-specific skills available. You MUST activate the relevan
 
 # Livewire
 
-- Livewire allow to build dynamic, reactive interfaces in PHP without writing JavaScript.
+- Livewire allows you to build dynamic, reactive interfaces in PHP without writing JavaScript.
 - You can use Alpine.js for client-side interactions instead of JavaScript frameworks.
 - Keep state server-side so the UI reflects it. Validate and authorize in actions as you would in HTTP requests.
 
@@ -202,10 +429,18 @@ This project has domain-specific skills available. You MUST activate the relevan
 
 === pest/core rules ===
 
-## Pest
+# Pest
 
-- This project uses Pest for testing. Create tests: `php artisan make:test --pest {name}`.
-- Run tests: `php artisan test --compact` or filter: `php artisan test --compact --filter=testName`.
-- Do NOT delete tests without approval.
+- This project uses Pest. Create tests with `php artisan make:test --pest {name}`.
+- Do not include the test suite directory in `{name}`. Use `SomeFeatureTest`, not `Feature/SomeFeatureTest`.
+- Read the `testing-best-practices` skill for guidance on coverage, naming, structure, dependency isolation, and review.
+- Do not delete tests or test files without approval. They are part of the application.
+
+## Running Tests
+
+- Run the narrowest set of tests that covers the change. Pass a file path or `--filter=testName` to `php artisan test --compact`.
+- Rerun a test after each change to it.
+- Run `vendor/bin/pest` to call the test runner directly. It accepts the same file path and `--filter=testName` arguments.
+- After the feature tests pass, ask the user to run the complete suite with `php artisan test --compact`.
 
 </laravel-boost-guidelines>

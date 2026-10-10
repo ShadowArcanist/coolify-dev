@@ -5,15 +5,20 @@ namespace App\Livewire\Project\New;
 use App\Models\Application;
 use App\Models\GithubApp;
 use App\Models\Project;
-use App\Models\StandaloneDocker;
-use App\Models\SwarmDocker;
 use App\Rules\ValidGitBranch;
+use App\Support\ValidationPatterns;
+use App\Traits\HasRepositoryDetection;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class GithubPrivateRepository extends Component
 {
+    use AuthorizesRequests;
+    use HasRepositoryDetection;
+
     public $current_step = 'github_apps';
 
     public $github_apps;
@@ -30,6 +35,7 @@ class GithubPrivateRepository extends Component
 
     public int $selected_repository_id;
 
+    #[Locked]
     public int $selected_github_app_id;
 
     public string $selected_repository_owner;
@@ -37,8 +43,6 @@ class GithubPrivateRepository extends Component
     public string $selected_repository_repo;
 
     public string $selected_branch_name = 'main';
-
-    public string $token;
 
     public $repositories;
 
@@ -62,7 +66,7 @@ class GithubPrivateRepository extends Component
 
     protected int $page = 1;
 
-    public $build_pack = 'nixpacks';
+    public $build_pack = 'railpack';
 
     public bool $show_is_static = true;
 
@@ -72,7 +76,10 @@ class GithubPrivateRepository extends Component
         $this->parameters = get_route_parameters();
         $this->query = request()->query();
         $this->repositories = $this->branches = collect();
-        $this->github_apps = GithubApp::private();
+        $this->github_apps = GithubApp::ownedByCurrentTeam()
+            ->where('is_public', false)
+            ->whereNotNull('app_id')
+            ->get();
     }
 
     public function updatedSelectedRepositoryId(): void
@@ -82,9 +89,11 @@ class GithubPrivateRepository extends Component
 
     public function updatedBuildPack()
     {
-        if ($this->build_pack === 'nixpacks') {
+        if ($this->build_pack === 'nixpacks' || $this->build_pack === 'railpack') {
             $this->show_is_static = true;
-            $this->port = 3000;
+            if (! $this->is_static) {
+                $this->port = 3000;
+            }
         } elseif ($this->build_pack === 'static') {
             $this->show_is_static = false;
             $this->is_static = false;
@@ -95,20 +104,25 @@ class GithubPrivateRepository extends Component
         }
     }
 
-    public function loadRepositories($github_app_id)
+    public function loadRepositories(int $github_app_id): void
     {
         $this->repositories = collect();
+        $this->branches = collect();
+        $this->total_branches_count = 0;
         $this->page = 1;
         $this->selected_github_app_id = $github_app_id;
-        $this->github_app = GithubApp::where('id', $github_app_id)->first();
-        $this->token = generateGithubInstallationToken($this->github_app);
-        $repositories = loadRepositoryByPage($this->github_app, $this->token, $this->page);
+        $this->github_app = GithubApp::ownedByCurrentTeam()
+            ->where('is_public', false)
+            ->whereNotNull('app_id')
+            ->findOrFail($github_app_id);
+        $token = generateGithubInstallationToken($this->github_app);
+        $repositories = loadRepositoryByPage($this->github_app, $token, $this->page);
         $this->total_repositories_count = $repositories['total_count'];
         $this->repositories = $this->repositories->concat(collect($repositories['repositories']));
         if ($this->repositories->count() < $this->total_repositories_count) {
             while ($this->repositories->count() < $this->total_repositories_count) {
                 $this->page++;
-                $repositories = loadRepositoryByPage($this->github_app, $this->token, $this->page);
+                $repositories = loadRepositoryByPage($this->github_app, $token, $this->page);
                 $this->total_repositories_count = $repositories['total_count'];
                 $this->repositories = $this->repositories->concat(collect($repositories['repositories']));
             }
@@ -122,8 +136,9 @@ class GithubPrivateRepository extends Component
 
     public function loadBranches()
     {
-        $this->selected_repository_owner = $this->repositories->where('id', $this->selected_repository_id)->first()['owner']['login'];
-        $this->selected_repository_repo = $this->repositories->where('id', $this->selected_repository_id)->first()['name'];
+        $repository = $this->repositories->firstWhere('id', $this->selected_repository_id);
+        $this->selected_repository_owner = data_get($repository, 'owner.login');
+        $this->selected_repository_repo = data_get($repository, 'name');
         $this->branches = collect();
         $this->page = 1;
         $this->loadBranchByPage();
@@ -134,12 +149,19 @@ class GithubPrivateRepository extends Component
             }
         }
         $this->branches = sortBranchesByPriority($this->branches);
-        $this->selected_branch_name = data_get($this->branches, '0.name', 'main');
+        $defaultBranch = data_get($repository, 'default_branch', 'main');
+        $this->selected_branch_name = $this->branches->contains('name', $defaultBranch)
+            ? $defaultBranch
+            : data_get($this->branches, '0.name', 'main');
+
+        $this->detectRepository();
     }
 
     protected function loadBranchByPage()
     {
-        $response = Http::GitHub($this->github_app->api_url, $this->token)
+        $token = generateGithubInstallationToken($this->github_app);
+
+        $response = Http::GitHub($this->github_app->api_url, $token)
             ->timeout(20)
             ->retry(3, 200, throw: false)
             ->get("/repos/{$this->selected_repository_owner}/{$this->selected_repository_repo}/branches", [
@@ -155,9 +177,20 @@ class GithubPrivateRepository extends Component
         $this->branches = $this->branches->concat(collect($json));
     }
 
+    protected function applicationForDetection(): Application
+    {
+        return $this->unsavedApplicationForDetection(
+            str($this->selected_repository_owner)->trim()->toString().'/'.str($this->selected_repository_repo)->trim()->toString(),
+            $this->selected_branch_name,
+            $this->github_app,
+        );
+    }
+
     public function submit()
     {
         try {
+            $this->authorize('create', Application::class);
+
             // Validate git repository parts and branch
             $validator = validator([
                 'selected_repository_owner' => $this->selected_repository_owner,
@@ -168,27 +201,24 @@ class GithubPrivateRepository extends Component
                 'selected_repository_owner' => 'required|string|regex:/^[a-zA-Z0-9\-_]+$/',
                 'selected_repository_repo' => 'required|string|regex:/^[a-zA-Z0-9\-_\.]+$/',
                 'selected_branch_name' => ['required', 'string', new ValidGitBranch],
-                'docker_compose_location' => \App\Support\ValidationPatterns::filePathRules(),
+                'docker_compose_location' => ValidationPatterns::filePathRules(),
             ]);
 
             if ($validator->fails()) {
                 throw new \RuntimeException('Invalid repository data: '.$validator->errors()->first());
             }
 
-            $destination_uuid = $this->query['destination'];
-            $destination = StandaloneDocker::where('uuid', $destination_uuid)->first();
+            $destination_uuid = $this->query['destination'] ?? null;
+            $destination = find_resource_destination_for_current_team($destination_uuid);
             if (! $destination) {
-                $destination = SwarmDocker::where('uuid', $destination_uuid)->first();
-            }
-            if (! $destination) {
-                throw new \Exception('Destination not found. What?!');
+                throw new \Exception('Destination not found.');
             }
             $destination_class = $destination->getMorphClass();
 
-            $project = Project::where('uuid', $this->parameters['project_uuid'])->first();
-            $environment = $project->load(['environments'])->environments->where('uuid', $this->parameters['environment_uuid'])->first();
+            $project = Project::ownedByCurrentTeam()->where('uuid', $this->parameters['project_uuid'])->firstOrFail();
+            $environment = $project->environments()->where('uuid', $this->parameters['environment_uuid'])->firstOrFail();
 
-            $application = Application::create([
+            $application_init = [
                 'name' => generate_application_name($this->selected_repository_owner.'/'.$this->selected_repository_repo, $this->selected_branch_name),
                 'repository_project_id' => $this->selected_repository_id,
                 'git_repository' => str($this->selected_repository_owner)->trim()->toString().'/'.str($this->selected_repository_repo)->trim()->toString(),
@@ -202,21 +232,30 @@ class GithubPrivateRepository extends Component
                 'destination_type' => $destination_class,
                 'source_id' => $this->github_app->id,
                 'source_type' => $this->github_app->getMorphClass(),
-            ]);
+            ];
+
+            if ($this->build_pack === 'dockerfile' || $this->build_pack === 'dockerimage') {
+                $application_init['health_check_enabled'] = false;
+            }
+            if ($this->build_pack === 'dockerfile' && $dockerfileLocation = $this->selectedDockerfileLocation()) {
+                $application_init['dockerfile_location'] = $dockerfileLocation;
+            }
+            if ($this->build_pack === 'dockercompose') {
+                $application_init['docker_compose_location'] = $this->docker_compose_location;
+            }
+
+            $application = new Application($application_init);
+            $application->save();
             $application->settings->is_static = $this->is_static;
             $application->settings->save();
 
-            if ($this->build_pack === 'dockerfile' || $this->build_pack === 'dockerimage') {
-                $application->health_check_enabled = false;
-            }
-            if ($this->build_pack === 'dockercompose') {
-                $application['docker_compose_location'] = $this->docker_compose_location;
-            }
             $fqdn = generateUrl(server: $destination->server, random: $application->uuid);
             $application->fqdn = $fqdn;
 
             $application->name = generate_application_name($this->selected_repository_owner.'/'.$this->selected_repository_repo, $this->selected_branch_name, $application->uuid);
             $application->save();
+
+            $this->importDetectedEnvironmentVariables($application);
 
             return redirect()->route('project.application.configuration', [
                 'application_uuid' => $application->uuid,
