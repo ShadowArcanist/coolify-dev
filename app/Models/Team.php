@@ -2,18 +2,24 @@
 
 namespace App\Models;
 
+use App\Actions\User\RevokeUserTeamTokens;
+use App\Contracts\ThrottledNotification;
 use App\Events\ServerReachabilityChanged;
 use App\Notifications\Channels\SendsDiscord;
 use App\Notifications\Channels\SendsEmail;
 use App\Notifications\Channels\SendsNtfy;
 use App\Notifications\Channels\SendsPushover;
 use App\Notifications\Channels\SendsSlack;
+use App\Notifications\Server\Unreachable;
+use App\Traits\Auditable;
 use App\Traits\HasNotificationSettings;
 use App\Traits\HasSafeStringAttribute;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use OpenApi\Attributes as OA;
 
 #[OA\Schema(
@@ -28,6 +34,7 @@ use OpenApi\Attributes as OA;
         'updated_at' => ['type' => 'string', 'description' => 'The date and time the team was last updated.'],
         'show_boarding' => ['type' => 'boolean', 'description' => 'Whether to show the boarding screen or not.'],
         'custom_server_limit' => ['type' => 'string', 'description' => 'The custom server limit.'],
+        'is_build_server_fallback_enabled' => ['type' => 'boolean', 'description' => 'Whether deployments can fall back to the deployment server when no usable dedicated build server is available.'],
         'members' => new OA\Property(
             property: 'members',
             type: 'array',
@@ -39,12 +46,30 @@ use OpenApi\Attributes as OA;
 
 class Team extends Model implements SendsDiscord, SendsEmail, SendsNtfy, SendsPushover, SendsSlack
 {
-    use HasFactory, HasNotificationSettings, HasSafeStringAttribute, Notifiable;
+    use Auditable, HasFactory, HasNotificationSettings, HasSafeStringAttribute;
+    use Notifiable {
+        notify as sendNotification;
+    }
 
-    protected $guarded = [];
+    protected $fillable = [
+        'name',
+        'description',
+        'personal_team',
+        'show_boarding',
+        'custom_server_limit',
+        'is_mcp_server_enabled',
+        'is_build_server_fallback_enabled',
+    ];
+
+    protected $attributes = [
+        'is_mcp_server_enabled' => true,
+        'is_build_server_fallback_enabled' => true,
+    ];
 
     protected $casts = [
         'personal_team' => 'boolean',
+        'is_mcp_server_enabled' => 'boolean',
+        'is_build_server_fallback_enabled' => 'boolean',
     ];
 
     protected static function booted()
@@ -61,31 +86,42 @@ class Team extends Model implements SendsDiscord, SendsEmail, SendsNtfy, SendsPu
             $team->ntfyNotificationSettings()->create();
         });
 
-        static::saving(function ($team) {
+        static::updating(function ($team) {
             if (auth()->user()?->isMember()) {
                 throw new \Exception('You are not allowed to update this team.');
             }
         });
 
-        static::deleting(function ($team) {
-            $keys = $team->privateKeys;
-            foreach ($keys as $key) {
+        static::deleting(function (Team $team) {
+            RevokeUserTeamTokens::forTeam($team->id);
+
+            foreach ($team->privateKeys as $key) {
                 $key->delete();
             }
-            $sources = $team->sources();
-            foreach ($sources as $source) {
+
+            // Transfer instance-wide sources to root team so they remain available
+            $systemWideSources = GithubApp::where('team_id', $team->id)->where('is_system_wide', true)->get()
+                ->concat(GitlabApp::where('team_id', $team->id)->where('is_system_wide', true)->get());
+            foreach ($systemWideSources as $source) {
+                $source->update(['team_id' => 0]);
+            }
+
+            // Delete non-instance-wide sources owned by this team
+            $teamSources = GithubApp::where('team_id', $team->id)->get()
+                ->concat(GitlabApp::where('team_id', $team->id)->get());
+            foreach ($teamSources as $source) {
                 $source->delete();
             }
-            $tags = Tag::whereTeamId($team->id)->get();
-            foreach ($tags as $tag) {
+
+            foreach (Tag::whereTeamId($team->id)->get() as $tag) {
                 $tag->delete();
             }
-            $shared_variables = $team->environment_variables();
-            foreach ($shared_variables as $shared_variable) {
-                $shared_variable->delete();
+
+            foreach ($team->environment_variables()->get() as $sharedVariable) {
+                $sharedVariable->delete();
             }
-            $s3s = $team->s3s;
-            foreach ($s3s as $s3) {
+
+            foreach ($team->s3s as $s3) {
                 $s3->delete();
             }
         });
@@ -98,9 +134,27 @@ class Team extends Model implements SendsDiscord, SendsEmail, SendsNtfy, SendsPu
             return true;
         }
         $serverLimit = Team::serverLimit($team);
-        $servers = $team->servers->count();
+        $servers = $team->servers()->count();
 
         return $servers >= $serverLimit;
+    }
+
+    public static function createServerWithinLimit(int $teamId, array $attributes): Server
+    {
+        return DB::transaction(function () use ($teamId, $attributes): Server {
+            self::ensureServerCapacity($teamId);
+
+            return Server::create($attributes);
+        });
+    }
+
+    /** Call within a transaction so the team lock lasts through the server insert. */
+    public static function ensureServerCapacity(int $teamId): void
+    {
+        $team = self::query()->lockForUpdate()->findOrFail($teamId);
+        if (self::serverLimitReached($team)) {
+            throw ValidationException::withMessages(['server' => 'Server limit reached for your subscription.']);
+        }
     }
 
     public function subscriptionPastOverDue()
@@ -214,13 +268,15 @@ class Team extends Model implements SendsDiscord, SendsEmail, SendsNtfy, SendsPu
             $this->getNotificationSettings('ntfy')?->isEnabled();
     }
 
-    public function subscriptionEnded()
+    public function subscriptionEnded(?Subscription $subscription = null): void
     {
-        if (! $this->subscription) {
+        $subscription ??= $this->subscription;
+
+        if (! $subscription) {
             return;
         }
 
-        $this->subscription->update([
+        $subscription->update([
             'stripe_subscription_id' => null,
             'stripe_cancel_at_period_end' => false,
             'stripe_invoice_paid' => false,
@@ -233,12 +289,36 @@ class Team extends Model implements SendsDiscord, SendsEmail, SendsNtfy, SendsPu
                 'is_reachable' => false,
             ]);
             ServerReachabilityChanged::dispatch($server);
+            $server->unreachable_count = 3;
+            $server->save();
+            NotificationThrottle::record($server, Unreachable::class);
         }
+    }
+
+    /**
+     * Send a notification, unless it is throttled and was already sent within its interval.
+     * A throttle claim is released when sending throws, so a failed send is retried on the next check.
+     */
+    public function notify($instance): void
+    {
+        $subject = $instance instanceof ThrottledNotification ? $instance->throttleSubject() : null;
+        if ($subject === null) {
+            $this->sendNotification($instance);
+
+            return;
+        }
+
+        NotificationThrottle::sendOnce(
+            $subject,
+            $instance::class,
+            now()->subMinutes($instance->throttleIntervalMinutes()),
+            fn () => $this->sendNotification($instance),
+        );
     }
 
     public function environment_variables()
     {
-        return $this->hasMany(SharedEnvironmentVariable::class)->whereNull('project_id')->whereNull('environment_id');
+        return $this->hasMany(SharedEnvironmentVariable::class)->where('type', 'team');
     }
 
     public function members()
@@ -261,13 +341,22 @@ class Team extends Model implements SendsDiscord, SendsEmail, SendsNtfy, SendsPu
         return $this->hasMany(TeamInvitation::class);
     }
 
-    public function isEmpty()
+    /**
+     * @return array<string, int>
+     */
+    public function deletionBlockers(): array
     {
-        if ($this->projects()->count() === 0 && $this->servers()->count() === 0 && $this->privateKeys()->count() === 0 && $this->sources()->count() === 0) {
-            return true;
-        }
+        return array_filter([
+            'projects' => $this->projects()->count(),
+            'servers' => $this->servers()->count(),
+            'sources' => GithubApp::query()->where('team_id', $this->id)->where('is_system_wide', false)->count()
+                + GitlabApp::query()->where('team_id', $this->id)->where('is_system_wide', false)->count(),
+        ]);
+    }
 
-        return false;
+    public function isEmpty(): bool
+    {
+        return $this->deletionBlockers() === [];
     }
 
     public function projects()
@@ -280,6 +369,18 @@ class Team extends Model implements SendsDiscord, SendsEmail, SendsNtfy, SendsPu
         return $this->hasMany(Server::class);
     }
 
+    public function usesSwarm(): bool
+    {
+        return $this->servers()
+            ->where(function ($query) {
+                $query->whereHas('settings', function ($settings) {
+                    $settings->where('is_swarm_manager', true)
+                        ->orWhere('is_swarm_worker', true);
+                })->orWhereHas('swarmDockers');
+            })
+            ->exists();
+    }
+
     public function privateKeys()
     {
         return $this->hasMany(PrivateKey::class);
@@ -288,6 +389,11 @@ class Team extends Model implements SendsDiscord, SendsEmail, SendsNtfy, SendsPu
     public function cloudProviderTokens()
     {
         return $this->hasMany(CloudProviderToken::class);
+    }
+
+    public function integrationTokens()
+    {
+        return $this->hasMany(IntegrationToken::class);
     }
 
     public function sources()

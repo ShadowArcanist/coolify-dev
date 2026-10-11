@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use App\Traits\HasSafeStringAttribute;
 use DanHarrin\LivewireRateLimiting\WithRateLimiting;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -30,7 +32,7 @@ use phpseclib3\Crypt\PublicKeyLoader;
 )]
 class PrivateKey extends BaseModel
 {
-    use HasSafeStringAttribute, WithRateLimiting;
+    use Auditable, HasFactory, HasSafeStringAttribute, WithRateLimiting;
 
     protected $fillable = [
         'name',
@@ -39,6 +41,10 @@ class PrivateKey extends BaseModel
         'is_git_related',
         'team_id',
         'fingerprint',
+    ];
+
+    protected $hidden = [
+        'private_key',
     ];
 
     protected $casts = [
@@ -59,7 +65,7 @@ class PrivateKey extends BaseModel
             }
 
             $key->fingerprint = self::generateFingerprint($key->private_key);
-            if (self::fingerprintExists($key->fingerprint, $key->id)) {
+            if (self::fingerprintExists($key->fingerprint, $key->id, $key->team_id)) {
                 throw ValidationException::withMessages([
                     'private_key' => ['This private key already exists.'],
                 ]);
@@ -286,7 +292,7 @@ class PrivateKey extends BaseModel
 
     public function getKeyLocation()
     {
-        return "/var/www/html/storage/app/ssh/keys/ssh_key@{$this->uuid}";
+        return Storage::disk('ssh-keys')->path("ssh_key@{$this->uuid}");
     }
 
     public function updatePrivateKey(array $data)
@@ -359,17 +365,24 @@ class PrivateKey extends BaseModel
         }
     }
 
-    public static function fingerprintExists($fingerprint, $excludeId = null)
+    /**
+     * Whether another key with this fingerprint exists in the given team.
+     *
+     * The check is always limited to $teamId, never to the signed in user's
+     * team or to all teams. Without a team id nothing can match, because every
+     * key belongs to a team.
+     */
+    public static function fingerprintExists(?string $fingerprint, ?int $excludeId = null, ?int $teamId = null): bool
     {
-        $query = self::query()
-            ->where('fingerprint', $fingerprint)
-            ->where('id', '!=', $excludeId);
-
-        if (currentTeam()) {
-            $query->where('team_id', currentTeam()->id);
+        if (is_null($fingerprint) || is_null($teamId)) {
+            return false;
         }
 
-        return $query->exists();
+        return self::query()
+            ->where('team_id', $teamId)
+            ->where('fingerprint', $fingerprint)
+            ->when(! is_null($excludeId), fn ($query) => $query->whereKeyNot($excludeId))
+            ->exists();
     }
 
     public static function cleanupUnusedKeys()

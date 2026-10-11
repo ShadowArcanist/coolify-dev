@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Notifications\Dto\NtfyMessage;
+use App\Rules\SafeWebhookUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -10,6 +11,8 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class SendMessageToNtfyJob implements ShouldBeEncrypted, ShouldQueue
 {
@@ -45,10 +48,35 @@ class SendMessageToNtfyJob implements ShouldBeEncrypted, ShouldQueue
      */
     public function handle(): void
     {
+        $validator = Validator::make(
+            ['ntfy_url' => $this->ntfyUrl],
+            ['ntfy_url' => ['required', 'url', new SafeWebhookUrl]]
+        );
+
+        if ($validator->fails()) {
+            Log::warning('SendMessageToNtfyJob: blocked unsafe ntfy server URL', [
+                'url' => SafeWebhookUrl::redactedUrlForLog($this->ntfyUrl),
+                'errors' => $validator->errors()->all(),
+            ]);
+
+            return;
+        }
+
+        try {
+            $httpOptions = SafeWebhookUrl::httpClientOptions($this->ntfyUrl);
+        } catch (\RuntimeException $e) {
+            Log::warning('SendMessageToNtfyJob: blocked unsafe ntfy server URL at send time', [
+                'url' => SafeWebhookUrl::redactedUrlForLog($this->ntfyUrl),
+                'error' => $e->getMessage(),
+            ]);
+
+            return;
+        }
+
         $payload = $this->message->toPayload($this->ntfyTopic);
         $url = rtrim($this->ntfyUrl, '/');
 
-        $request = Http::asJson();
+        $request = Http::withOptions($httpOptions)->asJson();
 
         if ($this->ntfyToken) {
             $request = $request->withToken($this->ntfyToken);
@@ -59,7 +87,8 @@ class SendMessageToNtfyJob implements ShouldBeEncrypted, ShouldQueue
         $response = $request->post($url, $payload);
 
         if ($response->failed()) {
-            throw new \RuntimeException('Ntfy notification failed with '.$response->status().' status code.'.$response->body());
+            // The response body can echo credentials or the message, so keep it out of failed job records.
+            throw new \RuntimeException('Ntfy notification failed with '.$response->status().' status code.');
         }
     }
 }

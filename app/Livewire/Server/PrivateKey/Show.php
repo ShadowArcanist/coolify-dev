@@ -22,15 +22,20 @@ class Show extends Component
     {
         try {
             $this->server = Server::ownedByCurrentTeam()->whereUuid($server_uuid)->firstOrFail();
-            $this->privateKeys = PrivateKey::ownedByCurrentTeam()->get()->where('is_git_related', false);
+            $this->loadPrivateKeys();
         } catch (\Throwable $e) {
             return handleError($e, $this);
         }
     }
 
+    private function loadPrivateKeys(): void
+    {
+        $this->privateKeys = PrivateKey::where('team_id', $this->server->team_id)->get()->where('is_git_related', false);
+    }
+
     public function setPrivateKey($privateKeyId)
     {
-        $ownedPrivateKey = PrivateKey::ownedByCurrentTeam()->find($privateKeyId);
+        $ownedPrivateKey = PrivateKey::where('team_id', $this->server->team_id)->find($privateKeyId);
         if (is_null($ownedPrivateKey)) {
             $this->dispatch('error', 'You are not allowed to use this private key.');
 
@@ -52,6 +57,34 @@ class Show extends Component
             $this->server->refresh();
             $this->server->validateConnection();
             $this->dispatch('error', $e->getMessage());
+        }
+    }
+
+    public function generatePrivateKey(string $type): void
+    {
+        try {
+            $this->authorize('create', PrivateKey::class);
+            $this->authorize('update', $this->server);
+
+            if (! in_array($type, ['ed25519', 'rsa'], true)) {
+                $this->dispatch('error', 'Invalid private key type.');
+
+                return;
+            }
+
+            $keyData = PrivateKey::generateNewKeyPair($type);
+            $privateKey = PrivateKey::createAndStore([
+                'name' => $keyData['name'],
+                'description' => $keyData['description'],
+                'private_key' => $keyData['private_key'],
+                'team_id' => $this->server->team_id,
+            ]);
+
+            $this->loadPrivateKeys();
+            $this->dispatch('copyPublicKeyToClipboard', publicKey: $privateKey->public_key);
+            $this->dispatch('success', 'Private key created successfully.');
+        } catch (\Throwable $e) {
+            handleError($e, $this);
         }
     }
 

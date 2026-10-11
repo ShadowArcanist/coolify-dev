@@ -21,13 +21,16 @@ class NtfyChannel
 
         $message->customPriority = $ntfySettings->getPriorityForLevel($message->level);
 
+        // Values of a previously selected auth method can still be stored, so send only the selected one.
+        $authMethod = $ntfySettings->ntfy_auth_method;
+
         SendMessageToNtfyJob::dispatch(
             $message,
             $ntfySettings->ntfy_url,
             $ntfySettings->ntfy_topic,
-            $ntfySettings->ntfy_token,
-            $ntfySettings->ntfy_username,
-            $ntfySettings->ntfy_password,
+            $authMethod === 'token' ? $ntfySettings->ntfy_token : null,
+            $authMethod === 'basic' ? $ntfySettings->ntfy_username : null,
+            $authMethod === 'basic' ? $ntfySettings->ntfy_password : null,
         );
     }
 }

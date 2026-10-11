@@ -4,19 +4,278 @@ use App\Enums\ProxyTypes;
 use App\Models\Application;
 use App\Models\ApplicationPreview;
 use App\Models\Server;
+use App\Models\Service;
 use App\Models\ServiceApplication;
+use App\Models\ServiceDatabase;
+use App\Support\ValidationPatterns;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Spatie\Url\Url;
 use Symfony\Component\Yaml\Yaml;
-use Visus\Cuid2\Cuid2;
 
-function getCurrentApplicationContainerStatus(Server $server, int $id, ?int $pullRequestId = null, ?bool $includePullrequests = false): Collection
+/**
+ * Stable short hash for compose service names used in Traefik router/service IDs.
+ * Keeps api.test vs api-test distinct after label-safe normalization.
+ */
+function traefikServiceNameHash(string $serviceName): string
+{
+    return substr(md5($serviceName), 0, 4);
+}
+
+/**
+ * Label-safe Traefik router/service name segment for a compose service.
+ * Dots (and other non [a-zA-Z0-9-]) break Docker/Traefik label paths; always append a hash
+ * so normalized names like api.test and api-test never collide.
+ */
+function traefikSafeServiceNameSegment(string $serviceName): string
+{
+    $normalized = str($serviceName)
+        ->replace('.', '-')
+        ->replace('_', '-')
+        ->replaceMatches('/[^a-zA-Z0-9-]+/', '-')
+        ->replaceMatches('/-+/', '-')
+        ->trim('-')
+        ->toString();
+
+    if ($normalized === '') {
+        $normalized = 'service';
+    }
+
+    return $normalized.'-'.traefikServiceNameHash($serviceName);
+}
+
+/**
+ * Key that Sentinel uses to group Caddy access-log lines. It is the same key that Sentinel gets
+ * from the Traefik router name (`https-{i}-{KEY}@docker`), so both proxies report a resource the same way.
+ * Only [A-Za-z0-9-] can occur, so the value is safe in a Docker label and in a Caddyfile.
+ */
+function caddyTrafficAppKey(string $uuid, ?string $serviceName = null): string
+{
+    // Same truthiness check as fqdnLabelsForTraefik(), so the keys stay equal.
+    $key = $serviceName ? $uuid.'-'.traefikSafeServiceNameSegment($serviceName) : $uuid;
+
+    return (string) preg_replace('/[^A-Za-z0-9-]+/', '-', $key);
+}
+
+/**
+ * UUID of the resource that owns a container.
+ *
+ * New containers carry `coolify.{type}Uuid`. Containers created before that label carry a
+ * numeric `coolify.{type}Id` instead. Ids change when a server moves to another instance, so
+ * for those containers the owner is read from the compose project (Swarm: stack namespace),
+ * which is the resource UUID for deployments since mid-2024.
+ *
+ * @param  'application'|'service'|'database'  $type
+ */
+function containerOwnerUuid(Collection|array|string $labels, string $type): ?string
+{
+    $labels = is_string($labels) ? format_docker_labels_to_json($labels) : collect($labels);
+
+    $uuid = $labels->get("coolify.{$type}Uuid");
+    if (filled($uuid)) {
+        return (string) $uuid;
+    }
+
+    if (! $labels->has("coolify.{$type}Id")) {
+        return null;
+    }
+
+    $legacyUuid = $labels->get('com.docker.compose.project') ?? $labels->get('com.docker.stack.namespace');
+
+    return filled($legacyUuid) ? (string) $legacyUuid : null;
+}
+
+/**
+ * Resource that owns a container, from the given candidates, by UUID label or compose project /
+ * stack namespace (see containerOwnerUuid()). Applications deployed before mid-2024 used the
+ * deployment directory as compose project; their compose service (the container name) starts
+ * with the application UUID. The numeric id label is never used: another Coolify instance that
+ * manages the same server can have a resource with the same id.
+ *
+ * @template TResource of \Illuminate\Database\Eloquent\Model
+ *
+ * @param  Collection<int, TResource>  $resources
+ * @param  'application'|'service'|'database'  $type
+ * @return TResource|null
+ */
+function resolveContainerOwner(Collection $resources, Collection|array|string $labels, string $type): mixed
+{
+    $labels = is_string($labels) ? format_docker_labels_to_json($labels) : collect($labels);
+
+    $uuid = containerOwnerUuid($labels, $type);
+    $owner = $uuid ? $resources->firstWhere('uuid', $uuid) : null;
+    if ($owner || $type !== 'application' || filled($labels->get('coolify.applicationUuid')) || ! $labels->has('coolify.applicationId')) {
+        return $owner;
+    }
+
+    $composeService = (string) $labels->get('com.docker.compose.service');
+
+    return $resources->first(fn ($resource) => $composeService === $resource->uuid || str_starts_with($composeService, $resource->uuid.'-'));
+}
+
+/**
+ * Id of the application that owns a container, also for applications not in $applications
+ * (for example the parent of a preview). Same order as resolveContainerOwner().
+ *
+ * @param  array<string, int>|null  $applicationIdsByUuid  Owners outside $applications, preloaded with
+ *                                                         containerApplicationIdsByUuid(); null queries per call.
+ */
+function resolveContainerApplicationId(Collection $applications, Collection|array|string $labels, ?array $applicationIdsByUuid = null): ?int
+{
+    $labels = is_string($labels) ? format_docker_labels_to_json($labels) : collect($labels);
+
+    $owner = resolveContainerOwner($applications, $labels, 'application');
+    if ($owner) {
+        return (int) $owner->id;
+    }
+
+    $uuid = containerOwnerUuid($labels, 'application');
+    if (! $uuid) {
+        return null;
+    }
+    if ($applicationIdsByUuid !== null) {
+        return $applicationIdsByUuid[$uuid] ?? null;
+    }
+
+    $id = Application::withTrashed()->where('uuid', $uuid)->value('id');
+
+    return $id !== null ? (int) $id : null;
+}
+
+/**
+ * Ids of the applications (including trashed ones) that own the given containers but are not in
+ * $applications, keyed by owner UUID, in one query. Pass the result to resolveContainerApplicationId()
+ * so a batch of containers does not query once per container.
+ *
+ * @param  iterable<Collection|array|string>  $containerLabels
+ * @return array<string, int>
+ */
+function containerApplicationIdsByUuid(Collection $applications, iterable $containerLabels): array
+{
+    $uuids = [];
+    foreach ($containerLabels as $labels) {
+        $uuid = containerOwnerUuid($labels, 'application');
+        if ($uuid) {
+            $uuids[$uuid] = true;
+        }
+    }
+    foreach ($applications->pluck('uuid')->filter() as $knownUuid) {
+        unset($uuids[$knownUuid]);
+    }
+    if ($uuids === []) {
+        return [];
+    }
+
+    return Application::withTrashed()
+        ->whereIn('uuid', array_keys($uuids))
+        ->pluck('id', 'uuid')
+        ->map(fn ($id) => (int) $id)
+        ->all();
+}
+
+/**
+ * Whether a container belongs to a resource of the given type (by UUID or older numeric id label).
+ *
+ * @param  'application'|'service'|'database'  $type
+ */
+function isContainerOfType(Collection|array|string $labels, string $type): bool
+{
+    $labels = is_string($labels) ? format_docker_labels_to_json($labels) : collect($labels);
+
+    return filled($labels->get("coolify.{$type}Uuid")) || filled($labels->get("coolify.{$type}Id"));
+}
+
+/**
+ * Service, sub type, and service application/database that own a service container.
+ *
+ * The part is matched by `coolify.service.subUuid`; containers from before that label are matched
+ * by their compose service key (the part name), then by the older numeric `coolify.service.subId`.
+ *
+ * @param  Collection<int, Service>  $services
+ * @return array{0: ?Service, 1: ?string, 2: ServiceApplication|ServiceDatabase|null}
+ */
+function resolveServiceContainerOwner(Collection $services, Collection|array $flatLabels): array
+{
+    $labels = collect($flatLabels);
+    $service = resolveContainerOwner($services, $labels, 'service');
+    if (! $service) {
+        return [null, null, null];
+    }
+
+    $subType = $labels->get('coolify.service.subType');
+    $parts = $subType === 'database' ? $service->databases : $service->applications;
+    $subUuid = $labels->get('coolify.service.subUuid');
+    if (filled($subUuid)) {
+        return [$service, $subType, $parts->firstWhere('uuid', $subUuid)];
+    }
+
+    $legacySubId = $labels->get('coolify.service.subId');
+    $part = $parts->firstWhere('name', $labels->get('com.docker.compose.service'))
+        ?? (is_numeric($legacySubId) ? $parts->first(fn ($part) => (int) $part->id === (int) $legacySubId) : null);
+
+    return [$service, $subType, $part];
+}
+
+/**
+ * Remote commands that list, as JSON lines, the containers owned by a resource (see containerOwnerUuid()).
+ *
+ * @param  'application'|'service'|'database'  $type
+ * @param  list<string>  $extraFilters  Additional `--filter` values, e.g. `label=coolify.pullRequestId=0`.
+ * @param  list<string>|null  $legacyExtraFilters  Filters for containers without the UUID label; defaults to $extraFilters.
+ * @return list<string>
+ */
+function dockerPsByOwnerCommands(string $type, string $uuid, array $extraFilters = [], string $format = '{{json .}}', bool $all = true, ?array $legacyExtraFilters = null): array
+{
+    $filters = fn (array $values) => collect($values)->map(fn (string $filter) => '--filter '.escapeshellarg($filter))->implode(' ');
+    $base = 'docker ps'.($all ? ' -a' : '');
+    $formatArgument = '--format '.escapeshellarg($format);
+    $legacyFilters = $legacyExtraFilters ?? $extraFilters;
+
+    $commands = [
+        $base.' '.$filters(["label=coolify.{$type}Uuid={$uuid}", ...$extraFilters]).' '.$formatArgument,
+        $base.' '.$filters(["label=coolify.{$type}Id", "label=com.docker.compose.project={$uuid}", ...$legacyFilters]).' '.$formatArgument,
+    ];
+    if ($type === 'application') {
+        // Deployed before mid-2024 (see resolveContainerOwner()): the container name starts with the UUID.
+        $commands[] = $base.' '.$filters(['label=coolify.applicationId', "name=^{$uuid}", ...$legacyFilters]).' '.$formatArgument;
+    }
+
+    return $commands;
+}
+
+/**
+ * Run dockerPsByOwnerCommands() for a resource and return each container once.
+ *
+ * @param  'application'|'service'|'database'  $type
+ */
+function containersOwnedBy(Server $server, string $type, Model $resource): Collection
+{
+    $output = instant_remote_process(dockerPsByOwnerCommands($type, $resource->uuid), $server);
+
+    return format_docker_command_output_to_json($output)->filter()->unique('ID')->values();
+}
+
+/**
+ * One shell line that sets $container_ids to the ids of the containers owned by a resource.
+ *
+ * @param  'application'|'service'|'database'  $type
+ * @param  list<string>  $extraFilters
+ * @param  list<string>|null  $legacyExtraFilters
+ */
+function containerIdsByOwnerScript(string $type, string $uuid, array $extraFilters = [], bool $all = true, ?array $legacyExtraFilters = null): string
+{
+    $commands = dockerPsByOwnerCommands($type, $uuid, $extraFilters, '{{.ID}}', $all, $legacyExtraFilters);
+
+    return 'container_ids=$({ '.implode('; ', $commands).'; } | sort -u)';
+}
+
+function getCurrentApplicationContainerStatus(Server $server, Application $application, ?int $pullRequestId = null, ?bool $includePullrequests = false): Collection
 {
     $containers = collect([]);
     if (! $server->isSwarm()) {
-        $containers = instant_remote_process(["docker ps -a --filter='label=coolify.applicationId={$id}' --format '{{json .}}' "], $server);
-        $containers = format_docker_command_output_to_json($containers);
+        $containers = containersOwnedBy($server, 'application', $application);
 
         $containers = $containers->map(function ($container) use ($pullRequestId, $includePullrequests) {
             $labels = data_get($container, 'Labels');
@@ -45,7 +304,7 @@ function getCurrentApplicationContainerStatus(Server $server, int $id, ?int $pul
             if ($includePullrequests) {
                 return $container;
             }
-            if ($pullRequestId !== null && $pullRequestId !== 0 && str($labels)->contains("coolify.pullRequestId={$pullRequestId}")) {
+            if ($pullRequestId !== null && $pullRequestId !== 0 && (int) $prLabelValue === $pullRequestId) {
                 return $container;
             }
 
@@ -60,17 +319,41 @@ function getCurrentApplicationContainerStatus(Server $server, int $id, ?int $pul
     return $containers;
 }
 
-function getCurrentServiceContainerStatus(Server $server, int $id): Collection
+function getCurrentServiceContainerStatus(Server $server, Service $service): Collection
 {
     $containers = collect([]);
     if (! $server->isSwarm()) {
-        $containers = instant_remote_process(["docker ps -a --filter='label=coolify.serviceId={$id}' --format '{{json .}}' "], $server);
-        $containers = format_docker_command_output_to_json($containers);
-
-        return $containers->filter();
+        return containersOwnedBy($server, 'service', $service);
     }
 
     return $containers;
+}
+
+function getCurrentDatabaseContainerStatus(Server $server, Model $database): Collection
+{
+    $containers = collect([]);
+    if (! $server->isSwarm()) {
+        return containersOwnedBy($server, 'database', $database);
+    }
+
+    return $containers;
+}
+
+function getCurrentServiceSubContainerStatus(Server $server, Service $service, string $name): Collection
+{
+    return filterServiceSubContainersByName(getCurrentServiceContainerStatus($server, $service), $name);
+}
+
+function filterServiceSubContainersByName(Collection $containers, string $name): Collection
+{
+    return $containers->filter(function ($container) use ($name) {
+        $labels = data_get($container, 'Labels', []);
+        if (is_string($labels)) {
+            $labels = format_docker_labels_to_json($labels);
+        }
+
+        return collect($labels)->get('coolify.name') === $name;
+    })->values();
 }
 
 function format_docker_command_output_to_json($rawOutput): Collection
@@ -86,7 +369,7 @@ function format_docker_command_output_to_json($rawOutput): Collection
         return $outputLines
             ->reject(fn ($line) => empty($line))
             ->map(fn ($outputLine) => json_decode($outputLine, true, flags: JSON_THROW_ON_ERROR));
-    } catch (\Throwable) {
+    } catch (Throwable) {
         return collect([]);
     }
 }
@@ -104,11 +387,13 @@ function format_docker_labels_to_json(string|array $rawOutput): Collection
             $outputArray = explode(',', $outputLine);
 
             return collect($outputArray)
-                ->map(function ($outputLine) {
-                    return explode('=', $outputLine);
-                })
                 ->mapWithKeys(function ($outputLine) {
-                    return [$outputLine[0] => $outputLine[1]];
+                    $label = explode('=', $outputLine, 2);
+                    if (count($label) !== 2) {
+                        return [];
+                    }
+
+                    return [$label[0] => $label[1]];
                 });
         })[0];
 }
@@ -123,7 +408,7 @@ function format_docker_envs_to_json($rawOutput)
 
             return [$env[0] => $env[1]];
         });
-    } catch (\Throwable) {
+    } catch (Throwable) {
         return collect([]);
     }
 }
@@ -137,6 +422,100 @@ function checkMinimumDockerEngineVersion($dockerVersion)
 
     return $dockerVersion;
 }
+
+function parseDockerEngineVersion(?string $rawVersion): ?string
+{
+    if ($rawVersion === null || trim($rawVersion) === '') {
+        return null;
+    }
+
+    if (preg_match('/\d+\.\d+(?:\.\d+)?/', $rawVersion, $matches) !== 1) {
+        return null;
+    }
+
+    $parts = explode('.', $matches[0]);
+
+    return sprintf('%d.%d.%d', (int) $parts[0], (int) ($parts[1] ?? 0), (int) ($parts[2] ?? 0));
+}
+
+function dockerEngineVersionFromJson(?string $raw): ?string
+{
+    if ($raw === null || trim($raw) === '') {
+        return null;
+    }
+
+    $decoded = json_decode($raw, true);
+    if (! is_array($decoded)) {
+        return null;
+    }
+
+    $version = $decoded['Server']['Version'] ?? null;
+
+    return is_string($version) ? parseDockerEngineVersion($version) : null;
+}
+
+function dockerStopTimeoutOption(?string $dockerVersion): string
+{
+    $normalized = parseDockerEngineVersion($dockerVersion);
+    if ($normalized !== null && version_compare($normalized, '28.0.0', '>=')) {
+        return '--timeout';
+    }
+
+    return '--time';
+}
+
+function dockerStopCommand(int $timeout, string $containers, Server|string|null $dockerVersion = null): string
+{
+    $version = $dockerVersion instanceof Server
+        ? $dockerVersion->dockerVersion()
+        : $dockerVersion;
+
+    $option = dockerStopTimeoutOption($version);
+    $flag = $option === '--timeout'
+        ? "--timeout={$timeout}"
+        : "--time={$timeout}";
+
+    $command = "docker stop {$flag} {$containers}";
+
+    if (app()->bound('config') && isDev()) {
+        Log::info('docker stop command', [
+            'command' => $command,
+            'docker_version' => $version,
+        ]);
+    }
+
+    return $command;
+}
+
+function dockerRemoveCommandWithTimeout(string $container, int $timeout = 60, int $killAfter = 10): string
+{
+    $container = escapeShellValue($container);
+    $script = "if command -v timeout >/dev/null 2>&1; then output=\$(timeout -k {$killAfter}s {$timeout}s docker rm -f {$container} 2>&1); exit_code=\$?; else output=''; exit_code=124; fi; if [ \"\$exit_code\" -eq 124 ]; then echo '__COOLIFY_CONTAINER_REMOVE_TIMEOUT__'; elif [ \"\$exit_code\" -ne 0 ] && printf '%s' \"\$output\" | grep -q 'No such container:'; then exit 0; elif [ \"\$exit_code\" -ne 0 ]; then printf '%s\\n' \"\$output\" >&2; else printf '%s\\n' \"\$output\"; fi; exit \$exit_code";
+
+    return 'bash -c '.escapeShellValue($script);
+}
+
+function dockerRemoveCommand(string $container): string
+{
+    $command = 'docker rm -f '.escapeShellValue($container);
+
+    return dockerCommandIgnoringError($command, 'No such container:');
+}
+
+function dockerNetworkRemoveCommand(string $network): string
+{
+    $command = 'docker network rm '.escapeShellValue($network);
+
+    return dockerCommandIgnoringError($command, 'network .* not found');
+}
+
+function dockerCommandIgnoringError(string $command, string $ignoredError): string
+{
+    $script = "output=\$({$command} 2>&1); exit_code=\$?; if [ \"\$exit_code\" -ne 0 ] && printf '%s' \"\$output\" | grep -Eq ".escapeShellValue($ignoredError)."; then exit 0; fi; if [ \"\$exit_code\" -ne 0 ]; then printf '%s\\n' \"\$output\" >&2; else printf '%s\\n' \"\$output\"; fi; exit \$exit_code";
+
+    return 'bash -c '.escapeShellValue($script);
+}
+
 function escapeShellValue(string $value): string
 {
     return "'".str_replace("'", "'\\''", $value)."'";
@@ -149,13 +528,18 @@ function executeInDocker(string $containerId, string $command)
     return "docker exec {$containerId} bash -c '{$escapedCommand}'";
 }
 
-function getContainerStatus(Server $server, string $container_id, bool $all_data = false, bool $throwError = false)
+function buildContainerStatusCommand(Server $server, string $container_id): string
 {
     if ($server->isSwarm()) {
-        $container = instant_remote_process(["docker service ls --filter 'name={$container_id}' --format '{{json .}}' "], $server, $throwError);
-    } else {
-        $container = instant_remote_process(["docker inspect --format '{{json .}}' {$container_id}"], $server, $throwError);
+        return 'docker service ls --filter '.escapeshellarg("name={$container_id}")." --format '{{json .}}' ";
     }
+
+    return "docker inspect --format '{{json .}}' ".escapeshellarg($container_id);
+}
+
+function getContainerStatus(Server $server, string $container_id, bool $all_data = false, bool $throwError = false)
+{
+    $container = instant_remote_process([buildContainerStatusCommand($server, $container_id)], $server, $throwError);
     if (! $container) {
         return 'exited';
     }
@@ -186,17 +570,32 @@ function generateApplicationContainerName(Application $application, $pull_reques
     // TODO: refactor generateApplicationContainerName, we do not need $application and $pull_request_id
 
     $consistent_container_name = $application->settings->is_consistent_container_name_enabled;
-    $now = now()->format('Hisu');
+    $name = $consistent_container_name ? ($application->settings->custom_internal_name ?: $application->uuid) : $application->uuid;
+    $now = now()->format('Ymd\THis');
     if ($pull_request_id !== 0 && $pull_request_id !== null) {
-        return $application->uuid.'-pr-'.$pull_request_id;
+        return $name.'-pr-'.$pull_request_id;
     } else {
         if ($consistent_container_name) {
-            return $application->uuid;
+            return $name;
         }
 
-        return $application->uuid.'-'.$now;
+        return ($application->settings->custom_container_name_prefix ?: $application->uuid).'-'.$now;
     }
 }
+
+/**
+ * Generated (rolling update) container names end with the timestamp from generateApplicationContainerName().
+ * Drop the legacy pattern once containers created before the ISO 8601 suffix are gone.
+ */
+function isGeneratedContainerName(string $containerName): bool
+{
+    $isoTimestampSuffix = '/-\d{8}T\d{6}$/';
+    $legacyTimestampSuffix = '/-\d{12}$/';
+
+    return preg_match($isoTimestampSuffix, $containerName) === 1
+        || preg_match($legacyTimestampSuffix, $containerName) === 1;
+}
+
 function get_port_from_dockerfile($dockerfile): ?int
 {
     $dockerfile_array = explode("\n", $dockerfile);
@@ -220,7 +619,7 @@ function defaultDatabaseLabels($database)
     $labels = collect([]);
     $labels->push('coolify.managed=true');
     $labels->push('coolify.type=database');
-    $labels->push('coolify.databaseId='.$database->id);
+    $labels->push('coolify.databaseUuid='.$database->uuid);
     $labels->push('coolify.resourceName='.Str::slug($database->name));
     $labels->push('coolify.serviceName='.Str::slug($database->name));
     $labels->push('coolify.projectName='.Str::slug($database->project()->name));
@@ -230,12 +629,12 @@ function defaultDatabaseLabels($database)
     return $labels;
 }
 
-function defaultLabels($id, $name, string $projectName, string $resourceName, string $environment, $pull_request_id = 0, string $type = 'application', $subType = null, $subId = null, $subName = null)
+function defaultLabels(string $uuid, $name, string $projectName, string $resourceName, string $environment, $pull_request_id = 0, string $type = 'application', $subType = null, ?string $subUuid = null, $subName = null)
 {
     $labels = collect([]);
     $labels->push('coolify.managed=true');
     $labels->push('coolify.version='.config('constants.coolify.version'));
-    $labels->push('coolify.'.$type.'Id='.$id);
+    $labels->push('coolify.'.$type.'Uuid='.$uuid);
     $labels->push("coolify.type=$type");
     $labels->push('coolify.name='.Str::slug($name));
     $labels->push('coolify.resourceName='.Str::slug($resourceName));
@@ -245,7 +644,7 @@ function defaultLabels($id, $name, string $projectName, string $resourceName, st
 
     $labels->push('coolify.pullRequestId='.$pull_request_id);
     if ($type === 'service') {
-        $subId && $labels->push('coolify.service.subId='.$subId);
+        $subUuid && $labels->push('coolify.service.subUuid='.$subUuid);
         $subType && $labels->push('coolify.service.subType='.$subType);
         $subName && $labels->push('coolify.service.subName='.Str::slug($subName));
     }
@@ -255,12 +654,12 @@ function defaultLabels($id, $name, string $projectName, string $resourceName, st
 
 function generateServiceSpecificFqdns(ServiceApplication|Application $resource)
 {
-    if ($resource->getMorphClass() === \App\Models\ServiceApplication::class) {
+    if ($resource->getMorphClass() === ServiceApplication::class) {
         $uuid = data_get($resource, 'uuid');
         $server = data_get($resource, 'service.server');
         $environment_variables = data_get($resource, 'service.environment_variables');
         $type = $resource->serviceType();
-    } elseif ($resource->getMorphClass() === \App\Models\Application::class) {
+    } elseif ($resource->getMorphClass() === Application::class) {
         $uuid = data_get($resource, 'uuid');
         $server = data_get($resource, 'destination.server');
         $environment_variables = data_get($resource, 'environment_variables');
@@ -353,7 +752,34 @@ function generateServiceSpecificFqdns(ServiceApplication|Application $resource)
     return $payload;
 }
 
-function fqdnLabelsForCaddy(string $network, string $uuid, Collection $domains, bool $is_force_https_enabled = false, $onlyPort = null, ?Collection $serviceLabels = null, ?bool $is_gzip_enabled = true, ?bool $is_stripprefix_enabled = true, ?string $service_name = null, ?string $image = null, string $redirect_direction = 'both', ?string $predefinedPort = null, bool $is_http_basic_auth_enabled = false, ?string $http_basic_auth_username = null, ?string $http_basic_auth_password = null)
+/**
+ * @param  Collection<int, string>|null  $noindex_domains
+ */
+function isNoindexDomain(string $domain, ?Collection $noindex_domains): bool
+{
+    if (blank($noindex_domains)) {
+        return false;
+    }
+
+    return $noindex_domains
+        ->map(fn (string $noindex_domain) => ValidationPatterns::normalizeApplicationDomainUrl($noindex_domain))
+        ->contains(ValidationPatterns::normalizeApplicationDomainUrl($domain));
+}
+
+/**
+ * Caddy site address of a domain. Maintenance blocks in the base Caddyfile must use the same
+ * address as the labels, so caddy-docker-proxy merges them into one site block.
+ */
+function caddySiteAddress(string $scheme, string $host, bool $isForceHttpsEnabled): string
+{
+    if ($scheme === 'https' && ! $isForceHttpsEnabled) {
+        return "http://{$host}, https://{$host}";
+    }
+
+    return "{$scheme}://{$host}";
+}
+
+function fqdnLabelsForCaddy(string $network, string $uuid, Collection $domains, bool $is_force_https_enabled = false, $onlyPort = null, ?Collection $serviceLabels = null, ?bool $is_gzip_enabled = true, ?bool $is_stripprefix_enabled = true, ?string $service_name = null, ?string $image = null, string $redirect_direction = 'both', ?string $predefinedPort = null, bool $is_http_basic_auth_enabled = false, ?string $http_basic_auth_username = null, ?string $http_basic_auth_password = null, ?Collection $noindex_domains = null, bool $is_traffic_analytics_enabled = false, array $domainPortOverrides = [], bool $supports_log_append = false, bool $supports_basic_auth_directive = false, ?int $http_basic_auth_bcrypt_cost = null, array $http_basic_auth_argon2id_options = [])
 {
     $labels = collect([]);
     if ($serviceLabels) {
@@ -364,8 +790,12 @@ function fqdnLabelsForCaddy(string $network, string $uuid, Collection $domains, 
 
     $is_http_basic_auth_enabled = $is_http_basic_auth_enabled && $http_basic_auth_username !== null && $http_basic_auth_password !== null;
     if ($is_http_basic_auth_enabled) {
-        $hashedPassword = password_hash($http_basic_auth_password, PASSWORD_BCRYPT, ['cost' => 10]);
+        $hashedPassword = $http_basic_auth_argon2id_options
+            ? password_hash($http_basic_auth_password, PASSWORD_ARGON2ID, $http_basic_auth_argon2id_options)
+            : password_hash($http_basic_auth_password, PASSWORD_BCRYPT, ['cost' => $http_basic_auth_bcrypt_cost ?? 10]);
     }
+
+    $trafficAppKey = caddyTrafficAppKey($uuid, $service_name);
 
     foreach ($domains as $loop => $domain) {
         $url = Url::fromString($domain);
@@ -373,7 +803,9 @@ function fqdnLabelsForCaddy(string $network, string $uuid, Collection $domains, 
         $path = $url->getPath();
         $host_without_www = str($host)->replace('www.', '');
         $schema = $url->getScheme();
-        $port = $url->getPort();
+        $siteAddress = caddySiteAddress($schema, $host, $is_force_https_enabled);
+        $portlessDomain = ServiceApplication::withoutPort($domain);
+        $port = $url->getPort() ?? ($domainPortOverrides[$portlessDomain] ?? null);
         $handle = 'handle_path';
         if (! $is_stripprefix_enabled) {
             $handle = 'handle';
@@ -384,8 +816,15 @@ function fqdnLabelsForCaddy(string $network, string $uuid, Collection $domains, 
         if (is_null($port) && $predefinedPort) {
             $port = $predefinedPort;
         }
-        $labels->push("caddy_{$loop}={$schema}://{$host}");
-        $labels->push("caddy_{$loop}.header=-Server");
+        $labels->push("caddy_{$loop}={$siteAddress}");
+        if (isNoindexDomain($domain, $noindex_domains)) {
+            // Caddy's header directive takes either inline arguments or a block,
+            // never both, so -Server has to move into the block alongside it.
+            $labels->push("caddy_{$loop}.header.0_-Server=");
+            $labels->push("caddy_{$loop}.header.1_X-Robots-Tag=\"noindex, nofollow\"");
+        } else {
+            $labels->push("caddy_{$loop}.header=-Server");
+        }
         $labels->push("caddy_{$loop}.try_files={path} /index.html /index.php");
 
         if ($port) {
@@ -397,21 +836,93 @@ function fqdnLabelsForCaddy(string $network, string $uuid, Collection $domains, 
         if ($is_gzip_enabled) {
             $labels->push("caddy_{$loop}.encode=zstd gzip");
         }
+        $redirect_schema = $is_force_https_enabled ? $schema : '{scheme}';
         if ($redirect_direction === 'www' && ! str($host)->startsWith('www.')) {
-            $labels->push("caddy_{$loop}.redir={$schema}://www.{$host}{uri}");
+            $labels->push("caddy_{$loop}.redir={$redirect_schema}://www.{$host}{uri}");
         }
         if ($redirect_direction === 'non-www' && str($host)->startsWith('www.')) {
-            $labels->push("caddy_{$loop}.redir={$schema}://{$host_without_www}{uri}");
+            $labels->push("caddy_{$loop}.redir={$redirect_schema}://{$host_without_www}{uri}");
         }
         if ($is_http_basic_auth_enabled) {
-            $labels->push("caddy_{$loop}.basicauth.{$http_basic_auth_username}=\"{$hashedPassword}\"");
+            // Caddy 2.8 renamed basicauth to basic_auth; see Server::caddySupportsBasicAuthDirective().
+            $basicAuthDirective = $supports_basic_auth_directive ? 'basic_auth' : 'basicauth';
+            if ($http_basic_auth_argon2id_options) {
+                $labels->push("caddy_{$loop}.{$basicAuthDirective}=argon2id");
+            }
+            $labels->push("caddy_{$loop}.{$basicAuthDirective}.{$http_basic_auth_username}=\"{$hashedPassword}\"");
+        }
+        if ($is_traffic_analytics_enabled) {
+            $labels->push("caddy_{$loop}.log.output=file /traffic/access.log");
+            // Explicit lumberjack roll options so the access log doesn't grow unbounded
+            // (Caddy's defaults are undocumented). caddy-docker-proxy renders these dotted
+            // keys as a nested block: output file /traffic/access.log { roll_size 20MiB; roll_keep 5; roll_keep_for 168h }.
+            // Rotation is rename-based, which is safe for Sentinel's tailer (it reopens on inode change).
+            $labels->push("caddy_{$loop}.log.output.roll_size=20MiB");
+            $labels->push("caddy_{$loop}.log.output.roll_keep=5");
+            $labels->push("caddy_{$loop}.log.output.roll_keep_for=168h");
+            $labels->push("caddy_{$loop}.log.format=json");
+            // Only Caddy 2.8+ knows log_append; see Server::caddySupportsLogAppend().
+            if ($supports_log_append) {
+                $labels->push("caddy_{$loop}.log_append=coolify_app_id {$trafficAppKey}");
+            }
         }
     }
 
     return $labels->sort();
 }
 
-function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_https_enabled = false, $onlyPort = null, ?Collection $serviceLabels = null, ?bool $is_gzip_enabled = true, ?bool $is_stripprefix_enabled = true, ?string $service_name = null, bool $generate_unique_uuid = false, ?string $image = null, string $redirect_direction = 'both', bool $is_http_basic_auth_enabled = false, ?string $http_basic_auth_username = null, ?string $http_basic_auth_password = null)
+function firstDockerComposeServicePort(mixed $service): ?int
+{
+    $portDefinitions = collect(data_get($service, 'expose', []))
+        ->merge(data_get($service, 'ports', []));
+
+    foreach ($portDefinitions as $definition) {
+        $protocol = is_array($definition)
+            ? data_get($definition, 'protocol', 'tcp')
+            : (str_contains((string) $definition, '/') ? str((string) $definition)->afterLast('/')->value() : 'tcp');
+        if ($protocol !== 'tcp') {
+            continue;
+        }
+
+        $port = is_array($definition)
+            ? data_get($definition, 'target')
+            : str((string) $definition)->before('/')->afterLast(':')->value();
+
+        if (is_numeric($port) && (int) $port >= 1 && (int) $port <= 65535) {
+            return (int) $port;
+        }
+    }
+
+    return null;
+}
+
+function dockerComposeServicePort(?string $compose, ?string $serviceName): ?int
+{
+    return dockerComposeServicePorts($compose, $serviceName)[0] ?? null;
+}
+
+function dockerComposeServicePorts(?string $compose, ?string $serviceName): array
+{
+    if (blank($compose) || blank($serviceName)) {
+        return [];
+    }
+
+    try {
+        $services = data_get(parseDockerComposeYaml($compose), 'services', []);
+    } catch (Throwable) {
+        return [];
+    }
+
+    $service = is_array($services) ? ($services[$serviceName] ?? []) : [];
+
+    return collect(data_get($service, 'expose', []))
+        ->merge(data_get($service, 'ports', []))
+        ->map(fn ($definition) => firstDockerComposeServicePort(['expose' => [$definition]]))
+        ->filter(fn ($port) => $port !== null)
+        ->unique()->values()->all();
+}
+
+function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_https_enabled = false, $onlyPort = null, ?Collection $serviceLabels = null, ?bool $is_gzip_enabled = true, ?bool $is_stripprefix_enabled = true, ?string $service_name = null, bool $generate_unique_uuid = false, ?string $image = null, string $redirect_direction = 'both', bool $is_http_basic_auth_enabled = false, ?string $http_basic_auth_username = null, ?string $http_basic_auth_password = null, ?Collection $noindex_domains = null, bool $escape_redirect_replacement_for_compose = true, array $domainPortOverrides = [], ?int $http_basic_auth_bcrypt_cost = null)
 {
     $labels = collect([]);
     $labels->push('traefik.enable=true');
@@ -423,7 +934,7 @@ function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_
     $is_http_basic_auth_enabled = $is_http_basic_auth_enabled && $http_basic_auth_username !== null && $http_basic_auth_password !== null;
     $http_basic_auth_label = "http-basic-auth-{$uuid}";
     if ($is_http_basic_auth_enabled) {
-        $hashedPassword = password_hash($http_basic_auth_password, PASSWORD_BCRYPT, ['cost' => 10]);
+        $hashedPassword = password_hash($http_basic_auth_password, PASSWORD_BCRYPT, ['cost' => $http_basic_auth_bcrypt_cost ?? 10]);
     }
 
     if ($is_http_basic_auth_enabled) {
@@ -459,22 +970,25 @@ function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_
     foreach ($domains as $loop => $domain) {
         try {
             if ($generate_unique_uuid) {
-                $uuid = new Cuid2;
+                $uuid = new_public_id();
             }
 
             $url = Url::fromString($domain);
             $host = $url->getHost();
             $path = $url->getPath();
             $schema = $url->getScheme();
-            $port = $url->getPort();
+            $portlessDomain = ServiceApplication::withoutPort($domain);
+            $port = $url->getPort() ?? ($domainPortOverrides[$portlessDomain] ?? null);
             if (is_null($port) && ! is_null($onlyPort)) {
                 $port = $onlyPort;
             }
             $http_label = "http-{$loop}-{$uuid}";
             $https_label = "https-{$loop}-{$uuid}";
             if ($service_name) {
-                $http_label = "http-{$loop}-{$uuid}-{$service_name}";
-                $https_label = "https-{$loop}-{$uuid}-{$service_name}";
+                // Dots in service names split Traefik label paths; hash avoids api.test/api-test collisions.
+                $safeServiceName = traefikSafeServiceNameSegment($service_name);
+                $http_label = "http-{$loop}-{$uuid}-{$safeServiceName}";
+                $https_label = "https-{$loop}-{$uuid}-{$safeServiceName}";
             }
             if (str($image)->contains('ghost')) {
                 $labels->push("traefik.http.middlewares.redir-ghost-{$uuid}.redirectregex.regex=^{$path}/(.*)");
@@ -484,16 +998,23 @@ function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_
                 $labels->push("caddy_{$loop}.handle_path.{$loop}_redir-ghost-{$uuid}.rewrite.replacement=/$1");
             }
 
+            $noindex_name = "{$loop}-{$uuid}-noindex";
+            $is_noindex = isNoindexDomain($domain, $noindex_domains);
+            if ($is_noindex) {
+                $labels->push("traefik.http.middlewares.{$noindex_name}.headers.customresponseheaders.X-Robots-Tag=noindex, nofollow");
+            }
+
             $to_www_name = "{$loop}-{$uuid}-to-www";
             $to_non_www_name = "{$loop}-{$uuid}-to-non-www";
+            $redirect_capture_prefix = $escape_redirect_replacement_for_compose ? '$$' : '$';
             $redirect_to_non_www = [
                 "traefik.http.middlewares.{$to_non_www_name}.redirectregex.regex=^(http|https)://www\.(.+)",
-                "traefik.http.middlewares.{$to_non_www_name}.redirectregex.replacement=\${1}://\${2}",
+                "traefik.http.middlewares.{$to_non_www_name}.redirectregex.replacement={$redirect_capture_prefix}{1}://{$redirect_capture_prefix}{2}",
                 "traefik.http.middlewares.{$to_non_www_name}.redirectregex.permanent=false",
             ];
             $redirect_to_www = [
                 "traefik.http.middlewares.{$to_www_name}.redirectregex.regex=^(http|https)://(?:www\.)?(.+)",
-                "traefik.http.middlewares.{$to_www_name}.redirectregex.replacement=\${1}://www.\${2}",
+                "traefik.http.middlewares.{$to_www_name}.redirectregex.replacement={$redirect_capture_prefix}{1}://www.{$redirect_capture_prefix}{2}",
                 "traefik.http.middlewares.{$to_www_name}.redirectregex.permanent=false",
             ];
             if ($schema === 'https') {
@@ -528,12 +1049,14 @@ function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_
                     if ($is_http_basic_auth_enabled) {
                         $middlewares->push($http_basic_auth_label);
                     }
+                    if ($is_noindex) {
+                        $middlewares->push($noindex_name);
+                    }
                     $middlewares_from_labels->each(function ($middleware_name) use ($middlewares) {
                         $middlewares->push($middleware_name);
                     });
                     if ($middlewares->isNotEmpty()) {
-                        $middlewares = $middlewares->join(',');
-                        $labels->push("traefik.http.routers.{$https_label}.middlewares={$middlewares}");
+                        $labels->push("traefik.http.routers.{$https_label}.middlewares={$middlewares->join(',')}");
                     }
                 } else {
                     $middlewares = collect([]);
@@ -554,12 +1077,14 @@ function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_
                     if ($is_http_basic_auth_enabled) {
                         $middlewares->push($http_basic_auth_label);
                     }
+                    if ($is_noindex) {
+                        $middlewares->push($noindex_name);
+                    }
                     $middlewares_from_labels->each(function ($middleware_name) use ($middlewares) {
                         $middlewares->push($middleware_name);
                     });
                     if ($middlewares->isNotEmpty()) {
-                        $middlewares = $middlewares->join(',');
-                        $labels->push("traefik.http.routers.{$https_label}.middlewares={$middlewares}");
+                        $labels->push("traefik.http.routers.{$https_label}.middlewares={$middlewares->join(',')}");
                     }
                 }
                 $labels->push("traefik.http.routers.{$https_label}.tls=true");
@@ -573,7 +1098,16 @@ function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_
                     $labels->push("traefik.http.routers.{$http_label}.service={$http_label}");
                 }
                 if ($is_force_https_enabled) {
-                    $labels->push("traefik.http.routers.{$http_label}.middlewares=redirect-to-https");
+                    $httpMiddlewares = collect([]);
+                    if ($is_noindex) {
+                        $httpMiddlewares->push($noindex_name);
+                    }
+                    $httpMiddlewares->push('redirect-to-https');
+                } else {
+                    $httpMiddlewares = $middlewares;
+                }
+                if ($httpMiddlewares->isNotEmpty()) {
+                    $labels->push("traefik.http.routers.{$http_label}.middlewares={$httpMiddlewares->join(',')}");
                 }
             } else {
                 // Set labels for http
@@ -606,6 +1140,9 @@ function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_
                     if ($is_http_basic_auth_enabled) {
                         $middlewares->push($http_basic_auth_label);
                     }
+                    if ($is_noindex) {
+                        $middlewares->push($noindex_name);
+                    }
                     $middlewares_from_labels->each(function ($middleware_name) use ($middlewares) {
                         $middlewares->push($middleware_name);
                     });
@@ -632,6 +1169,9 @@ function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_
                     if ($is_http_basic_auth_enabled) {
                         $middlewares->push($http_basic_auth_label);
                     }
+                    if ($is_noindex) {
+                        $middlewares->push($noindex_name);
+                    }
                     $middlewares_from_labels->each(function ($middleware_name) use ($middlewares) {
                         $middlewares->push($middleware_name);
                     });
@@ -641,7 +1181,7 @@ function fqdnLabelsForTraefik(string $uuid, Collection $domains, bool $is_force_
                     }
                 }
             }
-        } catch (\Throwable) {
+        } catch (Throwable) {
             continue;
         }
     }
@@ -661,9 +1201,14 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
         $appUuid = $appUuid.'-pr-'.$pull_request_id;
     }
     $labels = collect([]);
+    $httpBasicAuthArgon2idOptions = $application->usesArgon2idBasicAuth() ? [
+        'memory_cost' => $application->http_basic_auth_argon2id_memory_cost,
+        'time_cost' => $application->http_basic_auth_argon2id_time_cost,
+    ] : [];
     if ($pull_request_id === 0) {
         if ($application->fqdn) {
             $domains = str(data_get($application, 'fqdn'))->explode(',');
+            $noindexDomains = $application->noindexDomains();
             $shouldGenerateLabelsExactly = $application->destination->server->settings->generate_exact_labels;
             if ($shouldGenerateLabelsExactly) {
                 switch ($application->destination->server->proxyType()) {
@@ -679,6 +1224,9 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
                             is_http_basic_auth_enabled: $application->is_http_basic_auth_enabled,
                             http_basic_auth_username: $application->http_basic_auth_username,
                             http_basic_auth_password: $application->http_basic_auth_password,
+                            http_basic_auth_bcrypt_cost: $application->http_basic_auth_bcrypt_cost,
+                            noindex_domains: $noindexDomains,
+                            domainPortOverrides: $application->domain_port_overrides ?? [],
                         ));
                         break;
                     case ProxyTypes::CADDY->value:
@@ -694,6 +1242,13 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
                             is_http_basic_auth_enabled: $application->is_http_basic_auth_enabled,
                             http_basic_auth_username: $application->http_basic_auth_username,
                             http_basic_auth_password: $application->http_basic_auth_password,
+                            http_basic_auth_bcrypt_cost: $application->http_basic_auth_bcrypt_cost,
+                            http_basic_auth_argon2id_options: $httpBasicAuthArgon2idOptions,
+                            noindex_domains: $noindexDomains,
+                            is_traffic_analytics_enabled: $application->destination->server->isTrafficAnalyticsEnabled(),
+                            supports_log_append: $application->destination->server->caddySupportsLogAppend(),
+                            supports_basic_auth_directive: $application->destination->server->caddySupportsBasicAuthDirective(),
+                            domainPortOverrides: $application->domain_port_overrides ?? [],
                         ));
                         break;
                 }
@@ -709,6 +1264,10 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
                     is_http_basic_auth_enabled: $application->is_http_basic_auth_enabled,
                     http_basic_auth_username: $application->http_basic_auth_username,
                     http_basic_auth_password: $application->http_basic_auth_password,
+                    http_basic_auth_bcrypt_cost: $application->http_basic_auth_bcrypt_cost,
+                    noindex_domains: $noindexDomains,
+                    escape_redirect_replacement_for_compose: false,
+                    domainPortOverrides: $application->domain_port_overrides ?? [],
                 ));
                 $labels = $labels->merge(fqdnLabelsForCaddy(
                     network: $application->destination->network,
@@ -722,6 +1281,13 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
                     is_http_basic_auth_enabled: $application->is_http_basic_auth_enabled,
                     http_basic_auth_username: $application->http_basic_auth_username,
                     http_basic_auth_password: $application->http_basic_auth_password,
+                    http_basic_auth_bcrypt_cost: $application->http_basic_auth_bcrypt_cost,
+                    http_basic_auth_argon2id_options: $httpBasicAuthArgon2idOptions,
+                    noindex_domains: $noindexDomains,
+                    is_traffic_analytics_enabled: $application->destination->server->isTrafficAnalyticsEnabled(),
+                    supports_log_append: $application->destination->server->caddySupportsLogAppend(),
+                    supports_basic_auth_directive: $application->destination->server->caddySupportsBasicAuthDirective(),
+                    domainPortOverrides: $application->domain_port_overrides ?? [],
                 ));
             }
         }
@@ -731,6 +1297,8 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
         } else {
             $domains = collect([]);
         }
+        // Previews are ephemeral: every domain is noindex.
+        $noindexDomains = $domains;
         $shouldGenerateLabelsExactly = $application->destination->server->settings->generate_exact_labels;
         if ($shouldGenerateLabelsExactly) {
             switch ($application->destination->server->proxyType()) {
@@ -745,6 +1313,10 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
                         is_http_basic_auth_enabled: $application->is_http_basic_auth_enabled,
                         http_basic_auth_username: $application->http_basic_auth_username,
                         http_basic_auth_password: $application->http_basic_auth_password,
+                        http_basic_auth_bcrypt_cost: $application->http_basic_auth_bcrypt_cost,
+                        noindex_domains: $noindexDomains,
+                        escape_redirect_replacement_for_compose: false,
+                        domainPortOverrides: $preview->domain_port_overrides ?? [],
                     ));
                     break;
                 case ProxyTypes::CADDY->value:
@@ -759,6 +1331,13 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
                         is_http_basic_auth_enabled: $application->is_http_basic_auth_enabled,
                         http_basic_auth_username: $application->http_basic_auth_username,
                         http_basic_auth_password: $application->http_basic_auth_password,
+                        http_basic_auth_bcrypt_cost: $application->http_basic_auth_bcrypt_cost,
+                        http_basic_auth_argon2id_options: $httpBasicAuthArgon2idOptions,
+                        noindex_domains: $noindexDomains,
+                        is_traffic_analytics_enabled: $application->destination->server->isTrafficAnalyticsEnabled(),
+                        supports_log_append: $application->destination->server->caddySupportsLogAppend(),
+                        supports_basic_auth_directive: $application->destination->server->caddySupportsBasicAuthDirective(),
+                        domainPortOverrides: $preview->domain_port_overrides ?? [],
                     ));
                     break;
             }
@@ -773,6 +1352,10 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
                 is_http_basic_auth_enabled: $application->is_http_basic_auth_enabled,
                 http_basic_auth_username: $application->http_basic_auth_username,
                 http_basic_auth_password: $application->http_basic_auth_password,
+                http_basic_auth_bcrypt_cost: $application->http_basic_auth_bcrypt_cost,
+                noindex_domains: $noindexDomains,
+                escape_redirect_replacement_for_compose: false,
+                domainPortOverrides: $preview->domain_port_overrides ?? [],
             ));
             $labels = $labels->merge(fqdnLabelsForCaddy(
                 network: $application->destination->network,
@@ -785,6 +1368,13 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
                 is_http_basic_auth_enabled: $application->is_http_basic_auth_enabled,
                 http_basic_auth_username: $application->http_basic_auth_username,
                 http_basic_auth_password: $application->http_basic_auth_password,
+                http_basic_auth_bcrypt_cost: $application->http_basic_auth_bcrypt_cost,
+                http_basic_auth_argon2id_options: $httpBasicAuthArgon2idOptions,
+                noindex_domains: $noindexDomains,
+                is_traffic_analytics_enabled: $application->destination->server->isTrafficAnalyticsEnabled(),
+                supports_log_append: $application->destination->server->caddySupportsLogAppend(),
+                supports_basic_auth_directive: $application->destination->server->caddySupportsBasicAuthDirective(),
+                domainPortOverrides: $preview->domain_port_overrides ?? [],
             ));
         }
     }
@@ -1000,6 +1590,7 @@ function convertDockerRunToCompose(?string $custom_docker_run_options = null)
         '--ulimit',
         '--device',
         '--shm-size',
+        '--dns',
     ]);
     $mapping = collect([
         '--cap-add' => 'cap_add',
@@ -1013,6 +1604,7 @@ function convertDockerRunToCompose(?string $custom_docker_run_options = null)
         '--ip' => 'ip',
         '--ip6' => 'ip6',
         '--shm-size' => 'shm_size',
+        '--dns' => 'dns',
         '--gpus' => 'gpus',
         '--hostname' => 'hostname',
         '--entrypoint' => 'entrypoint',
@@ -1219,9 +1811,9 @@ function validateComposeFile(string $compose, int $server_id): string|Throwable
     $server = Server::ownedByCurrentTeam()->find($server_id);
     try {
         if (! $server) {
-            throw new \Exception('Server not found');
+            throw new Exception('Server not found');
         }
-        $yaml_compose = Yaml::parse($compose);
+        $yaml_compose = parseDockerComposeYaml($compose);
 
         // Remove Coolify's custom fields before Docker validation
         $yaml_compose = stripCoolifyCustomFields($yaml_compose);
@@ -1235,7 +1827,7 @@ function validateComposeFile(string $compose, int $server_id): string|Throwable
         ], $server);
 
         return 'OK';
-    } catch (\Throwable $e) {
+    } catch (Throwable $e) {
         return $e->getMessage();
     } finally {
         if (filled($server)) {
@@ -1246,18 +1838,45 @@ function validateComposeFile(string $compose, int $server_id): string|Throwable
     }
 }
 
-function getContainerLogs(Server $server, string $container_id, int $lines = 100): string
+function normalizeLogLines(mixed $lines, int $default = 100, int $max = 10000): int|string
 {
-    if ($server->isSwarm()) {
-        $output = instant_remote_process([
-            "docker service logs -n {$lines} {$container_id} 2>&1",
-        ], $server);
-    } else {
-        $output = instant_remote_process([
-            "docker logs -n {$lines} {$container_id} 2>&1",
-        ], $server);
+    if ($lines === 'all') {
+        return 'all';
     }
 
+    $lines = filter_var($lines, FILTER_VALIDATE_INT);
+    if ($lines === -1) {
+        return 'all';
+    }
+    if ($lines === false || $lines < -1) {
+        return $default;
+    }
+
+    return min($lines, $max);
+}
+
+function parseLogTimestampFlag(mixed $showTimestamps): bool
+{
+    return filter_var($showTimestamps, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false;
+}
+
+function buildContainerLogsCommand(Server $server, string $container_id, int|string $lines = 100, bool $showTimestamps = false): string
+{
+    $command = "docker logs -n {$lines}";
+    if ($server->isSwarm()) {
+        $command = "docker service logs -n {$lines}";
+    }
+
+    if ($showTimestamps) {
+        $command .= ' --timestamps';
+    }
+
+    return "{$command} ".escapeshellarg($container_id).' 2>&1';
+}
+
+function getContainerLogs(Server $server, string $container_id, int|string $lines = 100, bool $showTimestamps = false): string
+{
+    $output = instant_remote_process([buildContainerLogsCommand($server, $container_id, $lines, $showTimestamps)], $server);
     $output = removeAnsiColors($output);
 
     return $output;
@@ -1351,25 +1970,29 @@ function escapeBashDoubleQuoted(?string $value): string
  * Generate Docker build arguments from environment variables collection
  * Returns only keys (no values) since values are sourced from environment via export
  *
- * @param  \Illuminate\Support\Collection|array  $variables  Collection of variables with 'key', 'value', and optionally 'is_multiline'
- * @return \Illuminate\Support\Collection Collection of formatted --build-arg strings (keys only)
+ * @param  Collection|array  $variables  Collection of variables with 'key', 'value', and optionally 'is_multiline'
+ * @return Collection Collection of formatted --build-arg strings (keys only)
  */
-function generateDockerBuildArgs($variables): \Illuminate\Support\Collection
+function generateDockerBuildArgs($variables): Collection
 {
     $variables = collect($variables);
 
     return $variables->map(function ($var) {
         $key = is_array($var) ? data_get($var, 'key') : $var->key;
 
+        if (! ValidationPatterns::isValidEnvironmentVariableKey((string) $key)) {
+            throw new InvalidArgumentException('Invalid environment variable key.');
+        }
+
         // Only return the key - Docker will get the value from the environment
-        return "--build-arg {$key}";
+        return '--build-arg '.escapeshellarg((string) $key);
     });
 }
 
 /**
  * Generate Docker environment flags from environment variables collection
  *
- * @param  \Illuminate\Support\Collection|array  $variables  Collection of variables with 'key', 'value', and optionally 'is_multiline'
+ * @param  Collection|array  $variables  Collection of variables with 'key', 'value', and optionally 'is_multiline'
  * @return string Space-separated environment flags
  */
 function generateDockerEnvFlags($variables): string
@@ -1380,19 +2003,17 @@ function generateDockerEnvFlags($variables): string
         ->map(function ($var) {
             $key = is_array($var) ? data_get($var, 'key') : $var->key;
             $value = is_array($var) ? data_get($var, 'value') : $var->value;
-            $isMultiline = is_array($var) ? data_get($var, 'is_multiline', false) : ($var->is_multiline ?? false);
 
-            if ($isMultiline) {
-                // For multiline variables, strip surrounding quotes and escape for bash
-                $raw_value = trim($value, "'");
-                $escaped_value = str_replace(['\\', '"', '$', '`'], ['\\\\', '\\"', '\\$', '\\`'], $raw_value);
-
-                return "-e {$key}=\"{$escaped_value}\"";
+            if (! ValidationPatterns::isValidEnvironmentVariableKey((string) $key)) {
+                throw new InvalidArgumentException('Invalid environment variable key.');
             }
 
-            $escaped_value = escapeshellarg($value);
+            $isMultiline = is_array($var) ? data_get($var, 'is_multiline', false) : ($var->is_multiline ?? false);
+            if ($isMultiline) {
+                $value = trim($value, "'");
+            }
 
-            return "-e {$key}={$escaped_value}";
+            return '-e '.escapeshellarg("{$key}={$value}");
         })
         ->implode(' ');
 }
@@ -1487,4 +2108,38 @@ function injectDockerComposeBuildArgs(string $command, string $buildArgsString):
     );
 
     return $modifiedCommand ?? $command;
+}
+
+/**
+ * Run a command that uses the Railpack BuildKit builder, then stop the builder when no other
+ * process uses it. An idle buildkitd keeps the memory of earlier builds until it restarts.
+ *
+ * The lock file is in the buildx metadata directory, which all helper containers of a server share.
+ * The script has no `&&`, `||`, pipe, or `$(`, because the sudo parser would put sudo into it.
+ */
+function railpackBuilderLockedScript(string $command): string
+{
+    return 'exec 9>/root/.docker/buildx/coolify-railpack.lock; if flock -s 9; then :; else exit $?; fi; '
+        ."{$command}; status=\$?; "
+        .'if flock -n -x 9; then DOCKER_CONFIG=/root/.docker docker buildx stop coolify-railpack >/dev/null 2>&1; fi; '
+        .'exit $status';
+}
+
+/**
+ * The buildx metadata of a server, as the `docker run -v` source that the deployment helper uses.
+ */
+function railpackBuildxMetadataVolume(Server $server): string
+{
+    return isDev() && $server->isLocalhost() ? 'coolify-buildx' : '$HOME/.docker/buildx';
+}
+
+/**
+ * Run a command for the Railpack builder from a temporary helper container, then stop the builder
+ * when no build uses it.
+ */
+function railpackBuilderHelperCommand(string $buildxMetadataVolume, string $helperImage, string $command): string
+{
+    $script = railpackBuilderLockedScript($command);
+
+    return "docker run --rm -v {$buildxMetadataVolume}:/root/.docker/buildx -v /var/run/docker.sock:/var/run/docker.sock {$helperImage} bash -c '{$script}' 2>/dev/null || true";
 }

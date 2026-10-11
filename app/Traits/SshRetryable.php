@@ -40,6 +40,7 @@ trait SshRetryable
             'Remote host closed connection',
             'Authentication failed',
             'Too many authentication failures',
+            'SSH command failed with exit code: 255',
         ];
 
         $lowerErrorOutput = strtolower($errorOutput);
@@ -50,6 +51,23 @@ trait SshRetryable
         }
 
         return false;
+    }
+
+    /**
+     * Check if a failure came from the SSH connection and not from the remote command.
+     *
+     * SSH exits with 255 for its own errors. Any other non-zero exit code comes from the
+     * remote command, whose output can contain words such as "Connection refused" (for
+     * example a failed S3 upload). Retrying would replay commands that already ran.
+     */
+    protected function isRetryableSshFailure(\Throwable $exception): bool
+    {
+        $exitCode = $exception->getCode();
+        if (is_int($exitCode) && $exitCode > 0 && $exitCode !== 255) {
+            return false;
+        }
+
+        return $this->isRetryableSshError($exception->getMessage());
     }
 
     /**
@@ -81,7 +99,6 @@ trait SshRetryable
         $lastErrorMessage = '';
         // Randomly fail the command with a key exchange error for testing
         // if (random_int(1, 10) === 1) { // 10% chance to fail
-        //     ray('SSH key exchange failed: kex_exchange_identification: read: Connection reset by peer');
         //     throw new \RuntimeException('SSH key exchange failed: kex_exchange_identification: read: Connection reset by peer');
         // }
         for ($attempt = 0; $attempt < $maxRetries; $attempt++) {
@@ -92,7 +109,7 @@ trait SshRetryable
                 $lastErrorMessage = $e->getMessage();
 
                 // Check if it's retryable and not the last attempt
-                if ($this->isRetryableSshError($lastErrorMessage) && $attempt < $maxRetries - 1) {
+                if ($this->isRetryableSshFailure($e) && $attempt < $maxRetries - 1) {
                     $delay = $this->calculateRetryDelay($attempt);
 
                     // Add deployment log if available (for ExecuteRemoteCommand trait)

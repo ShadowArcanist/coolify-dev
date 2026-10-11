@@ -4,6 +4,12 @@ namespace App\Notifications\Dto;
 
 class NtfyMessage
 {
+    /** ntfy rejects or converts longer messages, so stay below its default 4096 byte limit. */
+    public const MAX_MESSAGE_BYTES = 4000;
+
+    /** ntfy accepts at most three actions per message. */
+    public const MAX_ACTIONS = 3;
+
     public ?int $customPriority = null;
 
     public function __construct(
@@ -43,7 +49,7 @@ class NtfyMessage
         $payload = [
             'topic' => $topic,
             'title' => $this->title,
-            'message' => $this->message,
+            'message' => $this->limitedMessage(),
             'priority' => $this->getEffectivePriority(),
             'tags' => [$this->getLevelIcon()],
         ];
@@ -65,9 +71,20 @@ class NtfyMessage
         }
 
         if (! empty($actions)) {
-            $payload['actions'] = $actions;
+            $payload['actions'] = array_slice($actions, 0, self::MAX_ACTIONS);
         }
 
         return $payload;
+    }
+
+    private function limitedMessage(): string
+    {
+        if (strlen($this->message) <= self::MAX_MESSAGE_BYTES) {
+            return $this->message;
+        }
+
+        $ellipsis = '…';
+
+        return mb_strcut($this->message, 0, self::MAX_MESSAGE_BYTES - strlen($ellipsis), 'UTF-8').$ellipsis;
     }
 }

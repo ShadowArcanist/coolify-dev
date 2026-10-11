@@ -35,6 +35,7 @@ return new class extends Migration
                 $table->boolean('deployment_success_ntfy_notifications')->default(false);
                 $table->boolean('deployment_failure_ntfy_notifications')->default(true);
                 $table->boolean('status_change_ntfy_notifications')->default(false);
+                $table->boolean('restart_limit_reached_ntfy_notifications')->default(true);
                 $table->boolean('backup_success_ntfy_notifications')->default(false);
                 $table->boolean('backup_failure_ntfy_notifications')->default(true);
                 $table->boolean('scheduled_task_success_ntfy_notifications')->default(false);
@@ -75,6 +76,7 @@ return new class extends Migration
                             'deployment_success_ntfy_notifications' => false,
                             'deployment_failure_ntfy_notifications' => true,
                             'status_change_ntfy_notifications' => false,
+                            'restart_limit_reached_ntfy_notifications' => true,
                             'backup_success_ntfy_notifications' => false,
                             'backup_failure_ntfy_notifications' => true,
                             'scheduled_task_success_ntfy_notifications' => false,
@@ -88,7 +90,7 @@ return new class extends Migration
                             'traefik_outdated_ntfy_notifications' => true,
                         ]);
                     }
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     Log::error('Error creating ntfy notification settings for team '.$team->id.': '.$e->getMessage());
                 }
             }
